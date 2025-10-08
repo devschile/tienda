@@ -1,7 +1,7 @@
 // Componente mejorado para mostrar productos
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import type { AirtableRecord } from '@/types/product';
+import type { AirtableRecord } from '@/types/products';
 import { ShoppingCart, Eye, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 
@@ -13,7 +13,8 @@ interface ProductCardProps {
 
 export function ProductCard({ product, onImageClick, onBuyClick }: ProductCardProps) {
   const [isHovered, setIsHovered] = useState(false);
-  const { nombre, descripcion, precio, imagen_miniatura } = product.fields;
+  const { nombre, descripcion, precio, imagen_miniatura, activo } = product.fields;
+  const isSold = !activo;
   
   const thumbnailUrl = imagen_miniatura?.[0]?.thumbnails?.large?.url || imagen_miniatura?.[0]?.url || '/assets/images/default.svg';
   
@@ -27,7 +28,7 @@ export function ProductCard({ product, onImageClick, onBuyClick }: ProductCardPr
 
   return (
     <Card 
-      className="group flex flex-col h-full bg-white/90 backdrop-blur-sm hover:shadow-2xl transition-all duration-300 border-orange-100/50 hover:border-orange-200 hover:-translate-y-2 overflow-hidden"
+      className={`group flex flex-col h-full bg-white/90 backdrop-blur-sm hover:shadow-2xl transition-all duration-300 border-orange-100/50 hover:border-orange-200 hover:-translate-y-2 overflow-hidden ${isSold ? 'product-sold' : ''}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -42,8 +43,17 @@ export function ProductCard({ product, onImageClick, onBuyClick }: ProductCardPr
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
           />
           
+          {/* Sold indicator */}
+          {isSold && (
+            <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-10">
+              <div className="bg-red-500 text-white px-4 py-2 rounded-lg font-bold text-lg shadow-lg">
+                VENDIDO
+              </div>
+            </div>
+          )}
+          
           {/* Overlay on hover */}
-          <div className={`absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-black/0 transition-opacity duration-300 ${isHovered ? 'opacity-100' : 'opacity-0'}`}>
+          <div className={`absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-black/0 transition-opacity duration-300 ${isHovered ? 'opacity-100' : 'opacity-0'} ${isSold ? 'z-0' : ''}`}>
             <div className="absolute bottom-4 left-4 right-4 flex justify-center">
               <Button
                 size="sm"
@@ -53,6 +63,7 @@ export function ProductCard({ product, onImageClick, onBuyClick }: ProductCardPr
                   e.stopPropagation();
                   onImageClick(product);
                 }}
+                disabled={isSold}
               >
                 <Eye className="h-4 w-4 mr-2" />
                 Ver Detalles
@@ -81,11 +92,16 @@ export function ProductCard({ product, onImageClick, onBuyClick }: ProductCardPr
 
       <CardFooter className="p-5 pt-0">
         <Button 
-          className="w-full bg-gradient-to-r from-rose-500 to-orange-500 hover:from-rose-600 hover:to-orange-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 group/btn"
-          onClick={() => onBuyClick(product)}
+          className={`w-full shadow-lg hover:shadow-xl transition-all duration-300 group/btn ${
+            isSold 
+              ? 'bg-gray-400 cursor-not-allowed' 
+              : 'bg-gradient-to-r from-rose-500 to-orange-500 hover:from-rose-600 hover:to-orange-600'
+          } text-white`}
+          onClick={() => !isSold && onBuyClick(product)}
+          disabled={isSold}
         >
           <ShoppingCart className="h-4 w-4 mr-2 group-hover/btn:animate-bounce" />
-          Comprar Ahora
+          {isSold ? 'Vendido' : 'Comprar Ahora'}
         </Button>
       </CardFooter>
     </Card>
