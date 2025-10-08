@@ -166,8 +166,8 @@ Este proyecto está bajo la Licencia MIT - ver el archivo `LICENSE` para más de
 ## 📞 Contacto
 
 - **Creadora**: Inés
-- **Desarrollador**: Jorge Puñán
-- **Email**: [tu-email@ejemplo.com]
+- **Desarrollador**: Jorge Epuñan Hernández
+- **Email**: [juanbrujo@gmail.com]
 
 ---
 

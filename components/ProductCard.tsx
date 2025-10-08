@@ -1,7 +1,6 @@
 // Componente mejorado para mostrar productos
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import type { AirtableRecord } from '@/types/product';
 import { ShoppingCart, Eye, Sparkles } from 'lucide-react';
 import { useState } from 'react';
@@ -59,14 +58,6 @@ export function ProductCard({ product, onImageClick, onBuyClick }: ProductCardPr
                 Ver Detalles
               </Button>
             </div>
-          </div>
-
-          {/* Badge decorativo */}
-          <div className="absolute top-3 right-3">
-            <Badge className="bg-gradient-to-r from-rose-500 to-orange-500 text-white border-none shadow-lg">
-              <Sparkles className="h-3 w-3 mr-1" />
-              Hecho a Mano
-            </Badge>
           </div>
         </div>
 
