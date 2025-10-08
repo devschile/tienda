@@ -1,0 +1,20 @@
+metadata:
+  favicon: ''
+  title: New module
+  description: ''
+  breakpoints: []
+  rendererCachingEnabled: true
+  skipDepsComparisonInCompilerCache: false
+  vibeAppPhase: impl
+  vibeAppAutoApplyMigrations: true
+  vibeAppConnectedDatasources: []
+  chatId: '81503'
+appSettings:
+  properties:
+    defaultData: '{}'
+  actions: {}
+  gridVersion: 2
+  density: compact
+  hideRenderCachingSettings: false
+internalType: vibe_project
+id: YYC4Iijlbx
