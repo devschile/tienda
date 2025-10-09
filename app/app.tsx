@@ -159,7 +159,10 @@ function App() {
     }
   };
 
-  const products = productsData?.records || [];
+  const allProducts = productsData?.records || [];
+  const availableProducts = allProducts.filter(product => product.fields.activo);
+  const totalCount = allProducts.length;
+  const availableCount = availableProducts.length;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-rose-50">
@@ -206,8 +209,8 @@ function App() {
                 <Sparkles className="h-5 w-5" />
                 <span className="text-sm font-semibold uppercase tracking-wide">Colección Especial</span>
               </div>
-              <h2 className="text-2xl md:text-3xl font-bold mb-2">Creaciones Únicas para Ti</h2>
-              <p className="text-orange-50 max-w-xl">Cada amigurumi es tejido a mano con amor, cuidado y los mejores materiales</p>
+              <h2 className="text-2xl md:text-3xl font-bold mb-2">Mis Creaciones Únicas para Ti</h2>
+              <p className="text-orange-50 max-w-xl">Cada amigurumi lo tejo a mano con amor, cuidado y los mejores materiales</p>
             </div>
             <ShoppingBag className="h-24 w-24 text-white/20 hidden md:block" />
           </div>
@@ -219,7 +222,7 @@ function App() {
         {loadingProducts && (
           <div className="flex flex-col justify-center items-center min-h-[400px]">
             <Loader2 className="h-16 w-16 animate-spin text-orange-400 mb-4" />
-            <p className="text-orange-600 font-medium">Cargando productos mágicos...</p>
+            <p className="text-orange-600 font-medium">Cargando amigurumis mágicos...</p>
           </div>
         )}
 
@@ -232,37 +235,42 @@ function App() {
               Oops, algo salió mal
             </p>
             <p className="text-red-600 text-sm">
-              No pudimos cargar los productos. Verifica tu configuración de Airtable.
+              No pudimos cargar los amigurumis. Verifica tu configuración de Airtable.
             </p>
           </div>
         )}
 
-        {!loadingProducts && !errorProducts && products.length === 0 && (
+        {!loadingProducts && !errorProducts && allProducts.length === 0 && (
           <div className="bg-white/80 backdrop-blur-sm border-2 border-orange-100 rounded-2xl p-12 text-center shadow-lg">
             <div className="inline-flex items-center justify-center w-20 h-20 bg-orange-100 rounded-full mb-6">
               <ShoppingBag className="h-10 w-10 text-orange-500" />
             </div>
             <h3 className="text-xl font-bold text-gray-800 mb-2">
-              No hay productos disponibles
+              No hay amigurumis disponibles
             </h3>
             <p className="text-gray-600">
-              Pronto tendremos nuevas creaciones disponibles. ¡Vuelve pronto!
+              Pronto tendré nuevas creaciones disponibles. ¡Vuelve pronto!
             </p>
           </div>
         )}
 
-        {!loadingProducts && products.length > 0 && (
+        {!loadingProducts && allProducts.length > 0 && (
           <>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-gray-800">
-                Nuestras Creaciones
+                Mis Creaciones
               </h2>
-              <p className="text-sm text-orange-600 font-medium">
-                {products.length} {products.length === 1 ? 'producto' : 'productos'} disponibles
-              </p>
+              <div className="text-right">
+                <p className="text-sm text-orange-600 font-medium">
+                  {availableCount} {availableCount === 1 ? 'amigurumi' : 'amigurumis'} disponibles
+                </p>
+                <p className="text-xs text-gray-500">
+                  {totalCount} {totalCount === 1 ? 'amigurumi hecho' : 'amigurumis hechos'} en total
+                </p>
+              </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
-              {products.map((product) => (
+              {allProducts.map((product) => (
                 <ProductCard
                   key={product.id}
                   product={product}
