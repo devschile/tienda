@@ -42,12 +42,18 @@ Una aplicación web de e-commerce para la venta de amigurumis hechos a mano, cre
    npm install
    ```
 
-3. **Inicia el servidor de desarrollo:**
+3. **Configura las variables de entorno:**
+   ```bash
+   cp .env.example .env
+   ```
+   Luego edita el archivo `.env` con tus credenciales de Airtable.
+
+4. **Inicia el servidor de desarrollo:**
    ```bash
    npm run dev
    ```
 
-4. **Abre tu navegador en:**
+5. **Abre tu navegador en:**
    ```
    http://localhost:3000
    ```
@@ -88,17 +94,16 @@ amigurumis-ines/
 └── package.json          # Configuración del proyecto
 ```
 
-## 🔧 Configuración de Airtable (Opcional)
+## 🔧 Configuración de Airtable
 
 El proyecto está configurado para trabajar con Airtable como base de datos. Para conectar con tu propia base de datos:
 
-1. **Configura las variables en `app/app.tsx`:**
-   ```typescript
-   const AIRTABLE_CONFIG = {
-     apiKey: 'tu_api_key_de_airtable',
-     baseId: 'tu_base_id',
-     tableName: 'Productos',
-   };
+1. **Configura las variables de entorno en el archivo `.env`:**
+   ```bash
+   VITE_AIRTABLE_API_KEY=tu_api_key_de_airtable
+   VITE_AIRTABLE_BASE_ID=tu_base_id
+   VITE_AIRTABLE_TABLE_NAME=Productos
+   VITE_PAYMENT_GATEWAY_URL=https://tu-pasarela-de-pagos.com/api/checkout
    ```
 
 2. **Estructura requerida de la tabla en Airtable:**

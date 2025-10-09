@@ -10,12 +10,12 @@ import type { AirtableRecord, AirtableResponse } from '@/types/products';
 import { Info, Loader2, Heart, ShoppingBag, Sparkles } from 'lucide-react';
 
 const AIRTABLE_CONFIG = {
-  apiKey: 'patczA0XlF83dgG6D.85c3036788a934e9f6e724baef6253838ea4a835ff2d4abd315edc0de6a09d16',
-  baseId: 'apprLGWcETltWUXpn',
-  tableName: 'Productos',
+  apiKey: import.meta.env.VITE_AIRTABLE_API_KEY,
+  baseId: import.meta.env.VITE_AIRTABLE_BASE_ID,
+  tableName: import.meta.env.VITE_AIRTABLE_TABLE_NAME,
 };
 
-const PAYMENT_GATEWAY_URL = 'https://tu-pasarela-de-pagos.com/api/checkout';
+const PAYMENT_GATEWAY_URL = import.meta.env.VITE_PAYMENT_GATEWAY_URL;
 
 function App() {
   const { toast } = useToast();
