@@ -2,12 +2,24 @@
 const mercadopago = require('mercadopago');
 
 exports.handler = async (event, context) => {
-  // Set CORS headers
+  // Get allowed origins from environment (should be set in Netlify)
+  const allowedOrigins = process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(',')
+    : ['https://amigurumi-de-ines.netlify.app'];
+  
+  const origin = event.headers.origin || event.headers.Origin || '';
+  const isAllowedOrigin = allowedOrigins.includes(origin) || allowedOrigins.includes('*');
+
+  // Set secure CORS headers
   const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Origin': isAllowedOrigin ? origin : 'null',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Content-Type': 'application/json'
+    'Access-Control-Allow-Credentials': 'true',
+    'Content-Type': 'application/json',
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'DENY',
+    'X-XSS-Protection': '1; mode=block'
   };
 
   // Handle preflight requests
@@ -28,12 +40,23 @@ exports.handler = async (event, context) => {
     };
   }
 
+  // Validate origin for security
+  if (!isAllowedOrigin) {
+    console.warn('Blocked request from unauthorized origin:', origin);
+    return {
+      statusCode: 403,
+      headers,
+      body: JSON.stringify({ error: 'Origin not allowed' })
+    };
+  }
+
   try {
     // Get MercadoPago credentials from environment variables
     const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
     
     if (!accessToken) {
-      throw new Error('MercadoPago access token not configured');
+      console.error('MercadoPago access token not configured');
+      throw new Error('Payment service unavailable');
     }
 
     // Configure MercadoPago SDK
@@ -41,44 +64,85 @@ exports.handler = async (event, context) => {
       access_token: accessToken
     });
 
-    // Parse request body
-    const requestBody = JSON.parse(event.body || '{}');
+    // Parse and validate request body
+    let requestBody;
+    try {
+      requestBody = JSON.parse(event.body || '{}');
+    } catch (parseError) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'Invalid JSON in request body' })
+      };
+    }
+
     const { amount, productName, productId } = requestBody;
 
-    // Validate required fields
+    // Enhanced input validation
     if (!amount || !productName) {
       return {
         statusCode: 400,
         headers,
-        body: JSON.stringify({ 
-          error: 'Missing required fields: amount, productName' 
+        body: JSON.stringify({
+          error: 'Missing required fields: amount, productName'
         })
       };
     }
 
-    // Create payment preference
+    // Validate data types and sanitize inputs
+    const numericAmount = parseFloat(amount);
+    if (isNaN(numericAmount) || numericAmount <= 0) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({
+          error: 'Invalid amount: must be a positive number'
+        })
+      };
+    }
+
+    if (numericAmount > 1000000) { // Max 1M CLP
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({
+          error: 'Amount exceeds maximum limit'
+        })
+      };
+    }
+
+    // Sanitize string inputs
+    const sanitizedProductName = String(productName).substring(0, 100).replace(/[<>]/g, '');
+    const sanitizedProductId = productId ? String(productId).substring(0, 50).replace(/[<>]/g, '') : null;
+
+    // Get site URL from environment
+    const siteUrl = process.env.URL || process.env.SITE_URL || 'https://amigurumi-de-ines.netlify.app';
+
+    // Create payment preference with enhanced security
     const preference = {
       items: [
         {
-          id: productId || 'amigurumi-' + Date.now(),
-          title: productName,
-          description: `Amigurumi: ${productName}`,
-          unit_price: parseFloat(amount),
+          id: sanitizedProductId || `amigurumi-${Date.now()}`,
+          title: sanitizedProductName,
+          description: `Amigurumi: ${sanitizedProductName}`,
+          unit_price: numericAmount,
           currency_id: 'CLP',
-          quantity: 1
+          quantity: 1,
+          category_id: 'handmade'
         }
       ],
       payment_methods: {
         excluded_payment_types: [
           {
-            id: 'ticket'
+            id: 'ticket' // Exclude bank transfers for faster processing
           }
-        ]
+        ],
+        installments: 1 // Limit to single payment for simplicity
       },
       back_urls: {
-        success: `${process.env.URL || 'https://amigurumi-de-ines.netlify.app'}/success`,
-        failure: `${process.env.URL || 'https://amigurumi-de-ines.netlify.app'}/failure`,
-        pending: `${process.env.URL || 'https://amigurumi-de-ines.netlify.app'}/pending`
+        success: `${siteUrl}/success`,
+        failure: `${siteUrl}/failure`,
+        pending: `${siteUrl}/pending`
       },
       auto_return: 'approved',
       expires: false,
@@ -111,15 +175,18 @@ exports.handler = async (event, context) => {
     };
 
   } catch (error) {
-    console.error('Error creating payment:', error);
+    console.error('Error creating payment:', error.message);
+    
+    // Don't expose internal error details in production
+    const isDevelopment = process.env.NODE_ENV === 'development';
     
     return {
       statusCode: 500,
       headers,
       body: JSON.stringify({
         success: false,
-        error: 'Error creating payment. Please try again.',
-        details: error.message
+        error: 'Payment service temporarily unavailable. Please try again.',
+        ...(isDevelopment && { details: error.message })
       })
     };
   }
