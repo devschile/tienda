@@ -1,179 +1,198 @@
-# 🧸 Amigurumis de Inés
+# Amigurumis de Inés - Ecommerce con MercadoPago
 
-Una aplicación web de e-commerce para la venta de amigurumis hechos a mano, creada con React, TypeScript y Vite.
+Sitio web para la venta de amigurumis tejidos a mano por Inés. Construido con React, TypeScript, Tailwind CSS y Vite. **Ahora con integración completa de MercadoPago para pagos reales**.
 
 ## ✨ Características
 
-- 🎨 Diseño moderno y responsive con Tailwind CSS
-- 🛍️ Catálogo de productos con modales de imagen
-- 💳 Simulación de proceso de pago
-- 🔔 Sistema de notificaciones toast
-- 📱 Totalmente responsive
-- ⚡ Desarrollo rápido con Vite
-- 🎯 TypeScript para mayor seguridad de tipos
+- 🎨 Diseño responsivo y atractivo con gradientes cálidos
+- 📱 Interfaz moderna optimizada para móviles
+- 🛍️ Catálogo de productos dinámico desde Airtable
+- 💳 **Pagos reales con MercadoPago** (¡NUEVO!)
+- 🔒 Pago seguro con redirección a MercadoPago
+- ✅ Páginas de confirmación: éxito, falla y pendiente
+- 📊 Gestión de estados de pago completa
+- 🎯 Sin carrito de compras - compra directa por producto
 
-## 🛠️ Tecnologías Utilizadas
+## 🛠️ Tecnologías
 
-- **React 18** - Biblioteca de interfaz de usuario
-- **TypeScript** - Tipado estático
-- **Vite** - Herramienta de build y desarrollo
-- **Tailwind CSS** - Framework de CSS utilitario
-- **Radix UI** - Componentes accesibles
-- **Lucide React** - Iconos
-- **ESLint** - Linting de código
+- **Frontend**: React 18 + TypeScript + Vite
+- **Estilos**: Tailwind CSS + Gradientes personalizados
+- **UI Components**: Radix UI + shadcn/ui
+- **Datos**: Airtable API
+- **Pagos**: MercadoPago SDK + Netlify Functions
+- **Despliegue**: Netlify (Frontend + Functions)
 
 ## 🚀 Instalación y Configuración
 
-### Prerrequisitos
+### 1. Instalar Dependencias
 
-- Node.js (versión 16 o superior)
-- npm o yarn
+```bash
+npm install
+```
 
-### Pasos de instalación
+### 2. Configurar Variables de Entorno
 
-1. **Clona el repositorio:**
-   ```bash
-   git clone <url-del-repositorio>
-   cd amigurumis-ines
-   ```
+Crea un archivo `.env` basado en `.env.example`:
 
-2. **Instala las dependencias:**
-   ```bash
-   npm install
-   ```
+```bash
+cp .env.example .env
+```
 
-3. **Configura las variables de entorno:**
-   ```bash
-   cp .env.example .env
-   ```
-   Luego edita el archivo `.env` con tus credenciales de Airtable.
+**Variables requeridas:**
 
-4. **Inicia el servidor de desarrollo:**
-   ```bash
-   npm run dev
-   ```
+#### Airtable (para productos)
+```env
+VITE_AIRTABLE_API_KEY=tu_airtable_api_key_aqui
+VITE_AIRTABLE_BASE_ID=tu_base_id_aqui
+VITE_AIRTABLE_TABLE_NAME=Productos
+```
 
-5. **Abre tu navegador en:**
-   ```
-   http://localhost:3000
-   ```
+#### MercadoPago (para pagos)
+```env
+# Clave pública (frontend) - esta se puede exponer
+VITE_MERCADOPAGO_PUBLIC_KEY=tu_public_key_aqui
 
-## 📝 Scripts Disponibles
+# Clave privada (backend) - solo en Netlify Functions
+MERCADOPAGO_ACCESS_TOKEN=tu_access_token_aqui
+```
 
-- `npm run dev` - Inicia el servidor de desarrollo
-- `npm run build` - Construye la aplicación para producción
-- `npm run preview` - Preview de la build de producción
-- `npm run lint` - Ejecuta ESLint
-- `npm run lint:fix` - Ejecuta ESLint y corrige errores automáticamente
-- `npm run type-check` - Verifica tipos de TypeScript
+### 3. Configurar MercadoPago
+
+1. **Crea una cuenta en [MercadoPago Developers](https://www.mercadopago.cl/developers)**
+2. **Crea una nueva aplicación**
+3. **Obtén tus credenciales:**
+   - `Public Key`: Para el frontend (VITE_MERCADOPAGO_PUBLIC_KEY)
+   - `Access Token`: Para el backend (MERCADOPAGO_ACCESS_TOKEN)
+
+### 4. Configurar Airtable
+
+La aplicación espera una tabla llamada "Productos" con estos campos:
+
+| Campo | Tipo | Requerido | Descripción |
+|-------|------|-----------|-------------|
+| `nombre` | Texto | ✅ | Nombre del producto |
+| `descripcion` | Texto largo | ✅ | Descripción detallada |
+| `precio` | Número | ✅ | Precio en CLP |
+| `imagen_miniatura` | Attachment | ✅ | Imagen 300x300px |
+| `imagenes_grandes` | Attachment | ✅ | Imágenes alta resolución |
+| `activo` | Checkbox | ✅ | Disponible para venta |
+
+## 🏃‍♂️ Desarrollo
+
+```bash
+# Servidor de desarrollo
+npm run dev
+
+# Build para producción
+npm run build
+
+# Vista previa del build
+npm run preview
+
+# Linting
+npm run lint
+```
+
+## 💳 Flujo de Pagos
+
+### Cómo Funciona:
+
+1. **Usuario selecciona producto** → Click en "Comprar Ahora"
+2. **Frontend crea preferencia** → Llama a Netlify Function
+3. **Netlify Function procesa** → Crea preferencia en MercadoPago
+4. **Redirección a MercadoPago** → Usuario completa pago
+5. **Retorno al sitio** → Página de confirmación (success/failure/pending)
+
+### Páginas de Confirmación:
+
+- `/success` - Pago aprobado
+- `/failure` - Pago rechazado
+- `/pending` - Pago pendiente (transferencias)
 
 ## 📁 Estructura del Proyecto
 
 ```
-amigurumis-ines/
-├── public/                 # Archivos públicos estáticos
-├── src/                   # Código fuente principal
-│   ├── main.tsx          # Punto de entrada de la aplicación
-│   └── index.css         # Estilos globales con Tailwind
-├── app/                   # Componente principal de la aplicación
-│   └── app.tsx           # Aplicación principal
-├── components/            # Componentes reutilizables
-│   ├── ui/               # Componentes de UI base
-│   ├── ProductCard.tsx   # Tarjeta de producto
-│   ├── ProductImageModal.tsx # Modal de imagen de producto
-│   └── InfoModal.tsx     # Modal de información
-├── hooks/                 # Hooks personalizados
-│   └── use-toast.ts      # Hook para notificaciones
-├── lib/                   # Utilidades y configuraciones
-│   └── utils.ts          # Funciones utilitarias
-├── types/                 # Definiciones de tipos TypeScript
-│   └── products.ts       # Tipos relacionados con productos
-├── actions/               # Acciones/servicios
-│   ├── loadProducts.ts   # Carga de productos
-│   └── createPayment.ts  # Creación de pagos
-└── package.json          # Configuración del proyecto
+/
+├── netlify/
+│   └── functions/
+│       ├── create-payment.js      # Netlify Function para MercadoPago
+│       └── package.json           # Dependencias de Functions
+├── app/
+│   └── app.tsx                    # Componente principal con pago
+├── components/
+│   └── ProductCard.tsx            # Card de producto con botón comprar
+├── success.html                   # Página de pago exitoso
+├── failure.html                   # Página de pago fallido
+├── pending.html                   # Página de pago pendiente
+├── netlify.toml                   # Configuración de Netlify
+├── .env.example                   # Plantilla de variables
+└── package.json                   # Dependencias del proyecto
 ```
 
-## 🔧 Configuración de Airtable
+## 🌐 Despliegue en Netlify
 
-El proyecto está configurado para trabajar con Airtable como base de datos. Para conectar con tu propia base de datos:
+### Configuración Automática:
 
-1. **Configura las variables de entorno en el archivo `.env`:**
-   ```bash
-   VITE_AIRTABLE_API_KEY=tu_api_key_de_airtable
-   VITE_AIRTABLE_BASE_ID=tu_base_id
-   VITE_AIRTABLE_TABLE_NAME=Productos
-   VITE_PAYMENT_GATEWAY_URL=https://tu-pasarela-de-pagos.com/api/checkout
-   ```
+1. **Conecta tu repositorio a Netlify**
+2. **Variables de entorno en Netlify Dashboard:**
+   - Todas las variables `VITE_*` en "Build & deploy" → "Environment"
+   - `MERCADOPAGO_ACCESS_TOKEN` en "Functions" → "Environment"
+3. **Netlify detectará automáticamente:**
+   - Build: `npm run build`
+   - Publish directory: `dist`
+   - Functions directory: `netlify/functions`
 
-2. **Estructura requerida de la tabla en Airtable:**
-   - `nombre` (Single line text) - Nombre del producto
-   - `precio` (Number) - Precio del producto
-   - `descripcion` (Long text) - Descripción del producto
-   - `imagen` (Attachment) - Imágenes del producto
+### URLs de Función:
 
-## 🎨 Personalización
+- Crear pago: `https://tu-sitio.netlify.app/.netlify/functions/create-payment`
 
-### Colores y Tema
-El proyecto utiliza una paleta de colores cálidos (rosa, naranja, ámbar). Para cambiar los colores, modifica las clases de Tailwind CSS en los componentes.
+## 🔧 Personalización
 
-### Componentes UI
-Los componentes base se encuentran en `components/ui/` y utilizan Radix UI como base. Puedes personalizarlos según tus necesidades.
+### Modificar Productos:
 
-## 🚀 Despliegue
+Edita directamente en tu tabla de Airtable. Los cambios se reflejan automáticamente.
 
-### Build para Producción
-```bash
-npm run build
-```
+### Cambiar Precios:
 
-Los archivos de producción se generarán en la carpeta `dist/`.
+Los precios se muestran en CLP (Pesos Chilenos) y se formatean automáticamente.
 
-### Opciones de Despliegue
-- **Netlify**: Conecta tu repositorio y despliega automáticamente
-- **Vercel**: Ideal para proyectos React/Vite
-- **GitHub Pages**: Para hosting gratuito
-- **Servidor propio**: Sube los archivos de `dist/` a tu servidor
+### Personalizar Estilos:
 
-## 🤝 Contribución
+- Colores principales: `rose-500` y `orange-500`
+- Gradientes: `from-rose-500 to-orange-500`
+- Tipografía: Sistema fonts optimizados
 
-1. Fork del proyecto
-2. Crea una rama para tu feature (`git checkout -b feature/nueva-funcionalidad`)
-3. Commit tus cambios (`git commit -am 'Añade nueva funcionalidad'`)
-4. Push a la rama (`git push origin feature/nueva-funcionalidad`)
-5. Abre un Pull Request
+## 📋 Checklist de Configuración
 
-## 📋 Lista de Tareas Completadas
+- [ ] ✅ Instalar dependencias
+- [ ] ✅ Configurar variables de Airtable
+- [ ] ✅ Crear cuenta en MercadoPago
+- [ ] ✅ Obtener credenciales de MercadoPago
+- [ ] ✅ Configurar variables de entorno
+- [ ] ✅ Conectar repositorio a Netlify
+- [ ] ✅ Probar flujo de pagos
+- [ ] ✅ Verificar páginas de confirmación
 
-- [x] Conectar Airtable como fuente de datos
-- [x] Crear layout principal con encabezado
-- [x] Implementar grilla responsive de productos
-- [x] Crear modal para visualizar imágenes grandes
-- [x] Implementar botón de compra con simulación de pago
-- [x] Aplicar estilos con diseño limpio y responsive
-- [x] Crear modal de información de la tienda
-- [x] Configurar proyecto con Vite y TypeScript
+## 🛡️ Seguridad
 
-## 📋 Lista de Tareas Pendientes
+- **Claves públicas**: Se pueden exponer en el frontend
+- **Claves privadas**: Solo en variables de entorno del servidor
+- **HTTPS**: Netlify proporciona SSL automático
+- **CORS**: Configurado en las Netlify Functions
 
-- [ ] Integración completa con pasarela de pagos real
-- [ ] Sistema de autenticación de usuarios
-- [ ] Panel de administración para gestión de productos
-- [ ] Carrito de compras
-- [ ] Sistema de búsqueda y filtros
-- [ ] Optimización SEO
-- [ ] Tests unitarios y de integración
+## 📞 Soporte
+
+Si tienes problemas con la integración de MercadoPago:
+
+1. **Verifica credenciales**: Asegúrate de usar las correctas
+2. **Revisa variables de entorno**: Tanto en `.env` como en Netlify
+3. **Prueba en sandbox**: Usa credenciales de prueba primero
+4. **Logs de Netlify**: Revisa los logs de Functions para errores
 
 ## 📄 Licencia
 
-Este proyecto está bajo la Licencia MIT - ver el archivo `LICENSE` para más detalles.
-
-## 📞 Contacto
-
-- **Creadora**: Inés
-- **Desarrollador**: Jorge Epuñan Hernández
-- **Email**: [juanbrujo@gmail.com]
+Proyecto privado - © 2025 Amigurumis de Inés. Todos los derechos reservados.
 
 ---
 
-¡Gracias por visitar Amigurumis de Inés! 🧸❤️
+**🎉 ¡Listo para recibir pagos reales con MercadoPago!** 💳

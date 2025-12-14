@@ -15,7 +15,6 @@ const AIRTABLE_CONFIG = {
   tableName: import.meta.env.VITE_AIRTABLE_TABLE_NAME,
 };
 
-const PAYMENT_GATEWAY_URL = import.meta.env.VITE_PAYMENT_GATEWAY_URL;
 
 function App() {
   const { toast } = useToast();
@@ -128,30 +127,47 @@ function App() {
     try {
       setLoadingPayment(true);
       
-      // Simulate payment processing
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // In a real app, this would redirect to a payment gateway
-      const paymentUrl = `${PAYMENT_GATEWAY_URL}?amount=${product.fields.precio}&product=${encodeURIComponent(product.fields.nombre)}`;
-      console.log('Payment URL:', paymentUrl);
-      
       toast({
-        title: '¡Redirigiendo al pago!',
-        description: `Procesando compra de ${product.fields.nombre}...`,
+        title: 'Preparando pago...',
+        description: `Creando preferencia de pago para ${product.fields.nombre}...`,
       });
+
+      // Call Netlify function to create MercadoPago payment
+      const response = await fetch('/.netlify/functions/create-payment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          amount: product.fields.precio,
+          productName: product.fields.nombre,
+          productId: product.id
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create payment');
+      }
+
+      const data = await response.json();
       
-      // For demo purposes, just show success message
-      setTimeout(() => {
-        toast({
-          title: '¡Compra simulada exitosa!',
-          description: `${product.fields.nombre} - $${product.fields.precio.toLocaleString()}`,
-        });
-      }, 2000);
+      if (!data.success || !data.checkout_url) {
+        throw new Error(data.error || 'Failed to get checkout URL');
+      }
+
+      toast({
+        title: '¡Redirigiendo a MercadoPago!',
+        description: `Serás redirigido para completar el pago de ${product.fields.nombre}`,
+      });
+
+      // Redirect to MercadoPago checkout
+      window.location.href = data.checkout_url;
       
     } catch (error) {
+      console.error('Payment error:', error);
       toast({
         title: 'Error en la compra',
-        description: 'No se pudo procesar el pago. Intenta nuevamente.',
+        description: 'No se pudo procesar el pago. Verifica tu conexión e intenta nuevamente.',
         variant: 'destructive',
       });
     } finally {

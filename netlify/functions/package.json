@@ -1,0 +1,9 @@
+{
+  "name": "amigurumis-functions",
+  "version": "1.0.0",
+  "description": "Netlify Functions for Amigurumis de Inés",
+  "main": "create-payment.js",
+  "dependencies": {
+    "mercadopago": "^1.5.17"
+  }
+}
