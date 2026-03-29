@@ -76,7 +76,7 @@ exports.handler = async (event, context) => {
       };
     }
 
-    const { amount, productName, productId } = requestBody;
+    const { amount, productName, productId, quantity } = requestBody;
 
     // Enhanced input validation
     if (!amount || !productName) {
@@ -99,6 +99,12 @@ exports.handler = async (event, context) => {
           error: 'Invalid amount: must be a positive number',
         }),
       };
+    }
+
+    // Validate quantity: must be a positive integer, default to 1 if missing or invalid
+    let numericQuantity = parseInt(quantity, 10);
+    if (isNaN(numericQuantity) || numericQuantity <= 0) {
+      numericQuantity = 1;
     }
 
     if (numericAmount > 1000000) {
@@ -131,7 +137,7 @@ exports.handler = async (event, context) => {
           description: `Producto: ${sanitizedProductName}`,
           unit_price: Math.round(numericAmount),
           currency_id: 'CLP',
-          quantity: 1,
+          quantity: numericQuantity,
           category_id: 'handmade',
         },
       ],

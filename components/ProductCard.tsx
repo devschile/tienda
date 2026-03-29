@@ -8,17 +8,18 @@ import { useState } from 'react';
 interface ProductCardProps {
   product: ProductRecord;
   onImageClick: (product: ProductRecord) => void;
-  onBuyClick: (product: ProductRecord) => void;
+  onBuyClick: (product: ProductRecord, quantity: number) => void;
 }
 
 export function ProductCard({ product, onImageClick, onBuyClick }: ProductCardProps) {
   const [isHovered, setIsHovered] = useState(false);
-  const { nombre, descripcion, precio, imagen_miniatura, activo } = product.fields;
-  const isSold = !activo;
+  const [quantity, setQuantity] = useState(1);
+  const { name, description, price, thumbnailImages, active } = product.fields;
+  const isSold = !active;
 
   const thumbnailUrl =
-    imagen_miniatura?.[0]?.thumbnails?.large?.url ||
-    imagen_miniatura?.[0]?.url ||
+    thumbnailImages?.[0]?.thumbnails?.large?.url ||
+    thumbnailImages?.[0]?.url ||
     '/assets/images/default.svg';
 
   const formatPrice = (price: number) => {
@@ -42,7 +43,7 @@ export function ProductCard({ product, onImageClick, onBuyClick }: ProductCardPr
         >
           <img
             src={thumbnailUrl}
-            alt={nombre}
+            alt={name}
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
           />
 
@@ -79,30 +80,57 @@ export function ProductCard({ product, onImageClick, onBuyClick }: ProductCardPr
 
         <div className="p-5">
           <h3 className="font-bold text-lg mb-2 text-brand-text line-clamp-2 min-h-[3.5rem] group-hover:text-brand-secondary transition-colors">
-            {nombre}
+            {name}
           </h3>
           <p className="text-sm text-brand-text/70 mb-4 line-clamp-2 min-h-[2.5rem]">
-            {descripcion}
+            {description}
           </p>
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs text-brand-secondary font-medium mb-1">Precio</p>
               <p className="text-2xl font-bold bg-gradient-to-r from-brand-primary to-brand-secondary bg-clip-text text-transparent">
-                {formatPrice(precio)}
+                {formatPrice(price)}
               </p>
             </div>
           </div>
         </div>
       </CardContent>
 
-      <CardFooter className="p-5 pt-0">
+      <CardFooter className="p-5 pt-0 flex flex-col gap-4">
+        {!isSold && (
+          <div className="flex items-center justify-between w-full bg-brand-secondary/5 p-2 rounded-lg border border-brand-secondary/10">
+            <span className="text-sm font-medium text-brand-text/70">Cantidad:</span>
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8 rounded-full border-brand-secondary/30 text-brand-secondary hover:bg-brand-secondary hover:text-white"
+                onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                disabled={quantity <= 1}
+              >
+                -
+              </Button>
+              <span className="font-bold text-brand-text min-w-[1.5rem] text-center">
+                {quantity}
+              </span>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8 rounded-full border-brand-secondary/30 text-brand-secondary hover:bg-brand-secondary hover:text-white"
+                onClick={() => setQuantity((q) => q + 1)}
+              >
+                +
+              </Button>
+            </div>
+          </div>
+        )}
         <Button
           className={`w-full shadow-lg hover:shadow-xl transition-all duration-300 group/btn ${
             isSold
               ? 'bg-brand-text/40 cursor-not-allowed'
               : 'bg-gradient-to-r from-brand-primary to-brand-secondary hover:opacity-90'
           } text-white`}
-          onClick={() => !isSold && onBuyClick(product)}
+          onClick={() => !isSold && onBuyClick(product, quantity)}
           disabled={isSold}
         >
           <ShoppingCart className="h-4 w-4 mr-2 group-hover/btn:animate-bounce" />

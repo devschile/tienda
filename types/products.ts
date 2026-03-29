@@ -16,12 +16,12 @@ export interface ProductAttachment {
 
 export interface ProductFields {
   id: string;
-  nombre: string;
-  descripcion: string;
-  precio: number;
-  imagen_miniatura: ProductAttachment[];
-  imagenes_grandes: ProductAttachment[];
-  activo: boolean;
+  name: string;
+  description: string;
+  price: number;
+  thumbnailImages: ProductAttachment[];
+  largeImages: ProductAttachment[];
+  active: boolean;
 }
 
 export interface ProductRecord {

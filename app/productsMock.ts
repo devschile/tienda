@@ -3,10 +3,10 @@ export const productsMock = [
     id: 'rec1',
     fields: {
       id: 'rec1',
-      nombre: 'Set de stickers',
-      precio: 5000,
-      descripcion: 'Stickers oficiales de devsChile',
-      imagen_miniatura: [
+      name: 'Set de stickers',
+      price: 5000,
+      description: 'Stickers oficiales de devsChile',
+      thumbnailImages: [
         {
           id: 'img1',
           url: 'https://placehold.co/300x300?text=Stickers devsChile',
@@ -15,7 +15,7 @@ export const productsMock = [
           type: 'image/jpeg',
         },
       ],
-      imagenes_grandes: [
+      largeImages: [
         {
           id: 'img1',
           url: 'https://placehold.co/600x600?text=Osito+Grande',
@@ -24,7 +24,7 @@ export const productsMock = [
           type: 'image/jpeg',
         },
       ],
-      activo: true,
+      active: true,
     },
     createdTime: '2025-01-01T00:00:00.000Z',
   },
@@ -32,10 +32,10 @@ export const productsMock = [
     id: 'rec2',
     fields: {
       id: 'rec2',
-      nombre: 'Destapabotellas con imán',
-      precio: 30000,
-      descripcion: 'Mágico unicornio multicolor',
-      imagen_miniatura: [
+      name: 'Destapabotellas con imán',
+      price: 30000,
+      description: 'Mágico unicornio multicolor',
+      thumbnailImages: [
         {
           id: 'img2',
           url: 'https://placehold.co/300x300?text=Destapabotellas',
@@ -44,7 +44,7 @@ export const productsMock = [
           type: 'image/jpeg',
         },
       ],
-      imagenes_grandes: [
+      largeImages: [
         {
           id: 'img2',
           url: 'https://placehold.co/600x600?text=Otro producto',
@@ -53,7 +53,36 @@ export const productsMock = [
           type: 'image/jpeg',
         },
       ],
-      activo: false,
+      active: true,
+    },
+    createdTime: '2025-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'rec3',
+    fields: {
+      id: 'rec2',
+      name: 'Tazón de huemul',
+      price: 12000,
+      description: 'Tazón para cafecito',
+      thumbnailImages: [
+        {
+          id: 'img2',
+          url: 'https://placehold.co/300x300?text=Tazón',
+          filename: 'unicornio.jpg',
+          size: 12345,
+          type: 'image/jpeg',
+        },
+      ],
+      largeImages: [
+        {
+          id: 'img2',
+          url: 'https://placehold.co/600x600?text=Otro producto',
+          filename: 'unicornio_grande.jpg',
+          size: 54321,
+          type: 'image/jpeg',
+        },
+      ],
+      active: true,
     },
     createdTime: '2025-01-01T00:00:00.000Z',
   },

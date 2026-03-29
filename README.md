@@ -73,12 +73,12 @@ La aplicación espera un endpoint `GET /products` que retorne una estructura com
 
 | Campo              | Tipo        | Requerido | Descripción              |
 | ------------------ | ----------- | --------- | ------------------------ |
-| `nombre`           | Texto       | ✅        | Nombre del producto      |
-| `descripcion`      | Texto largo | ✅        | Descripción detallada    |
-| `precio`           | Número      | ✅        | Precio en CLP            |
-| `imagen_miniatura` | Attachment  | ✅        | Imagen 300x300px         |
-| `imagenes_grandes` | Attachment  | ✅        | Imágenes alta resolución |
-| `activo`           | Checkbox    | ✅        | Disponible para venta    |
+| `name`             | Texto       | ✅        | Nombre del producto      |
+| `description`      | Texto largo | ✅        | Descripción detallada    |
+| `price`            | Número      | ✅        | Precio en CLP            |
+| `thumbnailImages`  | Attachment  | ✅        | Imagen 300x300px         |
+| `largeImages`      | Attachment  | ✅        | Imágenes alta resolución |
+| `active`           | Checkbox    | ✅        | Disponible para venta    |
 
 ## 🏃‍♂️ Desarrollo
 

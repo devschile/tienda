@@ -1,6 +1,11 @@
 // Acción para crear pago en la pasarela
 
-export const createPayment = async (amount: number, productName: string, productId: string) => {
+export const createPayment = async (
+  amount: number,
+  productName: string,
+  productId: string,
+  quantity: number = 1,
+) => {
   // En desarrollo, usamos un mock según los requerimientos
   if (import.meta.env.DEV) {
     console.log('Utilizando mock de pago para desarrollo');
@@ -23,6 +28,7 @@ export const createPayment = async (amount: number, productName: string, product
       amount,
       productName,
       productId,
+      quantity,
     }),
   });
 

@@ -70,16 +70,22 @@ function App() {
     setImageModalOpen(true);
   };
 
-  const handleBuyClick = async (product: ProductRecord) => {
+  const handleBuyClick = async (product: ProductRecord, quantity: number) => {
     try {
       setLoadingPayment(true);
 
       toast({
         title: 'Preparando pago...',
-        description: `Creando preferencia de pago para ${product.fields.nombre}...`,
+        description: `Creando preferencia de pago para ${quantity}x ${product.fields.name}...`,
       });
+      debugger;
       // Llamamos a la función referenciada para crear el pago
-      const data = await createPayment(product.fields.precio, product.fields.nombre, product.id);
+      const data = await createPayment(
+        product.fields.price,
+        product.fields.name,
+        product.id,
+        quantity,
+      );
 
       if (!data.success || !data.checkout_url) {
         throw new Error(data.error || 'No se pudo obtener la URL de pago');
@@ -87,7 +93,7 @@ function App() {
 
       toast({
         title: '¡Redirigiendo a MercadoPago!',
-        description: `Serás redirigido para completar el pago de ${product.fields.nombre}`,
+        description: `Serás redirigido para completar el pago de ${quantity}x ${product.fields.name}`,
       });
 
       // Redirect to MercadoPago checkout
@@ -105,7 +111,7 @@ function App() {
   };
 
   const allProducts = productsData?.records || [];
-  const availableProducts = allProducts.filter((product) => product.fields.activo);
+  const availableProducts = allProducts.filter((product) => product.fields.active);
   const totalCount = allProducts.length;
   const availableCount = availableProducts.length;
 
@@ -123,10 +129,10 @@ function App() {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <div className="bg-gradient-to-br from-brand-primary to-brand-secondary p-2 rounded-xl">
-                <img width={50} src={logo} />
+                <img style={{ minWidth: 40 }} width={50} src={logo} />
               </div>
               <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-brand-primary to-brand-secondary bg-clip-text text-transparent">
+                <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-brand-primary to-brand-secondary bg-clip-text text-transparent">
                   Tienda devsChile
                 </h1>
                 <p className="text-sm text-brand-secondary/80 font-medium">[text]</p>
@@ -138,7 +144,7 @@ function App() {
               onClick={() => setInfoModalOpen(true)}
             >
               <Info className="h-5 w-5 mr-2" />
-              Sobre Mí
+              <span className="hidden sm:inline">Sobre </span>devsChile
             </Button>
           </div>
         </div>

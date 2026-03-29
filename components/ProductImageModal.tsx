@@ -2,7 +2,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useState } from 'react';
 import type { ProductRecord } from '@/types/products';
-import { ChevronLeft, ChevronRight, ShoppingCart, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CardFooter } from '@/components/ui/card.tsx';
 
@@ -17,7 +17,7 @@ export function ProductImageModal({ product, open, onOpenChange }: ProductImageM
 
   if (!product) return null;
 
-  const images = product.fields.imagenes_grandes || product.fields.imagen_miniatura || [];
+  const images = product.fields.largeImages || product.fields.thumbnailImages || [];
   const currentImage = images[currentIndex];
 
   const handleNext = () => {
@@ -33,13 +33,13 @@ export function ProductImageModal({ product, open, onOpenChange }: ProductImageM
       <DialogContent className="max-w-5xl bg-white/95 backdrop-blur-md border-brand-secondary/20">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-brand-primary to-brand-secondary bg-clip-text text-transparent">
-            {product.fields.nombre}
+            {product.fields.name}
           </DialogTitle>
         </DialogHeader>
         <div className="relative bg-gradient-to-br from-brand-secondary/10 to-brand-primary/10 rounded-xl overflow-hidden">
           <img
             src={currentImage?.url || '/assets/images/default.svg'}
-            alt={product.fields.nombre}
+            alt={product.fields.name}
             className="w-full h-auto max-h-[70vh] object-contain rounded-lg"
           />
           {images.length > 1 && (
@@ -70,7 +70,7 @@ export function ProductImageModal({ product, open, onOpenChange }: ProductImageM
         </div>
 
         <div className="bg-brand-secondary/5 rounded-lg p-4 mt-2">
-          <p className="text-brand-text/80 leading-relaxed">{product.fields.descripcion}</p>
+          <p className="text-brand-text/80 leading-relaxed">{product.fields.description}</p>
         </div>
         <CardFooter className="p-5 pt-0">
           <Button

@@ -1,4 +1,4 @@
-// Acción para cargar todos los productos activos desde la API
+// Action to load all active products from the API
 import { action } from '@uibakery/data';
 
 function loadProducts() {
@@ -8,7 +8,7 @@ function loadProducts() {
       method: 'GET',
       url: '{{params?.apiUrl}}/products',
       queryParams: {
-        activo: 'true',
+        active: 'true',
       },
       headers: {
         'Content-Type': 'application/json',
