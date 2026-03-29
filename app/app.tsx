@@ -6,24 +6,26 @@ import { ProductImageModal } from '@/components/ProductImageModal';
 import { InfoModal } from '@/components/InfoModal';
 import { Toaster } from '@/components/ui/toaster';
 import { useToast } from '@/hooks/use-toast';
-import type { AirtableRecord, AirtableResponse } from '@/types/products';
-import { Info, Loader2, Heart, ShoppingBag, Sparkles } from 'lucide-react';
+import type { ProductRecord, ProductResponse } from '@/types/products';
+import { Info, Loader2, ShoppingBag, Sparkles } from 'lucide-react';
 
-const AIRTABLE_CONFIG = {
-  apiKey: import.meta.env.VITE_AIRTABLE_API_KEY,
-  baseId: import.meta.env.VITE_AIRTABLE_BASE_ID,
-  tableName: import.meta.env.VITE_AIRTABLE_TABLE_NAME,
+import {productsMock as records} from "@/app/productsMock.ts";
+import logo from '@/images/devschile2026.png'
+import createPayment from '@/actions/createPayment';
+
+const API_CONFIG = {
+  apiUrl: import.meta.env.VITE_API_URL || 'https://api.example.com/v1',
 };
 
 
 function App() {
   const { toast } = useToast();
-  const [selectedProduct, setSelectedProduct] = useState<AirtableRecord | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<ProductRecord | null>(null);
   const [imageModalOpen, setImageModalOpen] = useState(false);
   const [infoModalOpen, setInfoModalOpen] = useState(false);
   
   // Replace UIBakery hooks with standard React state
-  const [productsData, setProductsData] = useState<AirtableResponse | null>(null);
+  const [productsData, setProductsData] = useState<ProductResponse | null>(null);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [errorProducts, setErrorProducts] = useState<string | null>(null);
   const [loadingPayment, setLoadingPayment] = useState(false);
@@ -35,80 +37,26 @@ function App() {
         setLoadingProducts(true);
         setErrorProducts(null);
         
-        // Simulate API call - replace with actual Airtable API call
-        const response = await fetch(
-          `https://api.airtable.com/v0/${AIRTABLE_CONFIG.baseId}/${AIRTABLE_CONFIG.tableName}`,
-          {
-            headers: {
-              'Authorization': `Bearer ${AIRTABLE_CONFIG.apiKey}`,
-            },
-          }
-        );
+        // In development, use mock data
+        if (import.meta.env.DEV) {
+          console.log('Using mock products data for development');
+          setProductsData({ records });
+          return;
+        }
+
+        const response = await fetch(`${API_CONFIG.apiUrl}/products`);
         
         if (!response.ok) {
           throw new Error('Failed to fetch products');
         }
         
-        const data: AirtableResponse = await response.json();
+        const data: ProductResponse = await response.json();
         setProductsData(data);
       } catch (error) {
         console.error('Error loading products:', error);
         setErrorProducts('Error loading products');
-        // For demo purposes, set some mock data
-        setProductsData({
-          records: [
-            {
-              id: 'rec1',
-              fields: {
-                id: 'rec1',
-                nombre: 'Amigurumi Osito',
-                precio: 25000,
-                descripcion: 'Adorable osito tejido a mano',
-                imagen_miniatura: [{ 
-                  id: 'img1',
-                  url: 'https://via.placeholder.com/300x300?text=Osito',
-                  filename: 'osito.jpg',
-                  size: 12345,
-                  type: 'image/jpeg'
-                }],
-                imagenes_grandes: [{ 
-                  id: 'img1',
-                  url: 'https://via.placeholder.com/600x600?text=Osito+Grande',
-                  filename: 'osito_grande.jpg',
-                  size: 54321,
-                  type: 'image/jpeg'
-                }],
-                activo: true
-              },
-              createdTime: '2025-01-01T00:00:00.000Z'
-            },
-            {
-              id: 'rec2', 
-              fields: {
-                id: 'rec2',
-                nombre: 'Amigurumi Unicornio',
-                precio: 30000,
-                descripcion: 'Mágico unicornio multicolor',
-                imagen_miniatura: [{ 
-                  id: 'img2',
-                  url: 'https://via.placeholder.com/300x300?text=Unicornio',
-                  filename: 'unicornio.jpg',
-                  size: 12345,
-                  type: 'image/jpeg'
-                }],
-                imagenes_grandes: [{ 
-                  id: 'img2',
-                  url: 'https://via.placeholder.com/600x600?text=Unicornio+Grande',
-                  filename: 'unicornio_grande.jpg',
-                  size: 54321,
-                  type: 'image/jpeg'
-                }],
-                activo: false
-              },
-              createdTime: '2025-01-01T00:00:00.000Z'
-            }
-          ]
-        });
+        // Fallback to mock data
+        setProductsData({ records });
         setErrorProducts(null);
       } finally {
         setLoadingProducts(false);
@@ -118,12 +66,12 @@ function App() {
     loadProductsData();
   }, []);
 
-  const handleImageClick = (product: AirtableRecord) => {
+  const handleImageClick = (product: ProductRecord) => {
     setSelectedProduct(product);
     setImageModalOpen(true);
   };
 
-  const handleBuyClick = async (product: AirtableRecord) => {
+  const handleBuyClick = async (product: ProductRecord) => {
     try {
       setLoadingPayment(true);
       
@@ -132,27 +80,15 @@ function App() {
         description: `Creando preferencia de pago para ${product.fields.nombre}...`,
       });
 
-      // Call Netlify function to create MercadoPago payment
-      const response = await fetch('/.netlify/functions/create-payment', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          amount: product.fields.precio,
-          productName: product.fields.nombre,
-          productId: product.id
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to create payment');
-      }
-
-      const data = await response.json();
+      // Llamamos a la función referenciada para crear el pago
+      const data = await createPayment(
+        product.fields.precio,
+        product.fields.nombre,
+        product.id
+      );
       
       if (!data.success || !data.checkout_url) {
-        throw new Error(data.error || 'Failed to get checkout URL');
+        throw new Error(data.error || 'No se pudo obtener la URL de pago');
       }
 
       toast({
@@ -181,31 +117,31 @@ function App() {
   const availableCount = availableProducts.length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-rose-50">
+    <div className="min-h-screen bg-gradient-to-br from-brand-secondary/5 via-brand-primary/5 to-brand-secondary/5">
       {/* Decorative elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-rose-200/20 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-amber-200/20 rounded-full blur-3xl"></div>
+        <div className="absolute top-0 right-0 w-96 h-96 bg-brand-primary/10 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-0 left-0 w-96 h-96 bg-brand-secondary/10 rounded-full blur-3xl"></div>
       </div>
 
       {/* Header */}
-      <header className="relative bg-white/80 backdrop-blur-md shadow-sm border-b border-orange-100/50 sticky top-0 z-50">
+      <header className="bg-white/80 backdrop-blur-md shadow-sm border-b border-brand-secondary/20 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="bg-gradient-to-br from-rose-400 to-orange-400 p-2 rounded-xl">
-                <Heart className="h-6 w-6 text-white fill-white" />
+              <div className="bg-gradient-to-br from-brand-primary to-brand-secondary p-2 rounded-xl">
+                <img width={50} src={logo} />
               </div>
               <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-rose-600 to-orange-600 bg-clip-text text-transparent">
-                  Amigurumis de Inés
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-brand-primary to-brand-secondary bg-clip-text text-transparent">
+                  Tienda devsChile
                 </h1>
-                <p className="text-sm text-orange-600/80 font-medium">Hechos con amor y dedicación</p>
+                <p className="text-sm text-brand-secondary/80 font-medium">[text]</p>
               </div>
             </div>
             <Button
               variant="outline"
-              className="border-orange-200 text-orange-700 hover:bg-orange-50 hover:border-orange-300 transition-all shadow-sm"
+              className="border-brand-secondary/30 text-brand-primary hover:bg-brand-secondary/5 hover:border-brand-secondary/50 transition-all shadow-sm"
               onClick={() => setInfoModalOpen(true)}
             >
               <Info className="h-5 w-5 mr-2" />
@@ -217,28 +153,15 @@ function App() {
 
       {/* Hero banner */}
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-6">
-        <div className="bg-gradient-to-r from-rose-500 to-orange-500 rounded-2xl p-8 text-white shadow-xl overflow-hidden relative">
-          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4xIj48cGF0aCBkPSJNMzYgMzRjMC0yLjIxIDEuNzktNCA0LTRzNCAxLjc5IDQgNC0xLjc5IDQtNCA0LTQtMS43OS00LTR6bTAgMTBjMC0yLjIxIDEuNzktNCA0LTRzNCAxLjc5IDQgNC0xLjc5IDQtNCA0LTQtMS43OS00LTR6TTI0IDI0YzAtMi4yMSAxLjc5LTQgNC00czQgMS43OSA0IDQtMS43OSA0LTQgNC00LTEuNzktNC00eiIvPjwvZz48L2c+PC9zdmc+')] opacity-20"></div>
-          <div className="relative z-10 flex items-center justify-between">
-            <div>
-              <div className="flex items-center space-x-2 mb-2">
-                <Sparkles className="h-5 w-5" />
-                <span className="text-sm font-semibold uppercase tracking-wide">Colección Especial</span>
-              </div>
-              <h2 className="text-2xl md:text-3xl font-bold mb-2">Mis Creaciones Únicas para Ti</h2>
-              <p className="text-orange-50 max-w-xl">Cada amigurumi lo tejo a mano con amor, cuidado y los mejores materiales</p>
-            </div>
-            <ShoppingBag className="h-24 w-24 text-white/20 hidden md:block" />
-          </div>
-        </div>
+
       </div>
 
       {/* Main Content */}
       <main className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-16">
         {loadingProducts && (
           <div className="flex flex-col justify-center items-center min-h-[400px]">
-            <Loader2 className="h-16 w-16 animate-spin text-orange-400 mb-4" />
-            <p className="text-orange-600 font-medium">Cargando amigurumis mágicos...</p>
+            <Loader2 className="h-16 w-16 animate-spin text-brand-secondary/60 mb-4" />
+            <p className="text-brand-secondary font-medium">Cargando productos mágicos...</p>
           </div>
         )}
 
@@ -251,20 +174,20 @@ function App() {
               Oops, algo salió mal
             </p>
             <p className="text-red-600 text-sm">
-              No pudimos cargar los amigurumis. Verifica tu configuración de Airtable.
+              No pudimos cargar los productos. Verifica tu conexión e intenta nuevamente.
             </p>
           </div>
         )}
 
         {!loadingProducts && !errorProducts && allProducts.length === 0 && (
-          <div className="bg-white/80 backdrop-blur-sm border-2 border-orange-100 rounded-2xl p-12 text-center shadow-lg">
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-orange-100 rounded-full mb-6">
-              <ShoppingBag className="h-10 w-10 text-orange-500" />
+          <div className="bg-white/80 backdrop-blur-sm border-2 border-brand-secondary/20 rounded-2xl p-12 text-center shadow-lg">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-brand-secondary/10 rounded-full mb-6">
+              <ShoppingBag className="h-10 w-10 text-brand-secondary" />
             </div>
-            <h3 className="text-xl font-bold text-gray-800 mb-2">
-              No hay amigurumis disponibles
+            <h3 className="text-xl font-bold text-brand-text mb-2">
+              No hay productos disponibles
             </h3>
-            <p className="text-gray-600">
+            <p className="text-brand-text/70">
               Pronto tendré nuevas creaciones disponibles. ¡Vuelve pronto!
             </p>
           </div>
@@ -273,15 +196,15 @@ function App() {
         {!loadingProducts && allProducts.length > 0 && (
           <>
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-800">
+              <h2 className="text-2xl font-bold text-brand-text">
                 Mis Creaciones
               </h2>
               <div className="text-right">
-                <p className="text-sm text-orange-600 font-medium">
-                  {availableCount} {availableCount === 1 ? 'amigurumi' : 'amigurumis'} disponibles
+                <p className="text-sm text-brand-secondary font-medium">
+                  {availableCount} {availableCount === 1 ? 'producto' : 'productos'} disponible{availableCount === 1 ? '' : 's'}
                 </p>
-                <p className="text-xs text-gray-500">
-                  {totalCount} {totalCount === 1 ? 'amigurumi hecho' : 'amigurumis hechos'} en total
+                <p className="text-xs text-brand-text/50">
+                  {totalCount} {totalCount === 1 ? 'producto hecho' : 'productos hechos'} en total
                 </p>
               </div>
             </div>
@@ -300,14 +223,13 @@ function App() {
       </main>
 
       {/* Footer */}
-      <footer className="relative bg-white/60 backdrop-blur-sm border-t border-orange-100 mt-12">
+      <footer className="relative bg-white/60 backdrop-blur-sm border-t border-brand-secondary/20 mt-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center">
-            <p className="text-sm text-gray-600 mb-2">
-              © 2025 Amigurumis de Inés. Todos los derechos reservados.
+            <p className="text-sm text-brand-text/70 mb-2">
+              © {new Date().getFullYear()} Tienda devsChile. Todos los derechos reservados.
             </p>
-            <p className="text-xs text-orange-600">
-              Hecho con ❤️ y mucho cariño
+            <p className="text-xs text-brand-secondary">
             </p>
           </div>
         </div>

@@ -1,5 +1,5 @@
 // Tipos para los productos
-export interface AirtableAttachment {
+export interface ProductAttachment {
   id: string;
   url: string;
   filename: string;
@@ -19,17 +19,17 @@ export interface ProductFields {
   nombre: string;
   descripcion: string;
   precio: number;
-  imagen_miniatura: AirtableAttachment[];
-  imagenes_grandes: AirtableAttachment[];
+  imagen_miniatura: ProductAttachment[];
+  imagenes_grandes: ProductAttachment[];
   activo: boolean;
 }
 
-export interface AirtableRecord {
+export interface ProductRecord {
   id: string;
   fields: ProductFields;
   createdTime: string;
 }
 
-export interface AirtableResponse {
-  records: AirtableRecord[];
+export interface ProductResponse {
+  records: ProductRecord[];
 }

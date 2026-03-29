@@ -1,6 +1,6 @@
-# Amigurumis de Inés - Ecommerce con MercadoPago
+# Tienda devsChile - Ecommerce con MercadoPago
 
-Sitio web para la venta de amigurumis tejidos a mano por Inés. Construido con React, TypeScript, Tailwind CSS y Vite. **Ahora con integración completa de MercadoPago para pagos reales**.
+Sitio web para la venta de productos tejidos a mano por Inés. Construido con React, TypeScript, Tailwind CSS y Vite. **Ahora con integración completa de MercadoPago para pagos reales**.
 
 ## 🚨 AVISO DE SEGURIDAD IMPORTANTE
 
@@ -10,20 +10,21 @@ Sitio web para la venta de amigurumis tejidos a mano por Inés. Construido con R
 
 - 🎨 Diseño responsivo y atractivo con gradientes cálidos
 - 📱 Interfaz moderna optimizada para móviles
-- 🛍️ Catálogo de productos dinámico desde Airtable
+- 🛍️ Catálogo de productos dinámico desde API Genérica
 - 💳 **Pagos reales con MercadoPago** (¡NUEVO!)
 - 🔒 Pago seguro con redirección a MercadoPago
 - ✅ Páginas de confirmación: éxito, falla y pendiente
 - 📊 Gestión de estados de pago completa
 - 🎯 Sin carrito de compras - compra directa por producto
 - 🛡️ **Auditoría de seguridad completa implementada**
+- 🧪 **Modo desarrollo con Mock Data**
 
 ## 🛠️ Tecnologías
 
 - **Frontend**: React 18 + TypeScript + Vite
 - **Estilos**: Tailwind CSS + Gradientes personalizados
 - **UI Components**: Radix UI + shadcn/ui
-- **Datos**: Airtable API
+- **Datos**: API Genérica / Mock Data
 - **Pagos**: MercadoPago SDK + Netlify Functions
 - **Despliegue**: Netlify (Frontend + Functions)
 - **Seguridad**: CORS whitelist, validación de entrada, headers de seguridad
@@ -48,11 +49,9 @@ cp .env.secure .env
 
 **Variables requeridas:**
 
-#### Airtable (para productos)
+#### API Configuration (para productos)
 ```env
-VITE_AIRTABLE_API_KEY=tu_airtable_api_key_aqui
-VITE_AIRTABLE_BASE_ID=tu_base_id_aqui
-VITE_AIRTABLE_TABLE_NAME=Productos
+VITE_API_URL=https://tu-api.com/v1
 ```
 
 #### MercadoPago (para pagos)
@@ -67,7 +66,7 @@ MERCADOPAGO_ACCESS_TOKEN=tu_access_token_aqui
 #### Seguridad (Netlify Functions)
 ```env
 # Orígenes permitidos (comas separadas)
-ALLOWED_ORIGINS=https://amigurumi-de-ines.netlify.app,https://localhost:3000
+ALLOWED_ORIGINS=https://tienda-devschile.netlify.app,http://localhost:5173
 
 NODE_ENV=production
 ```
@@ -80,9 +79,9 @@ NODE_ENV=production
    - `Public Key`: Para el frontend (VITE_MERCADOPAGO_PUBLIC_KEY)
    - `Access Token`: Para el backend (MERCADOPAGO_ACCESS_TOKEN)
 
-### 4. Configurar Airtable
+### 4. Configuración de API de Productos
 
-La aplicación espera una tabla llamada "Productos" con estos campos:
+La aplicación espera un endpoint `GET /products` que retorne una estructura compatible con `ProductResponse` conteniendo estos campos:
 
 | Campo | Tipo | Requerido | Descripción |
 |-------|------|-----------|-------------|
@@ -133,6 +132,8 @@ npm run lint
 │   └── functions/
 │       ├── create-payment.js      # Netlify Function para MercadoPago (segura)
 │       └── package.json           # Dependencias de Functions
+├── public/
+│   └── images/                    # Imágenes estáticas (accesibles vía /images/*)
 ├── app/
 │   └── app.tsx                    # Componente principal con pago
 ├── components/
@@ -189,7 +190,11 @@ Esto asegura que las dependencias se instalen antes del build.
 
 ### Modificar Productos:
 
-Edita directamente en tu tabla de Airtable. Los cambios se reflejan automáticamente.
+Edita tus datos en el archivo `app/productsMock.ts` o configura tu API Genérica. Los cambios se reflejan automáticamente.
+
+#### Imágenes Locales:
+Puedes guardar imágenes estáticas en la carpeta `public/images/`. Para usarlas en tus productos, utiliza la ruta relativa comenzando con `/images/`. 
+Ejemplo: Si guardas `mi-producto.jpg` en `public/images/`, la URL en tu JSON/Mock será `/images/mi-producto.jpg`.
 
 ### Cambiar Precios:
 
@@ -197,14 +202,15 @@ Los precios se muestran en CLP (Pesos Chilenos) y se formatean automáticamente.
 
 ### Personalizar Estilos:
 
-- Colores principales: `rose-500` y `orange-500`
-- Gradientes: `from-rose-500 to-orange-500`
+- Colores principales: `brand-primary` (#85422b) y `brand-secondary` (#b45b38)
+- Texto principal: `brand-text` (#1d1d1d)
+- Gradientes: `from-brand-primary to-brand-secondary`
 - Tipografía: Sistema fonts optimizados
 
 ## 📋 Checklist de Configuración
 
 - [ ] ✅ Instalar dependencias
-- [ ] ✅ Configurar variables de Airtable
+- [ ] ✅ Configurar URL de API (VITE_API_URL)
 - [ ] ✅ Crear cuenta en MercadoPago
 - [ ] ✅ Obtener credenciales de MercadoPago
 - [ ] ✅ **ROTAR credenciales expuestas** (Ver sección Seguridad)
@@ -231,15 +237,12 @@ Se realizó una auditoría completa de seguridad que identificó y corrigió vul
 
 **Las siguientes credenciales están expuestas y deben rotarse INMEDIATAMENTE:**
 
-1. **Airtable API Key**: `patDvA7InUnb2X449.*` (PAT completa expuesta)
-2. **Airtable Base ID**: `apprLGWcETltWUXpn` 
-3. **MercadoPago Public Key**: `APP_USR-0ce0eeab-*` (Key completa expuesta)
-4. **MercadoPago Access Token**: `APP_USR-2637451468197049-*` (Token completo expuesto)
+1. **MercadoPago Public Key**: `APP_USR-0ce0eeab-*` (Key completa expuesta)
+2. **MercadoPago Access Token**: `APP_USR-2637451468197049-*` (Token completo expuesto)
 
 #### Pasos de Rotación CRÍTICOS:
 
 1. **🔄 Rotar credenciales inmediatamente:**
-   - Airtable: [Personal Access Tokens](https://airtable.com/developers/web/api/personal-access-tokens)
    - MercadoPago: [Developer Panel](https://www.mercadopago.com.ar/developers/panel/credentials)
 
 2. **🗑️ Eliminar archivo .env actual** después de la rotación
@@ -249,7 +252,7 @@ Se realizó una auditoría completa de seguridad que identificó y corrigió vul
 4. **⚙️ Configurar en Netlify Dashboard:**
    ```
    MERCADOPAGO_ACCESS_TOKEN=nueva_token_rotado
-   ALLOWED_ORIGINS=https://amigurumi-de-ines.netlify.app,https://localhost:3000
+   ALLOWED_ORIGINS=https://tienda-devschile.netlify.app,http://localhost:5173
    NODE_ENV=production
    ```
 
@@ -281,7 +284,7 @@ Si tienes problemas con la integración de MercadoPago:
 
 ## 📄 Licencia
 
-Proyecto privado - © 2025 Amigurumis de Inés. Todos los derechos reservados.
+Proyecto privado - © 2025 Tienda devsChile. Todos los derechos reservados.
 
 ---
 

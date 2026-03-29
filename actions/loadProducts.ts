@@ -1,4 +1,4 @@
-// Acción para cargar todos los productos activos desde Airtable
+// Acción para cargar todos los productos activos desde la API
 import { action } from '@uibakery/data';
 
 function loadProducts() {
@@ -6,12 +6,12 @@ function loadProducts() {
     datasourceName: 'httpApi',
     options: {
       method: 'GET',
-      url: 'https://api.airtable.com/v0/{{params?.baseId}}/{{params?.tableName}}',
+      url: '{{params?.apiUrl}}/products',
       queryParams: {
-        filterByFormula: '{activo} = TRUE()',
+        activo: 'true',
       },
       headers: {
-        Authorization: 'Bearer {{params?.apiKey}}',
+        'Content-Type': 'application/json',
       },
     },
   });

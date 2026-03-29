@@ -7,7 +7,15 @@ export default {
     "./components/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        brand: {
+          primary: '#85422b',
+          secondary: '#b45b38',
+          text: '#1d1d1d',
+        }
+      }
+    },
   },
   plugins: [],
 }

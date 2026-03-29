@@ -5,7 +5,7 @@ exports.handler = async (event, context) => {
   // Get allowed origins from environment (should be set in Netlify)
   const allowedOrigins = process.env.ALLOWED_ORIGINS
     ? process.env.ALLOWED_ORIGINS.split(',')
-    : ['https://amigurumi-de-ines.netlify.app'];
+    : ['https://tienda-devschile.netlify.app'];
   
   const origin = event.headers.origin || event.headers.Origin || '';
   const isAllowedOrigin = allowedOrigins.includes(origin) || allowedOrigins.includes('*');
@@ -116,16 +116,16 @@ exports.handler = async (event, context) => {
     const sanitizedProductId = productId ? String(productId).substring(0, 50).replace(/[<>]/g, '') : null;
 
     // Get site URL from environment
-    const siteUrl = process.env.URL || process.env.SITE_URL || 'https://amigurumi-de-ines.netlify.app';
+    const siteUrl = process.env.URL || process.env.SITE_URL || 'https://tienda-devschile.netlify.app';
 
     // Create payment preference with enhanced security
     const preference = {
       items: [
         {
-          id: sanitizedProductId || `amigurumi-${Date.now()}`,
+          id: sanitizedProductId || `producto-${Date.now()}`,
           title: sanitizedProductName,
-          description: `Amigurumi: ${sanitizedProductName}`,
-          unit_price: numericAmount,
+          description: `Producto: ${sanitizedProductName}`,
+          unit_price: Math.round(numericAmount),
           currency_id: 'CLP',
           quantity: 1,
           category_id: 'handmade'
@@ -140,9 +140,9 @@ exports.handler = async (event, context) => {
         installments: 1 // Limit to single payment for simplicity
       },
       back_urls: {
-        success: `${siteUrl}/success`,
-        failure: `${siteUrl}/failure`,
-        pending: `${siteUrl}/pending`
+        success: `${siteUrl}/success.html`,
+        failure: `${siteUrl}/failure.html`,
+        pending: `${siteUrl}/pending.html`
       },
       auto_return: 'approved',
       expires: false,

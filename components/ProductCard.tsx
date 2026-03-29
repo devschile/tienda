@@ -1,14 +1,14 @@
 // Componente mejorado para mostrar productos
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import type { AirtableRecord } from '@/types/products';
+import type { ProductRecord } from '@/types/products';
 import { ShoppingCart, Eye, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 
 interface ProductCardProps {
-  product: AirtableRecord;
-  onImageClick: (product: AirtableRecord) => void;
-  onBuyClick: (product: AirtableRecord) => void;
+  product: ProductRecord;
+  onImageClick: (product: ProductRecord) => void;
+  onBuyClick: (product: ProductRecord) => void;
 }
 
 export function ProductCard({ product, onImageClick, onBuyClick }: ProductCardProps) {
@@ -28,13 +28,13 @@ export function ProductCard({ product, onImageClick, onBuyClick }: ProductCardPr
 
   return (
     <Card 
-      className={`group flex flex-col h-full bg-white/90 backdrop-blur-sm hover:shadow-2xl transition-all duration-300 border-orange-100/50 hover:border-orange-200 hover:-translate-y-2 overflow-hidden ${isSold ? 'product-sold' : ''}`}
+      className={`group flex flex-col h-full bg-white/90 backdrop-blur-sm hover:shadow-2xl transition-all duration-300 border-brand-secondary/20 hover:border-brand-secondary/40 hover:-translate-y-2 overflow-hidden ${isSold ? 'product-sold' : ''}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       <CardContent className="p-0 flex-1">
         <div 
-          className="relative w-full aspect-square overflow-hidden cursor-pointer bg-gradient-to-br from-orange-50 to-rose-50"
+          className="relative w-full aspect-square overflow-hidden cursor-pointer bg-gradient-to-br from-brand-secondary/10 to-brand-primary/10"
           onClick={() => onImageClick(product)}
         >
           <img
@@ -58,7 +58,7 @@ export function ProductCard({ product, onImageClick, onBuyClick }: ProductCardPr
               <Button
                 size="sm"
                 variant="secondary"
-                className="bg-white/90 backdrop-blur-sm text-orange-700 hover:bg-white shadow-lg"
+                className="bg-white/90 backdrop-blur-sm text-brand-primary hover:bg-white shadow-lg"
                 onClick={(e) => {
                   e.stopPropagation();
                   onImageClick(product);
@@ -73,16 +73,16 @@ export function ProductCard({ product, onImageClick, onBuyClick }: ProductCardPr
         </div>
 
         <div className="p-5">
-          <h3 className="font-bold text-lg mb-2 text-gray-800 line-clamp-2 min-h-[3.5rem] group-hover:text-orange-600 transition-colors">
+          <h3 className="font-bold text-lg mb-2 text-brand-text line-clamp-2 min-h-[3.5rem] group-hover:text-brand-secondary transition-colors">
             {nombre}
           </h3>
-          <p className="text-sm text-gray-600 mb-4 line-clamp-2 min-h-[2.5rem]">
+          <p className="text-sm text-brand-text/70 mb-4 line-clamp-2 min-h-[2.5rem]">
             {descripcion}
           </p>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs text-orange-600 font-medium mb-1">Precio</p>
-              <p className="text-2xl font-bold bg-gradient-to-r from-rose-600 to-orange-600 bg-clip-text text-transparent">
+              <p className="text-xs text-brand-secondary font-medium mb-1">Precio</p>
+              <p className="text-2xl font-bold bg-gradient-to-r from-brand-primary to-brand-secondary bg-clip-text text-transparent">
                 {formatPrice(precio)}
               </p>
             </div>
@@ -94,8 +94,8 @@ export function ProductCard({ product, onImageClick, onBuyClick }: ProductCardPr
         <Button 
           className={`w-full shadow-lg hover:shadow-xl transition-all duration-300 group/btn ${
             isSold 
-              ? 'bg-gray-400 cursor-not-allowed' 
-              : 'bg-gradient-to-r from-rose-500 to-orange-500 hover:from-rose-600 hover:to-orange-600'
+              ? 'bg-brand-text/40 cursor-not-allowed' 
+              : 'bg-gradient-to-r from-brand-primary to-brand-secondary hover:opacity-90'
           } text-white`}
           onClick={() => !isSold && onBuyClick(product)}
           disabled={isSold}
