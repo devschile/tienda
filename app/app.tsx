@@ -7,7 +7,7 @@ import { InfoModal } from '@/components/InfoModal';
 import { Toaster } from '@/components/ui/toaster';
 import { useToast } from '@/hooks/use-toast';
 import type { ProductRecord, ProductResponse } from '@/types/products';
-import { Info, Loader2, ShoppingBag, Sparkles } from 'lucide-react';
+import { Info, Loader2, ShoppingBag } from 'lucide-react';
 
 import {productsMock as records} from "@/app/productsMock.ts";
 import logo from '@/images/devschile2026.png'
@@ -79,14 +79,13 @@ function App() {
         title: 'Preparando pago...',
         description: `Creando preferencia de pago para ${product.fields.nombre}...`,
       });
-
       // Llamamos a la función referenciada para crear el pago
       const data = await createPayment(
         product.fields.precio,
         product.fields.nombre,
         product.id
       );
-      
+
       if (!data.success || !data.checkout_url) {
         throw new Error(data.error || 'No se pudo obtener la URL de pago');
       }

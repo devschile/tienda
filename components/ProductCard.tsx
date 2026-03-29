@@ -2,7 +2,7 @@
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import type { ProductRecord } from '@/types/products';
-import { ShoppingCart, Eye, Sparkles } from 'lucide-react';
+import { ShoppingCart, Eye } from 'lucide-react';
 import { useState } from 'react';
 
 interface ProductCardProps {
@@ -47,7 +47,7 @@ export function ProductCard({ product, onImageClick, onBuyClick }: ProductCardPr
           {isSold && (
             <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-10">
               <div className="bg-red-500 text-white px-4 py-2 rounded-lg font-bold text-lg shadow-lg">
-                VENDIDO
+                AGOTADO
               </div>
             </div>
           )}
@@ -101,7 +101,7 @@ export function ProductCard({ product, onImageClick, onBuyClick }: ProductCardPr
           disabled={isSold}
         >
           <ShoppingCart className="h-4 w-4 mr-2 group-hover/btn:animate-bounce" />
-          {isSold ? 'Vendido' : 'Comprar Ahora'}
+          {isSold ? 'Agotado' : 'Comprar Ahora'}
         </Button>
       </CardFooter>
     </Card>
