@@ -5,11 +5,11 @@ export const createPayment = async (amount: number, productName: string, product
   if (import.meta.env.DEV) {
     console.log('Utilizando mock de pago para desarrollo');
     // Simulamos un pequeño retraso de red
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
+    await new Promise((resolve) => setTimeout(resolve, 800));
+
     return {
       success: true,
-      checkout_url: '/success.html'
+      checkout_url: '/success.html',
     };
   }
 
@@ -22,7 +22,7 @@ export const createPayment = async (amount: number, productName: string, product
     body: JSON.stringify({
       amount,
       productName,
-      productId
+      productId,
     }),
   });
 

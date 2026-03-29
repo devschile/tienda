@@ -1,10 +1,5 @@
 // Modal de información mejorado
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Heart, Scissors, Sparkles } from 'lucide-react';
 
 interface InfoModalProps {
@@ -21,7 +16,7 @@ export function InfoModal({ open, onOpenChange }: InfoModalProps) {
             Sobre Tienda devsChile
           </DialogTitle>
         </DialogHeader>
-        
+
         {/* Mobile layout - stacked */}
         <div className="md:hidden space-y-6">
           <div className="aspect-video w-full bg-gradient-to-br from-brand-secondary/20 to-brand-primary/20 rounded-xl overflow-hidden shadow-lg">
@@ -31,7 +26,7 @@ export function InfoModal({ open, onOpenChange }: InfoModalProps) {
               className="w-full h-full object-cover"
             />
           </div>
-          
+
           <div className="space-y-4">
             <div className="flex items-start space-x-3">
               <div className="bg-gradient-to-br from-brand-primary to-brand-secondary p-2 rounded-lg flex-shrink-0">
@@ -39,9 +34,7 @@ export function InfoModal({ open, onOpenChange }: InfoModalProps) {
               </div>
               <div>
                 <h4 className="font-bold text-brand-text mb-1">Hecho con Amor</h4>
-                <p className="text-brand-text/70 text-sm leading-relaxed">
-                  [xxx]
-                </p>
+                <p className="text-brand-text/70 text-sm leading-relaxed">[xxx]</p>
               </div>
             </div>
 
@@ -52,8 +45,8 @@ export function InfoModal({ open, onOpenChange }: InfoModalProps) {
               <div>
                 <h4 className="font-bold text-brand-text mb-1">Técnica Artesanal</h4>
                 <p className="text-brand-text/70 text-sm leading-relaxed">
-                  Utilizo técnicas tradicionales de crochet con materiales de alta calidad 
-                  para garantizar productos duraderos y hermosos que perdurarán en el tiempo.
+                  Utilizo técnicas tradicionales de crochet con materiales de alta calidad para
+                  garantizar productos duraderos y hermosos que perdurarán en el tiempo.
                 </p>
               </div>
             </div>
@@ -65,8 +58,8 @@ export function InfoModal({ open, onOpenChange }: InfoModalProps) {
               <div>
                 <h4 className="font-bold text-brand-text mb-1">Piezas Únicas</h4>
                 <p className="text-brand-text/70 text-sm leading-relaxed">
-                  Cada creación tiene pequeñas variaciones que la hacen única. 
-                  No encontrarás dos productos exactamente iguales, ¡eso es parte de su magia!
+                  Cada creación tiene pequeñas variaciones que la hacen única. No encontrarás dos
+                  productos exactamente iguales, ¡eso es parte de su magia!
                 </p>
               </div>
             </div>
@@ -78,7 +71,7 @@ export function InfoModal({ open, onOpenChange }: InfoModalProps) {
             </p>
           </div>
         </div>
-        
+
         {/* Desktop layout - side by side */}
         <div className="hidden md:flex md:gap-8">
           {/* Left column - Text content */}
@@ -90,7 +83,7 @@ export function InfoModal({ open, onOpenChange }: InfoModalProps) {
               <div>
                 <h4 className="font-bold text-brand-text mb-1">Hecho con Amor</h4>
                 <p className="text-brand-text/70 text-sm leading-relaxed">
-                  Cada pieza es creada con amor y dedicación. Mis productos son únicos y especiales, 
+                  Cada pieza es creada con amor y dedicación. Mis productos son únicos y especiales,
                   perfectos para regalar o decorar tu hogar con calidez.
                 </p>
               </div>
@@ -103,8 +96,8 @@ export function InfoModal({ open, onOpenChange }: InfoModalProps) {
               <div>
                 <h4 className="font-bold text-brand-text mb-1">Técnica Artesanal</h4>
                 <p className="text-brand-text/70 text-sm leading-relaxed">
-                  Utilizo técnicas tradicionales de crochet con materiales de alta calidad 
-                  para garantizar productos duraderos y hermosos que perdurarán en el tiempo.
+                  Utilizo técnicas tradicionales de crochet con materiales de alta calidad para
+                  garantizar productos duraderos y hermosos que perdurarán en el tiempo.
                 </p>
               </div>
             </div>
@@ -116,19 +109,19 @@ export function InfoModal({ open, onOpenChange }: InfoModalProps) {
               <div>
                 <h4 className="font-bold text-brand-text mb-1">Piezas Únicas</h4>
                 <p className="text-brand-text/70 text-sm leading-relaxed">
-                  Cada creación tiene pequeñas variaciones que la hacen única. 
-                  No encontrarás dos productos exactamente iguales, ¡eso es parte de su magia!
+                  Cada creación tiene pequeñas variaciones que la hacen única. No encontrarás dos
+                  productos exactamente iguales, ¡eso es parte de su magia!
                 </p>
               </div>
             </div>
-            
+
             <div className="bg-gradient-to-r from-brand-primary to-brand-secondary text-white p-6 rounded-xl shadow-lg mt-6">
               <p className="text-center font-bold text-lg">
                 ¡Gracias por apoyar el arte hecho a mano! 💕
               </p>
             </div>
           </div>
-          
+
           {/* Right column - Image */}
           <div className="w-80 flex-shrink-0">
             <div className="aspect-square w-full bg-gradient-to-br from-brand-secondary/20 to-brand-primary/20 rounded-xl overflow-hidden shadow-lg">

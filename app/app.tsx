@@ -9,21 +9,20 @@ import { useToast } from '@/hooks/use-toast';
 import type { ProductRecord, ProductResponse } from '@/types/products';
 import { Info, Loader2, ShoppingBag } from 'lucide-react';
 
-import {productsMock as records} from "@/app/productsMock.ts";
-import logo from '@/images/devschile2026.png'
+import { productsMock as records } from '@/app/productsMock.ts';
+import logo from '@/images/devschile2026.png';
 import createPayment from '@/actions/createPayment';
 
 const API_CONFIG = {
   apiUrl: import.meta.env.VITE_API_URL || 'https://api.example.com/v1',
 };
 
-
 function App() {
   const { toast } = useToast();
   const [selectedProduct, setSelectedProduct] = useState<ProductRecord | null>(null);
   const [imageModalOpen, setImageModalOpen] = useState(false);
   const [infoModalOpen, setInfoModalOpen] = useState(false);
-  
+
   // Replace UIBakery hooks with standard React state
   const [productsData, setProductsData] = useState<ProductResponse | null>(null);
   const [loadingProducts, setLoadingProducts] = useState(true);
@@ -36,7 +35,7 @@ function App() {
       try {
         setLoadingProducts(true);
         setErrorProducts(null);
-        
+
         // In development, use mock data
         if (import.meta.env.DEV) {
           console.log('Using mock products data for development');
@@ -45,11 +44,11 @@ function App() {
         }
 
         const response = await fetch(`${API_CONFIG.apiUrl}/products`);
-        
+
         if (!response.ok) {
           throw new Error('Failed to fetch products');
         }
-        
+
         const data: ProductResponse = await response.json();
         setProductsData(data);
       } catch (error) {
@@ -62,7 +61,7 @@ function App() {
         setLoadingProducts(false);
       }
     };
-    
+
     loadProductsData();
   }, []);
 
@@ -74,17 +73,13 @@ function App() {
   const handleBuyClick = async (product: ProductRecord) => {
     try {
       setLoadingPayment(true);
-      
+
       toast({
         title: 'Preparando pago...',
         description: `Creando preferencia de pago para ${product.fields.nombre}...`,
       });
       // Llamamos a la función referenciada para crear el pago
-      const data = await createPayment(
-        product.fields.precio,
-        product.fields.nombre,
-        product.id
-      );
+      const data = await createPayment(product.fields.precio, product.fields.nombre, product.id);
 
       if (!data.success || !data.checkout_url) {
         throw new Error(data.error || 'No se pudo obtener la URL de pago');
@@ -97,7 +92,6 @@ function App() {
 
       // Redirect to MercadoPago checkout
       window.location.href = data.checkout_url;
-      
     } catch (error) {
       console.error('Payment error:', error);
       toast({
@@ -111,7 +105,7 @@ function App() {
   };
 
   const allProducts = productsData?.records || [];
-  const availableProducts = allProducts.filter(product => product.fields.activo);
+  const availableProducts = allProducts.filter((product) => product.fields.activo);
   const totalCount = allProducts.length;
   const availableCount = availableProducts.length;
 
@@ -151,9 +145,7 @@ function App() {
       </header>
 
       {/* Hero banner */}
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-6">
-
-      </div>
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-6"></div>
 
       {/* Main Content */}
       <main className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-16">
@@ -169,9 +161,7 @@ function App() {
             <div className="inline-flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mb-4">
               <span className="text-3xl">⚠️</span>
             </div>
-            <p className="text-red-800 font-semibold text-lg mb-2">
-              Oops, algo salió mal
-            </p>
+            <p className="text-red-800 font-semibold text-lg mb-2">Oops, algo salió mal</p>
             <p className="text-red-600 text-sm">
               No pudimos cargar los productos. Verifica tu conexión e intenta nuevamente.
             </p>
@@ -183,9 +173,7 @@ function App() {
             <div className="inline-flex items-center justify-center w-20 h-20 bg-brand-secondary/10 rounded-full mb-6">
               <ShoppingBag className="h-10 w-10 text-brand-secondary" />
             </div>
-            <h3 className="text-xl font-bold text-brand-text mb-2">
-              No hay productos disponibles
-            </h3>
+            <h3 className="text-xl font-bold text-brand-text mb-2">No hay productos disponibles</h3>
             <p className="text-brand-text/70">
               Pronto tendré nuevas creaciones disponibles. ¡Vuelve pronto!
             </p>
@@ -195,12 +183,11 @@ function App() {
         {!loadingProducts && allProducts.length > 0 && (
           <>
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-brand-text">
-                Mis Creaciones
-              </h2>
+              <h2 className="text-2xl font-bold text-brand-text">Mis Creaciones</h2>
               <div className="text-right">
                 <p className="text-sm text-brand-secondary font-medium">
-                  {availableCount} {availableCount === 1 ? 'producto' : 'productos'} disponible{availableCount === 1 ? '' : 's'}
+                  {availableCount} {availableCount === 1 ? 'producto' : 'productos'} disponible
+                  {availableCount === 1 ? '' : 's'}
                 </p>
                 <p className="text-xs text-brand-text/50">
                   {totalCount} {totalCount === 1 ? 'producto hecho' : 'productos hechos'} en total
@@ -228,8 +215,7 @@ function App() {
             <p className="text-sm text-brand-text/70 mb-2">
               © {new Date().getFullYear()} Tienda devsChile. Todos los derechos reservados.
             </p>
-            <p className="text-xs text-brand-secondary">
-            </p>
+            <p className="text-xs text-brand-secondary"></p>
           </div>
         </div>
       </footer>

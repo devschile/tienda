@@ -1,7 +1,7 @@
 # Tienda devsChile - Ecommerce con MercadoPago
 
 Sitio web para la venta de productos de la comunidad devsChile.
-Construido con React, TypeScript, Tailwind CSS y Vite. 
+Construido con React, TypeScript, Tailwind CSS y Vite.
 **Ahora con integración completa de MercadoPago para transacciones reales**.
 
 ## 🛠️ Tecnologías
@@ -35,11 +35,13 @@ cp .env.secure .env
 **Variables requeridas:**
 
 #### API Configuration (para productos)
+
 ```env
 VITE_API_URL=https://tu-api.com/v1
 ```
 
 #### MercadoPago (para pagos)
+
 ```env
 # Clave pública (frontend) - esta se puede exponer
 VITE_MERCADOPAGO_PUBLIC_KEY=tu_public_key_aqui
@@ -49,6 +51,7 @@ MERCADOPAGO_ACCESS_TOKEN=tu_access_token_aqui
 ```
 
 #### Seguridad (Netlify Functions)
+
 ```env
 # Orígenes permitidos (comas separadas)
 ALLOWED_ORIGINS=https://tienda-devschile.cl,http://localhost:3000
@@ -68,14 +71,14 @@ NODE_ENV=production
 
 La aplicación espera un endpoint `GET /products` que retorne una estructura compatible con `ProductResponse` conteniendo estos campos:
 
-| Campo | Tipo | Requerido | Descripción |
-|-------|------|-----------|-------------|
-| `nombre` | Texto | ✅ | Nombre del producto |
-| `descripcion` | Texto largo | ✅ | Descripción detallada |
-| `precio` | Número | ✅ | Precio en CLP |
-| `imagen_miniatura` | Attachment | ✅ | Imagen 300x300px |
-| `imagenes_grandes` | Attachment | ✅ | Imágenes alta resolución |
-| `activo` | Checkbox | ✅ | Disponible para venta |
+| Campo              | Tipo        | Requerido | Descripción              |
+| ------------------ | ----------- | --------- | ------------------------ |
+| `nombre`           | Texto       | ✅        | Nombre del producto      |
+| `descripcion`      | Texto largo | ✅        | Descripción detallada    |
+| `precio`           | Número      | ✅        | Precio en CLP            |
+| `imagen_miniatura` | Attachment  | ✅        | Imagen 300x300px         |
+| `imagenes_grandes` | Attachment  | ✅        | Imágenes alta resolución |
+| `activo`           | Checkbox    | ✅        | Disponible para venta    |
 
 ## 🏃‍♂️ Desarrollo
 
@@ -137,7 +140,6 @@ npm run lint
 
 - Crear pago: `https://tu-sitio.netlify.app/.netlify/functions/create-payment`
 
-
 #### Comandos de Build Configurados:
 
 ```toml
@@ -154,7 +156,8 @@ Esto asegura que las dependencias se instalen antes del build.
 Edita tus datos en el archivo `app/productsMock.ts` o configura tu API Genérica. Los cambios se reflejan automáticamente.
 
 #### Imágenes Locales:
-Puedes guardar imágenes estáticas en la carpeta `public/images/`. Para usarlas en tus productos, utiliza la ruta relativa comenzando con `/images/`. 
+
+Puedes guardar imágenes estáticas en la carpeta `public/images/`. Para usarlas en tus productos, utiliza la ruta relativa comenzando con `/images/`.
 Ejemplo: Si guardas `mi-producto.jpg` en `public/images/`, la URL en tu JSON/Mock será `/images/mi-producto.jpg`.
 
 ### Cambiar Precios:
@@ -175,6 +178,7 @@ Los precios se muestran en CLP (Pesos Chilenos) y se formatean automáticamente.
 Se realizó una auditoría completa de seguridad que identificó y corrigió vulnerabilidades críticas:
 
 #### Vulnerabilidades Corregidas:
+
 - ✅ **CORS mejorado**: Reemplazado wildcard `*` con whitelist de orígenes
 - ✅ **Validación de entrada**: Sanitización y validación de todos los inputs
 - ✅ **Headers de seguridad**: X-Frame-Options, X-XSS-Protection, X-Content-Type-Options

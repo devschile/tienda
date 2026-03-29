@@ -1,15 +1,10 @@
 // Modal mejorado para imágenes del producto
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useState } from 'react';
 import type { ProductRecord } from '@/types/products';
-import {ChevronLeft, ChevronRight, ShoppingCart, X} from 'lucide-react';
+import { ChevronLeft, ChevronRight, ShoppingCart, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import {CardFooter} from "@/components/ui/card.tsx";
+import { CardFooter } from '@/components/ui/card.tsx';
 
 interface ProductImageModalProps {
   product: ProductRecord | null;
@@ -73,14 +68,15 @@ export function ProductImageModal({ product, open, onOpenChange }: ProductImageM
             </div>
           )}
         </div>
+
         <div className="bg-brand-secondary/5 rounded-lg p-4 mt-2">
           <p className="text-brand-text/80 leading-relaxed">{product.fields.descripcion}</p>
         </div>
         <CardFooter className="p-5 pt-0">
           <Button
-              className={`w-full shadow-lg hover:shadow-xl transition-all duration-300 group/btn bg-gradient-to-r from-brand-primary to-brand-secondary hover:opacity-90 text-white`}
-              onClick={() => alert('Funcionalidad de compra próximamente')}
-              disabled={false}
+            className={`w-full shadow-lg hover:shadow-xl transition-all duration-300 group/btn bg-gradient-to-r from-brand-primary to-brand-secondary hover:opacity-90 text-white`}
+            onClick={() => alert('Funcionalidad de compra próximamente')}
+            disabled={false}
           >
             <ShoppingCart className="h-4 w-4 mr-2 group-hover/btn:animate-bounce" />
             {'Comprar Ahora'}

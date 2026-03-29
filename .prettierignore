@@ -1,0 +1,10 @@
+# Prettier ignore file
+node_modules
+dist
+build
+.idea
+.DS_Store
+package-lock.json
+package.json
+public
+*.html

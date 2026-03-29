@@ -6,7 +6,7 @@ exports.handler = async (event, context) => {
   const allowedOrigins = process.env.ALLOWED_ORIGINS
     ? process.env.ALLOWED_ORIGINS.split(',')
     : ['https://tienda-devschile.netlify.app'];
-  
+
   const origin = event.headers.origin || event.headers.Origin || '';
   const isAllowedOrigin = allowedOrigins.includes(origin) || allowedOrigins.includes('*');
 
@@ -19,7 +19,7 @@ exports.handler = async (event, context) => {
     'Content-Type': 'application/json',
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'DENY',
-    'X-XSS-Protection': '1; mode=block'
+    'X-XSS-Protection': '1; mode=block',
   };
 
   // Handle preflight requests
@@ -27,7 +27,7 @@ exports.handler = async (event, context) => {
     return {
       statusCode: 200,
       headers,
-      body: ''
+      body: '',
     };
   }
 
@@ -36,7 +36,7 @@ exports.handler = async (event, context) => {
     return {
       statusCode: 405,
       headers,
-      body: JSON.stringify({ error: 'Method not allowed' })
+      body: JSON.stringify({ error: 'Method not allowed' }),
     };
   }
 
@@ -46,14 +46,14 @@ exports.handler = async (event, context) => {
     return {
       statusCode: 403,
       headers,
-      body: JSON.stringify({ error: 'Origin not allowed' })
+      body: JSON.stringify({ error: 'Origin not allowed' }),
     };
   }
 
   try {
     // Get MercadoPago credentials from environment variables
     const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
-    
+
     if (!accessToken) {
       console.error('MercadoPago access token not configured');
       throw new Error('Payment service unavailable');
@@ -61,7 +61,7 @@ exports.handler = async (event, context) => {
 
     // Configure MercadoPago SDK
     mercadopago.configure({
-      access_token: accessToken
+      access_token: accessToken,
     });
 
     // Parse and validate request body
@@ -72,7 +72,7 @@ exports.handler = async (event, context) => {
       return {
         statusCode: 400,
         headers,
-        body: JSON.stringify({ error: 'Invalid JSON in request body' })
+        body: JSON.stringify({ error: 'Invalid JSON in request body' }),
       };
     }
 
@@ -84,8 +84,8 @@ exports.handler = async (event, context) => {
         statusCode: 400,
         headers,
         body: JSON.stringify({
-          error: 'Missing required fields: amount, productName'
-        })
+          error: 'Missing required fields: amount, productName',
+        }),
       };
     }
 
@@ -96,27 +96,31 @@ exports.handler = async (event, context) => {
         statusCode: 400,
         headers,
         body: JSON.stringify({
-          error: 'Invalid amount: must be a positive number'
-        })
+          error: 'Invalid amount: must be a positive number',
+        }),
       };
     }
 
-    if (numericAmount > 1000000) { // Max 1M CLP
+    if (numericAmount > 1000000) {
+      // Max 1M CLP
       return {
         statusCode: 400,
         headers,
         body: JSON.stringify({
-          error: 'Amount exceeds maximum limit'
-        })
+          error: 'Amount exceeds maximum limit',
+        }),
       };
     }
 
     // Sanitize string inputs
     const sanitizedProductName = String(productName).substring(0, 100).replace(/[<>]/g, '');
-    const sanitizedProductId = productId ? String(productId).substring(0, 50).replace(/[<>]/g, '') : null;
+    const sanitizedProductId = productId
+      ? String(productId).substring(0, 50).replace(/[<>]/g, '')
+      : null;
 
     // Get site URL from environment
-    const siteUrl = process.env.URL || process.env.SITE_URL || 'https://tienda-devschile.netlify.app';
+    const siteUrl =
+      process.env.URL || process.env.SITE_URL || 'https://tienda-devschile.netlify.app';
 
     // Create payment preference with enhanced security
     const preference = {
@@ -128,36 +132,36 @@ exports.handler = async (event, context) => {
           unit_price: Math.round(numericAmount),
           currency_id: 'CLP',
           quantity: 1,
-          category_id: 'handmade'
-        }
+          category_id: 'handmade',
+        },
       ],
       payment_methods: {
         excluded_payment_types: [
           {
-            id: 'ticket' // Exclude bank transfers for faster processing
-          }
+            id: 'ticket', // Exclude bank transfers for faster processing
+          },
         ],
-        installments: 1 // Limit to single payment for simplicity
+        installments: 1, // Limit to single payment for simplicity
       },
       back_urls: {
         success: `${siteUrl}/success.html`,
         failure: `${siteUrl}/failure.html`,
-        pending: `${siteUrl}/pending.html`
+        pending: `${siteUrl}/pending.html`,
       },
       auto_return: 'approved',
       expires: false,
       marketplace_fee: 0,
       differential_pricing: {
-        mode: 'grand_total'
+        mode: 'grand_total',
       },
       shipments: {
         receiver_address: {
           zip_code: '0000000',
           city_name: 'Santiago',
           state_name: 'Región Metropolitana',
-          country_name: 'Chile'
-        }
-      }
+          country_name: 'Chile',
+        },
+      },
     };
 
     // Create the preference
@@ -170,24 +174,23 @@ exports.handler = async (event, context) => {
       body: JSON.stringify({
         success: true,
         checkout_url: response.body.init_point,
-        preference_id: response.body.id
-      })
+        preference_id: response.body.id,
+      }),
     };
-
   } catch (error) {
     console.error('Error creating payment:', error.message);
-    
+
     // Don't expose internal error details in production
     const isDevelopment = process.env.NODE_ENV === 'development';
-    
+
     return {
       statusCode: 500,
       headers,
       body: JSON.stringify({
         success: false,
         error: 'Payment service temporarily unavailable. Please try again.',
-        ...(isDevelopment && { details: error.message })
-      })
+        ...(isDevelopment && { details: error.message }),
+      }),
     };
   }
 };

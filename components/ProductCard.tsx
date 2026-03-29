@@ -15,9 +15,12 @@ export function ProductCard({ product, onImageClick, onBuyClick }: ProductCardPr
   const [isHovered, setIsHovered] = useState(false);
   const { nombre, descripcion, precio, imagen_miniatura, activo } = product.fields;
   const isSold = !activo;
-  
-  const thumbnailUrl = imagen_miniatura?.[0]?.thumbnails?.large?.url || imagen_miniatura?.[0]?.url || '/assets/images/default.svg';
-  
+
+  const thumbnailUrl =
+    imagen_miniatura?.[0]?.thumbnails?.large?.url ||
+    imagen_miniatura?.[0]?.url ||
+    '/assets/images/default.svg';
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('es-CL', {
       style: 'currency',
@@ -27,13 +30,13 @@ export function ProductCard({ product, onImageClick, onBuyClick }: ProductCardPr
   };
 
   return (
-    <Card 
+    <Card
       className={`group flex flex-col h-full bg-white/90 backdrop-blur-sm hover:shadow-2xl transition-all duration-300 border-brand-secondary/20 hover:border-brand-secondary/40 hover:-translate-y-2 overflow-hidden ${isSold ? 'product-sold' : ''}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       <CardContent className="p-0 flex-1">
-        <div 
+        <div
           className="relative w-full aspect-square overflow-hidden cursor-pointer bg-gradient-to-br from-brand-secondary/10 to-brand-primary/10"
           onClick={() => onImageClick(product)}
         >
@@ -42,7 +45,7 @@ export function ProductCard({ product, onImageClick, onBuyClick }: ProductCardPr
             alt={nombre}
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
           />
-          
+
           {/* Sold indicator */}
           {isSold && (
             <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-10">
@@ -51,9 +54,11 @@ export function ProductCard({ product, onImageClick, onBuyClick }: ProductCardPr
               </div>
             </div>
           )}
-          
+
           {/* Overlay on hover */}
-          <div className={`absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-black/0 transition-opacity duration-300 ${isHovered ? 'opacity-100' : 'opacity-0'} ${isSold ? 'z-0' : ''}`}>
+          <div
+            className={`absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-black/0 transition-opacity duration-300 ${isHovered ? 'opacity-100' : 'opacity-0'} ${isSold ? 'z-0' : ''}`}
+          >
             <div className="absolute bottom-4 left-4 right-4 flex justify-center">
               <Button
                 size="sm"
@@ -91,10 +96,10 @@ export function ProductCard({ product, onImageClick, onBuyClick }: ProductCardPr
       </CardContent>
 
       <CardFooter className="p-5 pt-0">
-        <Button 
+        <Button
           className={`w-full shadow-lg hover:shadow-xl transition-all duration-300 group/btn ${
-            isSold 
-              ? 'bg-brand-text/40 cursor-not-allowed' 
+            isSold
+              ? 'bg-brand-text/40 cursor-not-allowed'
               : 'bg-gradient-to-r from-brand-primary to-brand-secondary hover:opacity-90'
           } text-white`}
           onClick={() => !isSold && onBuyClick(product)}
