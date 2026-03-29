@@ -1,23 +1,8 @@
 # Tienda devsChile - Ecommerce con MercadoPago
 
-Sitio web para la venta de productos tejidos a mano por Inés. Construido con React, TypeScript, Tailwind CSS y Vite. **Ahora con integración completa de MercadoPago para pagos reales**.
-
-## 🚨 AVISO DE SEGURIDAD IMPORTANTE
-
-**⚠️ ANTES DE USAR EN PRODUCCIÓN: Se realizó una auditoría de seguridad completa. Las credenciales expuestas deben rotarse inmediatamente. Ver la sección [Seguridad](#-seguridad) para más detalles.**
-
-## ✨ Características
-
-- 🎨 Diseño responsivo y atractivo con gradientes cálidos
-- 📱 Interfaz moderna optimizada para móviles
-- 🛍️ Catálogo de productos dinámico desde API Genérica
-- 💳 **Pagos reales con MercadoPago** (¡NUEVO!)
-- 🔒 Pago seguro con redirección a MercadoPago
-- ✅ Páginas de confirmación: éxito, falla y pendiente
-- 📊 Gestión de estados de pago completa
-- 🎯 Sin carrito de compras - compra directa por producto
-- 🛡️ **Auditoría de seguridad completa implementada**
-- 🧪 **Modo desarrollo con Mock Data**
+Sitio web para la venta de productos de la comunidad devsChile.
+Construido con React, TypeScript, Tailwind CSS y Vite. 
+**Ahora con integración completa de MercadoPago para transacciones reales**.
 
 ## 🛠️ Tecnologías
 
@@ -66,7 +51,7 @@ MERCADOPAGO_ACCESS_TOKEN=tu_access_token_aqui
 #### Seguridad (Netlify Functions)
 ```env
 # Orígenes permitidos (comas separadas)
-ALLOWED_ORIGINS=https://tienda-devschile.netlify.app,http://localhost:5173
+ALLOWED_ORIGINS=https://tienda-devschile.cl,http://localhost:3000
 
 NODE_ENV=production
 ```
@@ -148,34 +133,10 @@ npm run lint
 └── package.json                   # Dependencias del proyecto
 ```
 
-## 🌐 Despliegue en Netlify
-
-### Configuración Automática:
-
-1. **Conecta tu repositorio a Netlify**
-2. **Variables de entorno en Netlify Dashboard:**
-   - Todas las variables `VITE_*` en "Build & deploy" → "Environment"
-   - `MERCADOPAGO_ACCESS_TOKEN` en "Functions" → "Environment"
-   - `ALLOWED_ORIGINS` en "Functions" → "Environment"
-   - `NODE_ENV=production` en "Functions" → "Environment"
-3. **Netlify detectará automáticamente:**
-   - Build: `npm ci && npm run build`
-   - Publish directory: `dist`
-   - Functions directory: `netlify/functions`
-
 ### URLs de Función:
 
 - Crear pago: `https://tu-sitio.netlify.app/.netlify/functions/create-payment`
 
-### 🛠️ Solución de Problemas de Despliegue:
-
-#### Error "vite: not found"
-
-Si encuentras el error `sh: 1: vite: not found` durante el build:
-
-1. **✅ Ya solucionado**: El archivo `netlify.toml` incluye `npm ci &&` para instalar dependencias
-2. **Node.js Version**: El proyecto usa Node.js 18 (ver `.nvmrc`)
-3. **Dependencias**: Asegúrate de que `package-lock.json` esté en el repositorio
 
 #### Comandos de Build Configurados:
 
@@ -207,19 +168,6 @@ Los precios se muestran en CLP (Pesos Chilenos) y se formatean automáticamente.
 - Gradientes: `from-brand-primary to-brand-secondary`
 - Tipografía: Sistema fonts optimizados
 
-## 📋 Checklist de Configuración
-
-- [ ] ✅ Instalar dependencias
-- [ ] ✅ Configurar URL de API (VITE_API_URL)
-- [ ] ✅ Crear cuenta en MercadoPago
-- [ ] ✅ Obtener credenciales de MercadoPago
-- [ ] ✅ **ROTAR credenciales expuestas** (Ver sección Seguridad)
-- [ ] ✅ Configurar variables de entorno
-- [ ] ✅ Conectar repositorio a Netlify
-- [ ] ✅ Probar flujo de pagos
-- [ ] ✅ Verificar páginas de confirmación
-- [ ] ✅ Configurar variables de seguridad en Netlify
-
 ## 🛡️ Seguridad
 
 ### ⚠️ AUDITORÍA DE SEGURIDAD COMPLETADA
@@ -247,7 +195,7 @@ Se realizó una auditoría completa de seguridad que identificó y corrigió vul
 
 2. **🗑️ Eliminar archivo .env actual** después de la rotación
 
-3. **🧹 Limpiar historial de git** si las credenciales fueron commitadas
+3. **🧹 Limpiar historial de git** si las credenciales fueron commiteadas
 
 4. **⚙️ Configurar en Netlify Dashboard:**
    ```
@@ -284,10 +232,8 @@ Si tienes problemas con la integración de MercadoPago:
 
 ## 📄 Licencia
 
-Proyecto privado - © 2025 Tienda devsChile. Todos los derechos reservados.
+Proyecto privado - © 2026 Tienda devsChile. Todos los derechos reservados.
 
 ---
 
 **🎉 ¡Listo para recibir pagos reales con MercadoPago!** 💳
-
-**⚠️ RECORDATORIO**: Rotar credenciales expuestas antes del despliegue en producción.
