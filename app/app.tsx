@@ -1,5 +1,6 @@
-// Aplicación principal de ecommerce - Diseño comercial cálido
 import { useState, useEffect } from 'react';
+import { Info, Loader2, ShoppingBag } from 'lucide-react';
+
 import { Button } from '@/components/ui/button';
 import { ProductCard } from '@/components/ProductCard';
 import { ProductImageModal } from '@/components/ProductImageModal';
@@ -7,8 +8,6 @@ import { InfoModal } from '@/components/InfoModal';
 import { Toaster } from '@/components/ui/toaster';
 import { useToast } from '@/hooks/use-toast';
 import type { ProductRecord, ProductResponse } from '@/types/products';
-import { Info, Loader2, ShoppingBag } from 'lucide-react';
-
 import { productsMock as records } from '@/app/productsMock.ts';
 import logo from '@/images/devschile2026.png';
 import createPayment from '@/actions/createPayment';

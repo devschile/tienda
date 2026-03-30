@@ -1,13 +1,18 @@
-// Modal de información mejorado
+import * as React from 'react';
+import { Heart, HeartHandshake, Recycle } from 'lucide-react';
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Heart, HeartHandshake, Recycle, Scissors, Sparkles } from 'lucide-react';
 
 interface InfoModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
+interface Section {
+  title: string;
+  description: string;
+}
 
-const sections: Array<{ title: string; description: string }> = [
+const sections: Array<Section> = [
   {
     title: 'Con el huemul en mente',
     description:
@@ -25,6 +30,19 @@ const sections: Array<{ title: string; description: string }> = [
   },
 ];
 
+const iconBySection = (index: number): React.ReactNode | null => {
+  switch (index) {
+    case 0:
+      return <Heart className="h-5 w-5 text-white" />;
+    case 1:
+      return <HeartHandshake className="h-5 w-5 text-white" />;
+    case 2:
+      return <Recycle className="h-5 w-5 text-white" />;
+    default:
+      return null;
+  }
+};
+
 export function InfoModal({ open, onOpenChange }: InfoModalProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -35,7 +53,6 @@ export function InfoModal({ open, onOpenChange }: InfoModalProps) {
           </DialogTitle>
         </DialogHeader>
 
-        {/* Mobile layout - stacked */}
         <div className="md:hidden space-y-6">
           <div className="aspect-video w-full bg-gradient-to-br from-brand-secondary/20 to-brand-primary/20 rounded-xl overflow-hidden shadow-lg">
             <img
@@ -49,9 +66,7 @@ export function InfoModal({ open, onOpenChange }: InfoModalProps) {
             {sections.map((section, index) => (
               <div className="flex items-start space-x-3">
                 <div className="bg-gradient-to-br from-brand-primary to-brand-secondary p-2 rounded-lg flex-shrink-0">
-                  {index === 0 && <Heart className="h-5 w-5 text-white" />}
-                  {index === 1 && <HeartHandshake className="h-5 w-5 text-white" />}
-                  {index === 2 && <Recycle className="h-5 w-5 text-white" />}
+                  {iconBySection(index)}
                 </div>
                 <div>
                   <h4 className="font-bold text-brand-text mb-1">{section.title}</h4>
@@ -70,16 +85,12 @@ export function InfoModal({ open, onOpenChange }: InfoModalProps) {
           </div>
         </div>
 
-        {/* Desktop layout - side by side */}
         <div className="hidden md:flex md:gap-8">
-          {/* Left column - Text content */}
           <div className="flex-1 space-y-4">
             {sections.map((section, index) => (
               <div className="flex items-start space-x-3">
                 <div className="bg-gradient-to-br from-brand-primary to-brand-secondary p-2 rounded-lg flex-shrink-0">
-                  {index === 0 && <Heart className="h-5 w-5 text-white" />}
-                  {index === 1 && <HeartHandshake className="h-5 w-5 text-white" />}
-                  {index === 2 && <Recycle className="h-5 w-5 text-white" />}
+                  {iconBySection(index)}
                 </div>
                 <div>
                   <h4 className="font-bold text-brand-text mb-1">{section.title}</h4>
