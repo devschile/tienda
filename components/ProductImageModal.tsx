@@ -10,12 +10,16 @@ interface ProductImageModalProps {
   product: ProductRecord | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onBuyClick?: (product: ProductRecord, quantity: number) => void;
 }
 
-export function ProductImageModal({ product, open, onOpenChange }: ProductImageModalProps) {
+export function ProductImageModal({ product, open, onOpenChange, onBuyClick }: ProductImageModalProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [quantity, setQuantity] = useState(1);
 
   if (!product) return null;
+
+  const isSold = !product.fields.active;
 
   const images = product.fields.largeImages || product.fields.thumbnailImages || [];
   const currentImage = images[currentIndex];
@@ -72,14 +76,45 @@ export function ProductImageModal({ product, open, onOpenChange }: ProductImageM
         <div className="bg-brand-secondary/5 rounded-lg p-4 mt-2">
           <p className="text-brand-text/80 leading-relaxed">{product.fields.description}</p>
         </div>
-        <CardFooter className="p-5 pt-0">
+        <CardFooter className="p-5 pt-0 flex flex-col gap-4">
+          {!isSold && (
+            <div className="flex items-center justify-between w-full bg-brand-secondary/5 p-2 rounded-lg border border-brand-secondary/10">
+              <span className="text-sm font-medium text-brand-text/70">Cantidad:</span>
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8 rounded-full border-brand-secondary/30 text-brand-secondary hover:bg-brand-secondary hover:text-white"
+                  onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                  disabled={quantity <= 1}
+                >
+                  -
+                </Button>
+                <span className="font-bold text-brand-text min-w-[1.5rem] text-center">
+                  {quantity}
+                </span>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8 rounded-full border-brand-secondary/30 text-brand-secondary hover:bg-brand-secondary hover:text-white"
+                  onClick={() => setQuantity((q) => q + 1)}
+                >
+                  +
+                </Button>
+              </div>
+            </div>
+          )}
           <Button
-            className={`w-full shadow-lg hover:shadow-xl transition-all duration-300 group/btn bg-gradient-to-r from-brand-primary to-brand-secondary hover:opacity-90 text-white`}
-            onClick={() => alert('Funcionalidad de compra próximamente')}
-            disabled={false}
+            className={`w-full shadow-lg hover:shadow-xl transition-all duration-300 group/btn ${
+              isSold
+                ? 'bg-brand-text/40 cursor-not-allowed'
+                : 'bg-gradient-to-r from-brand-primary to-brand-secondary hover:opacity-90'
+            } text-white`}
+            onClick={() => !isSold && onBuyClick?.(product, quantity)}
+            disabled={isSold}
           >
             <ShoppingCart className="h-4 w-4 mr-2 group-hover/btn:animate-bounce" />
-            {'Comprar Ahora'}
+            {isSold ? 'Agotado' : 'Comprar Ahora'}
           </Button>
         </CardFooter>
       </DialogContent>

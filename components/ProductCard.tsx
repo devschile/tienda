@@ -9,9 +9,10 @@ interface ProductCardProps {
   product: ProductRecord;
   onImageClick: (product: ProductRecord) => void;
   onBuyClick: (product: ProductRecord, quantity: number) => void;
+  onCategoryClick?: (category: string) => void;
 }
 
-export function ProductCard({ product, onImageClick, onBuyClick }: ProductCardProps) {
+export function ProductCard({ product, onImageClick, onBuyClick, onCategoryClick }: ProductCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const { name, description, price, thumbnailImages, active } = product.fields;
@@ -79,6 +80,15 @@ export function ProductCard({ product, onImageClick, onBuyClick }: ProductCardPr
         </div>
 
         <div className="p-5">
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              onCategoryClick?.(product.fields.category || 'Varios');
+            }}
+            className="mb-2 inline-block px-2 py-1 bg-brand-secondary/10 hover:bg-brand-secondary/20 transition-colors text-brand-secondary text-xs font-semibold rounded-full uppercase tracking-wider text-left"
+          >
+            {product.fields.category || 'Varios'}
+          </button>
           <h3 className="font-bold text-lg mb-2 text-brand-text line-clamp-2 min-h-[3.5rem] group-hover:text-brand-secondary transition-colors">
             {name}
           </h3>

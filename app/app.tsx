@@ -27,6 +27,45 @@ function App() {
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [errorProducts, setErrorProducts] = useState<string | null>(null);
   const [loadingPayment, setLoadingPayment] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(() => {
+    return new URLSearchParams(window.location.search).get('category');
+  });
+
+  useEffect(() => {
+    const handlePopState = () => {
+      setSelectedCategory(new URLSearchParams(window.location.search).get('category'));
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  const handleCategoryChange = (category: string | null) => {
+    setSelectedCategory(category);
+    const url = new URL(window.location.href);
+    if (category) {
+      url.searchParams.set('category', category);
+    } else {
+      url.searchParams.delete('category');
+    }
+    window.history.pushState({}, '', url);
+  };
+
+  // Process and validate categories
+  useEffect(() => {
+    if (!loadingProducts && productsData && productsData.records.length > 0) {
+      if (selectedCategory) {
+        const matches = productsData.records.filter((p) => p.fields.category === selectedCategory);
+        if (matches.length === 0) {
+          toast({
+            title: 'Categoría no encontrada',
+            description: `No hay productos en la categoría "${selectedCategory}".`,
+            variant: 'destructive',
+          });
+          handleCategoryChange(null);
+        }
+      }
+    }
+  }, [loadingProducts, productsData, selectedCategory, toast]);
 
   // Load products on component mount
   useEffect(() => {
@@ -110,8 +149,16 @@ function App() {
   };
 
   const allProducts = productsData?.records || [];
-  const availableProducts = allProducts.filter((product) => product.fields.active);
-  const totalCount = allProducts.length;
+  const uniqueCategories = Array.from(
+    new Set(allProducts.map((p) => p.fields.category).filter(Boolean)),
+  ).sort();
+
+  const filteredProducts = selectedCategory
+    ? allProducts.filter((p) => p.fields.category === selectedCategory)
+    : allProducts;
+
+  const availableProducts = filteredProducts.filter((product) => product.fields.active);
+  const totalCount = filteredProducts.length;
   const availableCount = availableProducts.length;
 
   return (
@@ -149,8 +196,8 @@ function App() {
         </div>
       </header>
 
-      {/* Hero banner */}
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-6"></div>
+      {/* Hero banner
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-6"></div>*/}
 
       {/* Main Content */}
       <main className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-16">
@@ -187,8 +234,34 @@ function App() {
 
         {!loadingProducts && allProducts.length > 0 && (
           <>
+            <div className="flex flex-col mb-8 mt-4 gap-4">
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant={selectedCategory === null ? 'default' : 'outline'}
+                  size="sm"
+                  className={`rounded-full shadow-sm transition-all duration-300 ${selectedCategory === null ? 'bg-gradient-to-r from-brand-primary to-brand-secondary text-white border-transparent' : 'text-brand-text border-brand-secondary/30 bg-white hover:bg-brand-secondary/10'}`}
+                  onClick={() => handleCategoryChange(null)}
+                >
+                  Todos
+                </Button>
+                {uniqueCategories.map((category) => (
+                  <Button
+                    key={category}
+                    variant={selectedCategory === category ? 'default' : 'outline'}
+                    size="sm"
+                    className={`rounded-full shadow-sm transition-all duration-300 ${selectedCategory === category ? 'bg-gradient-to-r from-brand-primary to-brand-secondary text-white border-transparent' : 'text-brand-text border-brand-secondary/30 bg-white hover:bg-brand-secondary/10'}`}
+                    onClick={() => handleCategoryChange(category as string)}
+                  >
+                    {category}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-brand-text">Productos</h2>
+              <h2 className="text-2xl font-bold text-brand-text">
+                {selectedCategory ? `Productos: ${selectedCategory}` : 'Todos los Productos'}
+              </h2>
               <div className="text-right">
                 <p className="text-sm text-brand-secondary font-medium">
                   {availableCount} producto{availableCount === 1 ? '' : 's'} disponible
@@ -199,16 +272,38 @@ function App() {
                 </p>
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
-              {allProducts.map((product) => (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                  onImageClick={handleImageClick}
-                  onBuyClick={handleBuyClick}
-                />
-              ))}
-            </div>
+
+            {filteredProducts.length === 0 ? (
+              <div className="bg-white/80 backdrop-blur-sm border-2 border-brand-secondary/20 rounded-2xl p-12 text-center shadow-lg">
+                <div className="inline-flex items-center justify-center w-20 h-20 bg-brand-secondary/10 rounded-full mb-6">
+                  <ShoppingBag className="h-10 w-10 text-brand-secondary" />
+                </div>
+                <h3 className="text-xl font-bold text-brand-text mb-2">
+                  No hay productos en esta categoría
+                </h3>
+                <p className="text-brand-text/70 mb-6">
+                  Intenta seleccionar otra categoría o ver todos los productos.
+                </p>
+                <Button
+                  onClick={() => handleCategoryChange(null)}
+                  className="bg-brand-primary text-white"
+                >
+                  Ver Todos los Productos
+                </Button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
+                {filteredProducts.map((product) => (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    onImageClick={handleImageClick}
+                    onBuyClick={handleBuyClick}
+                    onCategoryClick={handleCategoryChange}
+                  />
+                ))}
+              </div>
+            )}
           </>
         )}
       </main>
@@ -233,6 +328,7 @@ function App() {
           setImageModalOpen(open);
           if (!open) setSelectedProduct(null);
         }}
+        onBuyClick={handleBuyClick}
       />
 
       <InfoModal open={infoModalOpen} onOpenChange={setInfoModalOpen} />

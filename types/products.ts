@@ -18,6 +18,7 @@ export interface ProductFields {
   id: string;
   name: string;
   description: string;
+  category: string;
   price: number;
   thumbnailImages: ProductAttachment[];
   largeImages: ProductAttachment[];

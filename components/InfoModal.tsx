@@ -64,7 +64,7 @@ export function InfoModal({ open, onOpenChange }: InfoModalProps) {
 
           <div className="space-y-4">
             {sections.map((section, index) => (
-              <div className="flex items-start space-x-3">
+              <div key={index} className="flex items-start space-x-3">
                 <div className="bg-gradient-to-br from-brand-primary to-brand-secondary p-2 rounded-lg flex-shrink-0">
                   {iconBySection(index)}
                 </div>
@@ -88,7 +88,7 @@ export function InfoModal({ open, onOpenChange }: InfoModalProps) {
         <div className="hidden md:flex md:gap-8">
           <div className="flex-1 space-y-4">
             {sections.map((section, index) => (
-              <div className="flex items-start space-x-3">
+              <div key={index} className="flex items-start space-x-3">
                 <div className="bg-gradient-to-br from-brand-primary to-brand-secondary p-2 rounded-lg flex-shrink-0">
                   {iconBySection(index)}
                 </div>
