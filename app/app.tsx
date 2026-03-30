@@ -140,11 +140,11 @@ function App() {
             </div>
             <Button
               variant="outline"
-              className="border-brand-secondary/30 text-brand-primary hover:bg-brand-secondary/5 hover:border-brand-secondary/50 transition-all shadow-sm"
+              className="gap-1 border-brand-secondary/30 text-brand-primary hover:bg-brand-secondary/5 hover:border-brand-secondary/50 transition-all shadow-sm"
               onClick={() => setInfoModalOpen(true)}
             >
               <Info className="h-5 w-5 mr-2" />
-              <span className="hidden sm:inline">Sobre </span>devsChile
+              <span className="hidden sm:inline">Sobre</span>devsChile
             </Button>
           </div>
         </div>
@@ -189,14 +189,14 @@ function App() {
         {!loadingProducts && allProducts.length > 0 && (
           <>
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-brand-text">Mis Creaciones</h2>
+              <h2 className="text-2xl font-bold text-brand-text">Productos</h2>
               <div className="text-right">
                 <p className="text-sm text-brand-secondary font-medium">
-                  {availableCount} {availableCount === 1 ? 'producto' : 'productos'} disponible
+                  {availableCount} producto{availableCount === 1 ? '' : 's'} disponible
                   {availableCount === 1 ? '' : 's'}
                 </p>
                 <p className="text-xs text-brand-text/50">
-                  {totalCount} {totalCount === 1 ? 'producto hecho' : 'productos hechos'} en total
+                  {totalCount} producto{totalCount === 1 ? '' : 's'} en total
                 </p>
               </div>
             </div>
