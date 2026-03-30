@@ -30,6 +30,7 @@ function App() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(() => {
     return new URLSearchParams(window.location.search).get('category');
   });
+  const [sortOrder, setSortOrder] = useState<'default' | 'price-asc' | 'price-desc'>('default');
 
   useEffect(() => {
     const handlePopState = () => {
@@ -153,9 +154,15 @@ function App() {
     new Set(allProducts.map((p) => p.fields.category).filter(Boolean)),
   ).sort();
 
-  const filteredProducts = selectedCategory
+  const filteredByCategory = selectedCategory
     ? allProducts.filter((p) => p.fields.category === selectedCategory)
     : allProducts;
+
+  const filteredProducts = [...filteredByCategory].sort((a, b) => {
+    if (sortOrder === 'price-asc') return a.fields.price - b.fields.price;
+    if (sortOrder === 'price-desc') return b.fields.price - a.fields.price;
+    return 0;
+  });
 
   const availableProducts = filteredProducts.filter((product) => product.fields.active);
   const totalCount = filteredProducts.length;
@@ -234,28 +241,35 @@ function App() {
 
         {!loadingProducts && allProducts.length > 0 && (
           <>
-            <div className="flex flex-col mb-8 mt-4 gap-4">
-              <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap items-center gap-2 mb-8 mt-4">
+              <Button
+                variant={selectedCategory === null ? 'default' : 'outline'}
+                size="sm"
+                className={`rounded-full shadow-sm transition-all duration-300 ${selectedCategory === null ? 'bg-gradient-to-r from-brand-primary to-brand-secondary text-white border-transparent' : 'text-brand-text border-brand-secondary/30 bg-white hover:bg-brand-secondary/10'}`}
+                onClick={() => handleCategoryChange(null)}
+              >
+                Todos
+              </Button>
+              {uniqueCategories.map((category) => (
                 <Button
-                  variant={selectedCategory === null ? 'default' : 'outline'}
+                  key={category}
+                  variant={selectedCategory === category ? 'default' : 'outline'}
                   size="sm"
-                  className={`rounded-full shadow-sm transition-all duration-300 ${selectedCategory === null ? 'bg-gradient-to-r from-brand-primary to-brand-secondary text-white border-transparent' : 'text-brand-text border-brand-secondary/30 bg-white hover:bg-brand-secondary/10'}`}
-                  onClick={() => handleCategoryChange(null)}
+                  className={`rounded-full shadow-sm transition-all duration-300 ${selectedCategory === category ? 'bg-gradient-to-r from-brand-primary to-brand-secondary text-white border-transparent' : 'text-brand-text border-brand-secondary/30 bg-white hover:bg-brand-secondary/10'}`}
+                  onClick={() => handleCategoryChange(category as string)}
                 >
-                  Todos
+                  {category}
                 </Button>
-                {uniqueCategories.map((category) => (
-                  <Button
-                    key={category}
-                    variant={selectedCategory === category ? 'default' : 'outline'}
-                    size="sm"
-                    className={`rounded-full shadow-sm transition-all duration-300 ${selectedCategory === category ? 'bg-gradient-to-r from-brand-primary to-brand-secondary text-white border-transparent' : 'text-brand-text border-brand-secondary/30 bg-white hover:bg-brand-secondary/10'}`}
-                    onClick={() => handleCategoryChange(category as string)}
-                  >
-                    {category}
-                  </Button>
-                ))}
-              </div>
+              ))}
+              <select
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value as 'default' | 'price-asc' | 'price-desc')}
+                className="ml-auto rounded-full shadow-sm border border-brand-secondary/30 bg-white text-brand-text text-sm px-3 py-1.5 outline-none focus:border-brand-secondary/50 focus:ring-2 focus:ring-brand-secondary/20 transition-all cursor-pointer"
+              >
+                <option value="default">Ordenar por</option>
+                <option value="price-asc">Precio: menor a mayor</option>
+                <option value="price-desc">Precio: mayor a menor</option>
+              </select>
             </div>
 
             <div className="flex items-center justify-between mb-6">
