@@ -117,7 +117,6 @@ function App() {
         title: 'Preparando pago...',
         description: `Creando preferencia de pago para ${quantity}x ${product.fields.name}...`,
       });
-      debugger;
       // Llamamos a la función referenciada para crear el pago
       const data = await createPayment(
         product.fields.price,
@@ -188,7 +187,6 @@ function App() {
                 <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-brand-primary to-brand-secondary bg-clip-text text-transparent">
                   Tienda devsChile
                 </h1>
-                <p className="text-sm text-brand-secondary/80 font-medium">[text]</p>
               </div>
             </div>
             <Button
@@ -263,7 +261,9 @@ function App() {
               ))}
               <select
                 value={sortOrder}
-                onChange={(e) => setSortOrder(e.target.value as 'default' | 'price-asc' | 'price-desc')}
+                onChange={(e) =>
+                  setSortOrder(e.target.value as 'default' | 'price-asc' | 'price-desc')
+                }
                 className="ml-auto rounded-full shadow-sm border border-brand-secondary/30 bg-white text-brand-text text-sm px-3 py-1.5 outline-none focus:border-brand-secondary/50 focus:ring-2 focus:ring-brand-secondary/20 transition-all cursor-pointer"
               >
                 <option value="default">Ordenar por</option>
