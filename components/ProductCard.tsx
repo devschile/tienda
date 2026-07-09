@@ -12,7 +12,12 @@ interface ProductCardProps {
   onCategoryClick?: (category: string) => void;
 }
 
-export function ProductCard({ product, onImageClick, onBuyClick, onCategoryClick }: ProductCardProps) {
+export function ProductCard({
+  product,
+  onImageClick,
+  onBuyClick,
+  onCategoryClick,
+}: ProductCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const { name, description, price, thumbnailImages, active } = product.fields;
@@ -80,7 +85,7 @@ export function ProductCard({ product, onImageClick, onBuyClick, onCategoryClick
         </div>
 
         <div className="p-5">
-          <button 
+          <button
             onClick={(e) => {
               e.stopPropagation();
               onCategoryClick?.(product.fields.category || 'Varios');

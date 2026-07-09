@@ -13,7 +13,12 @@ interface ProductImageModalProps {
   onBuyClick?: (product: ProductRecord, quantity: number) => void;
 }
 
-export function ProductImageModal({ product, open, onOpenChange, onBuyClick }: ProductImageModalProps) {
+export function ProductImageModal({
+  product,
+  open,
+  onOpenChange,
+  onBuyClick,
+}: ProductImageModalProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
 

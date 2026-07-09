@@ -110,6 +110,8 @@ function App() {
   };
 
   const handleBuyClick = async (product: ProductRecord, quantity: number) => {
+    if (loadingPayment) return;
+
     try {
       setLoadingPayment(true);
 
@@ -180,7 +182,7 @@ function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="bg-gradient-to-br from-brand-primary to-brand-secondary p-2 rounded-xl">
+              <div className="border-2 border-brand-primary/40 p-2 rounded-xl">
                 <img style={{ minWidth: 40 }} width={50} src={logo} />
               </div>
               <div>
