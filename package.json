@@ -7,6 +7,8 @@
   "main": "./app/app.tsx",
   "scripts": {
     "dev": "vite",
+    "dev:functions": "netlify functions:serve --port 9999",
+    "dev:netlify": "netlify dev",
     "build": "vite build",
     "preview": "vite preview",
     "start": "vite",

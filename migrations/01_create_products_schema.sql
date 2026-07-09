@@ -8,12 +8,12 @@ create table if not exists products (
   description text not null,
   category text not null,
   price integer not null check (price >= 0),
-  active boolean not null default true,
+  visible boolean not null default true,
   created_time timestamptz not null default now()
 );
 
 create index if not exists idx_products_category on products (category);
-create index if not exists idx_products_active on products (active);
+create index if not exists idx_products_visible on products (visible);
 
 do $$
 begin

@@ -179,3 +179,4 @@ SECURITY.md
 # Local environment variables source
 .env
 .env.local
+deno.lock

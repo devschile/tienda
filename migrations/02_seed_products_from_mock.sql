@@ -2,7 +2,7 @@
 -- Carga los productos de ejemplo definidos en app/productsMock.ts
 -- para tener datos reales en NeonDB desde el día uno.
 
-insert into products (id, name, description, category, price, active, created_time)
+insert into products (id, name, description, category, price, visible, created_time)
 values
   ('rec1', 'Set de stickers', 'Stickers oficiales de devsChile', 'Stickers', 5000, true, '2025-01-01T00:00:00.000Z'),
   ('rec2', 'Destapabotellas con imán', 'Mágico unicornio multicolor', 'Accesorios', 30000, true, '2025-01-01T00:00:00.000Z'),
@@ -12,7 +12,7 @@ on conflict (id) do update set
   description = excluded.description,
   category = excluded.category,
   price = excluded.price,
-  active = excluded.active,
+  visible = excluded.visible,
   created_time = excluded.created_time;
 
 insert into product_images (id, product_id, variant, position, url, filename, size, type)

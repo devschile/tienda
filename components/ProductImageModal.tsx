@@ -1,7 +1,7 @@
 // Modal "quickview" de producto, basado en el diseño de
 // stitch_tienda_devschile_product_catalog/code.html
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { ProductRecord } from '@/types/products';
 import { ChevronLeft, ChevronRight, Minus, Plus, ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -30,20 +30,23 @@ export function ProductImageModal({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
 
+  // Resetear estado al cambiar de producto
+  useEffect(() => {
+    setCurrentIndex(0);
+    setQuantity(1);
+  }, [product?.id]);
+
   if (!product) return null;
 
-  const isSold = !product.fields.active;
+  const { available, stock } = product.fields;
+  const isSold = !available;
+  const isLowStock = available && stock > 0 && stock <= 5;
 
   const images = product.fields.largeImages || product.fields.thumbnailImages || [];
   const currentImage = images[currentIndex];
 
-  const handleNext = () => {
-    setCurrentIndex((prev) => (prev + 1) % images.length);
-  };
-
-  const handlePrev = () => {
-    setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
-  };
+  const handleNext = () => setCurrentIndex((prev) => (prev + 1) % images.length);
+  const handlePrev = () => setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -96,7 +99,7 @@ export function ProductImageModal({
             {formatPrice(product.fields.price)}
           </div>
 
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-4">
             {!isSold && (
               <div className="flex items-center gap-4 bg-brand-background border border-brand-secondary/10 rounded-xl p-3 w-fit">
                 <span className="text-devs-muted font-medium px-2">Cantidad:</span>
@@ -116,13 +119,20 @@ export function ProductImageModal({
                   <button
                     type="button"
                     aria-label="Aumentar cantidad"
-                    className="w-8 h-8 rounded-full border border-brand-secondary/20 flex items-center justify-center text-brand-secondary hover:bg-brand-surface transition-colors"
-                    onClick={() => setQuantity((q) => q + 1)}
+                    className="w-8 h-8 rounded-full border border-brand-secondary/20 flex items-center justify-center text-brand-secondary hover:bg-brand-surface transition-colors disabled:opacity-40 disabled:pointer-events-none"
+                    onClick={() => setQuantity((q) => Math.min(q + 1, stock))}
+                    disabled={quantity >= stock}
                   >
                     <Plus className="h-4 w-4" />
                   </button>
                 </div>
               </div>
+            )}
+
+            {isLowStock && (
+              <p className="text-sm text-amber-600 font-medium">
+                ¡Solo quedan {stock} {stock === 1 ? 'unidad' : 'unidades'}!
+              </p>
             )}
 
             <Button

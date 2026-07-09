@@ -22,7 +22,9 @@ export interface ProductFields {
   price: number;
   thumbnailImages: ProductAttachment[];
   largeImages: ProductAttachment[];
-  active: boolean;
+  visible: boolean;
+  available: boolean;
+  stock: number;
 }
 
 export interface ProductRecord {

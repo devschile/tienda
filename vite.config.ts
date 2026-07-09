@@ -13,6 +13,14 @@ export default defineConfig({
   server: {
     port: 3000,
     open: true,
+    proxy: {
+      // Redirige las llamadas a Netlify Functions al servidor local de funciones.
+      // Requiere correr 'npm run dev:functions' en otra terminal.
+      '/.netlify/functions': {
+        target: 'http://localhost:9999',
+        changeOrigin: true,
+      },
+    },
   },
   build: {
     outDir: 'dist',

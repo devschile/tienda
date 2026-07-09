@@ -16,6 +16,7 @@ exports.handler = async (event, context) => {
     'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Allow-Methods': 'GET, OPTIONS',
     'Content-Type': 'application/json',
+    'Cache-Control': 'no-store', // productos siempre frescos desde Neon, sin caché CDN ni browser
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'DENY',
     'X-XSS-Protection': '1; mode=block',
@@ -58,7 +59,9 @@ exports.handler = async (event, context) => {
         p.description,
         p.category,
         p.price,
-        p.active,
+        p.visible,
+        p.available,
+        p.stock,
         p.created_time,
         coalesce(
           jsonb_agg(
@@ -102,7 +105,9 @@ exports.handler = async (event, context) => {
         price: Number(row.price),
         thumbnailImages: row.thumbnail_images,
         largeImages: row.large_images,
-        active: row.active,
+        visible: row.visible,
+        available: row.available,
+        stock: Number(row.stock),
       },
       createdTime:
         row.created_time instanceof Date ? row.created_time.toISOString() : row.created_time,

@@ -20,20 +20,21 @@ export function ProductCard({
 }: ProductCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [quantity, setQuantity] = useState(1);
-  const { name, description, price, thumbnailImages, active } = product.fields;
-  const isSold = !active;
+  const { name, description, price, thumbnailImages, available, stock } = product.fields;
+  const isSold = !available;
+  const isLowStock = available && stock > 0 && stock <= 5;
 
   const thumbnailUrl =
     thumbnailImages?.[0]?.thumbnails?.large?.url ||
     thumbnailImages?.[0]?.url ||
     '/assets/images/default.svg';
 
-  const formatPrice = (price: number) => {
+  const formatPrice = (p: number) => {
     return new Intl.NumberFormat('es-CL', {
       style: 'currency',
       currency: 'CLP',
       minimumFractionDigits: 0,
-    }).format(price);
+    }).format(p);
   };
 
   return (
@@ -111,7 +112,7 @@ export function ProductCard({
         </div>
       </CardContent>
 
-      <CardFooter className="p-5 pt-0 flex flex-col gap-4">
+      <CardFooter className="p-5 pt-0 flex flex-col gap-3">
         {!isSold && (
           <div className="flex items-center justify-between w-full bg-brand-surface p-2 rounded-lg border border-brand-secondary/10">
             <span className="text-sm font-medium text-devs-text/70">Cantidad:</span>
@@ -132,12 +133,18 @@ export function ProductCard({
                 variant="outline"
                 size="icon"
                 className="h-8 w-8 rounded-full border-brand-secondary/30 text-brand-secondary hover:bg-brand-secondary hover:text-white"
-                onClick={() => setQuantity((q) => q + 1)}
+                onClick={() => setQuantity((q) => Math.min(q + 1, stock))}
+                disabled={quantity >= stock}
               >
                 +
               </Button>
             </div>
           </div>
+        )}
+        {isLowStock && (
+          <p className="text-xs text-amber-600 font-medium text-center w-full">
+            ¡Solo quedan {stock} {stock === 1 ? 'unidad' : 'unidades'}!
+          </p>
         )}
         <Button
           className={`w-full shadow-lg hover:shadow-xl transition-all duration-300 group/btn ${

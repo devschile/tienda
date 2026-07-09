@@ -170,7 +170,7 @@ function App() {
     }
   };
 
-  const allProducts = productsData?.records || [];
+  const allProducts = (productsData?.records || []).filter((p) => p.fields.visible);
   const uniqueCategories = Array.from(
     new Set(allProducts.map((p) => p.fields.category).filter(Boolean)),
   ).sort();
@@ -185,7 +185,7 @@ function App() {
     return 0;
   });
 
-  const availableProducts = filteredProducts.filter((product) => product.fields.active);
+  const availableProducts = filteredProducts.filter((product) => product.fields.available);
   const totalCount = filteredProducts.length;
   const availableCount = availableProducts.length;
 
