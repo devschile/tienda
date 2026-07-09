@@ -31,10 +31,20 @@ function App() {
   useEffect(() => {
     const handlePopState = () => {
       setSelectedCategory(new URLSearchParams(window.location.search).get('category'));
+
+      const hashId = window.location.hash.replace('#', '');
+      const match = hashId ? productsData?.records.find((p) => p.id === hashId) : undefined;
+      if (match) {
+        setSelectedProduct(match);
+        setImageModalOpen(true);
+      } else {
+        setImageModalOpen(false);
+        setSelectedProduct(null);
+      }
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, []);
+  }, [productsData]);
 
   const handleCategoryChange = (category: string | null) => {
     setSelectedCategory(category);
@@ -64,6 +74,30 @@ function App() {
     }
   }, [loadingProducts, productsData, selectedCategory, toast]);
 
+  // Abrir el modal de un producto si la URL trae un hash con su id
+  // (deep link para compartir el link de un producto específico)
+  useEffect(() => {
+    if (!loadingProducts && productsData && productsData.records.length > 0) {
+      const hashId = window.location.hash.replace('#', '');
+      if (hashId) {
+        const match = productsData.records.find((p) => p.id === hashId);
+        if (match) {
+          setSelectedProduct(match);
+          setImageModalOpen(true);
+        } else {
+          toast({
+            title: 'Producto no encontrado',
+            description: 'El producto que buscas ya no está disponible o el enlace es inválido.',
+            variant: 'destructive',
+          });
+          const url = new URL(window.location.href);
+          url.hash = '';
+          window.history.replaceState({}, '', url);
+        }
+      }
+    }
+  }, [loadingProducts, productsData, toast]);
+
   // Load products on component mount (desde NeonDB vía Netlify Function,
   // con fallback automático a productsMock si la función no responde)
   useEffect(() => {
@@ -89,6 +123,10 @@ function App() {
   const handleImageClick = (product: ProductRecord) => {
     setSelectedProduct(product);
     setImageModalOpen(true);
+
+    const url = new URL(window.location.href);
+    url.hash = product.id;
+    window.history.pushState({}, '', url);
   };
 
   const handleBuyClick = async (product: ProductRecord, quantity: number) => {
@@ -324,7 +362,14 @@ function App() {
         open={imageModalOpen}
         onOpenChange={(open) => {
           setImageModalOpen(open);
-          if (!open) setSelectedProduct(null);
+          if (!open) {
+            setSelectedProduct(null);
+            if (window.location.hash) {
+              const url = new URL(window.location.href);
+              url.hash = '';
+              window.history.pushState({}, '', url);
+            }
+          }
         }}
         onBuyClick={handleBuyClick}
       />
