@@ -1,10 +1,10 @@
-// Modal mejorado para imágenes del producto
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+// Modal "quickview" de producto, basado en el diseño de
+// stitch_tienda_devschile_product_catalog/code.html
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { useState } from 'react';
 import type { ProductRecord } from '@/types/products';
-import { ChevronLeft, ChevronRight, ShoppingCart } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Minus, Plus, ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { CardFooter } from '@/components/ui/card.tsx';
 
 interface ProductImageModalProps {
   product: ProductRecord | null;
@@ -12,6 +12,14 @@ interface ProductImageModalProps {
   onOpenChange: (open: boolean) => void;
   onBuyClick?: (product: ProductRecord, quantity: number) => void;
 }
+
+const formatPrice = (price: number) => {
+  return new Intl.NumberFormat('es-CL', {
+    style: 'currency',
+    currency: 'CLP',
+    minimumFractionDigits: 0,
+  }).format(price);
+};
 
 export function ProductImageModal({
   product,
@@ -39,89 +47,98 @@ export function ProductImageModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl bg-white/95 backdrop-blur-md border-brand-secondary/20">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-brand-primary to-brand-secondary bg-clip-text text-transparent">
-            {product.fields.name}
-          </DialogTitle>
-        </DialogHeader>
-        <div className="relative bg-gradient-to-br from-brand-secondary/10 to-brand-primary/10 rounded-xl overflow-hidden">
-          <img
-            src={currentImage?.url || '/assets/images/default.svg'}
-            alt={product.fields.name}
-            className="w-full h-auto max-h-[70vh] object-contain rounded-lg"
-          />
-          {images.length > 1 && (
-            <div className="absolute inset-0 flex items-center justify-between px-4">
-              <Button
-                variant="secondary"
-                size="icon"
-                className="bg-white/90 backdrop-blur-sm hover:bg-white shadow-xl border-brand-secondary/20"
-                onClick={handlePrev}
-              >
-                <ChevronLeft className="h-6 w-6 text-brand-secondary" />
-              </Button>
-              <Button
-                variant="secondary"
-                size="icon"
-                className="bg-white/90 backdrop-blur-sm hover:bg-white shadow-xl border-brand-secondary/20"
-                onClick={handleNext}
-              >
-                <ChevronRight className="h-6 w-6 text-brand-secondary" />
-              </Button>
-            </div>
-          )}
-          {images.length > 1 && (
-            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-brand-primary to-brand-secondary text-white px-4 py-2 rounded-full text-sm font-medium shadow-lg">
-              {currentIndex + 1} / {images.length}
-            </div>
-          )}
+      <DialogContent className="max-w-4xl gap-0 overflow-hidden rounded-2xl border-brand-secondary/10 bg-white p-0 flex flex-col md:flex-row">
+        {/* Left side: Product image */}
+        <div className="md:w-1/2 p-6 bg-brand-background">
+          <div className="relative aspect-square w-full rounded-2xl overflow-hidden bg-brand-surface">
+            <img
+              src={currentImage?.url || '/assets/images/default.svg'}
+              alt={product.fields.name}
+              className="w-full h-full object-cover"
+            />
+            {images.length > 1 && (
+              <div className="absolute inset-0 flex items-center justify-between px-4">
+                <button
+                  type="button"
+                  aria-label="Imagen anterior"
+                  onClick={handlePrev}
+                  className="h-9 w-9 rounded-full bg-white/90 backdrop-blur-sm shadow-md flex items-center justify-center text-brand-secondary hover:bg-white transition-colors"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+                <button
+                  type="button"
+                  aria-label="Siguiente imagen"
+                  onClick={handleNext}
+                  className="h-9 w-9 rounded-full bg-white/90 backdrop-blur-sm shadow-md flex items-center justify-center text-brand-secondary hover:bg-white transition-colors"
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </button>
+              </div>
+            )}
+            {images.length > 1 && (
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-brand-secondary text-white px-3 py-1 rounded-full text-xs font-medium">
+                {currentIndex + 1} / {images.length}
+              </div>
+            )}
+          </div>
         </div>
 
-        <div className="bg-brand-secondary/5 rounded-lg p-4 mt-2">
-          <p className="text-brand-text/80 leading-relaxed">{product.fields.description}</p>
-        </div>
-        <CardFooter className="p-5 pt-0 flex flex-col gap-4">
-          {!isSold && (
-            <div className="flex items-center justify-between w-full bg-brand-secondary/5 p-2 rounded-lg border border-brand-secondary/10">
-              <span className="text-sm font-medium text-brand-text/70">Cantidad:</span>
-              <div className="flex items-center gap-3">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8 rounded-full border-brand-secondary/30 text-brand-secondary hover:bg-brand-secondary hover:text-white"
-                  onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                  disabled={quantity <= 1}
-                >
-                  -
-                </Button>
-                <span className="font-bold text-brand-text min-w-[1.5rem] text-center">
-                  {quantity}
-                </span>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8 rounded-full border-brand-secondary/30 text-brand-secondary hover:bg-brand-secondary hover:text-white"
-                  onClick={() => setQuantity((q) => q + 1)}
-                >
-                  +
-                </Button>
+        {/* Right side: Product details */}
+        <div className="md:w-1/2 p-8 md:p-12 flex flex-col justify-center">
+          <DialogTitle className="font-mono text-3xl md:text-4xl font-bold text-brand-secondary mb-4">
+            {product.fields.name}
+          </DialogTitle>
+          <p className="text-devs-muted text-base leading-relaxed mb-6">
+            {product.fields.description}
+          </p>
+          <div className="text-3xl font-bold text-brand-primary mb-8">
+            {formatPrice(product.fields.price)}
+          </div>
+
+          <div className="flex flex-col gap-6">
+            {!isSold && (
+              <div className="flex items-center gap-4 bg-brand-background border border-brand-secondary/10 rounded-xl p-3 w-fit">
+                <span className="text-devs-muted font-medium px-2">Cantidad:</span>
+                <div className="flex items-center gap-4">
+                  <button
+                    type="button"
+                    aria-label="Disminuir cantidad"
+                    className="w-8 h-8 rounded-full border border-brand-secondary/20 flex items-center justify-center text-brand-secondary hover:bg-brand-surface transition-colors disabled:opacity-40 disabled:pointer-events-none"
+                    onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                    disabled={quantity <= 1}
+                  >
+                    <Minus className="h-4 w-4" />
+                  </button>
+                  <span className="text-xl font-semibold text-devs-text min-w-[1.5rem] text-center">
+                    {quantity}
+                  </span>
+                  <button
+                    type="button"
+                    aria-label="Aumentar cantidad"
+                    className="w-8 h-8 rounded-full border border-brand-secondary/20 flex items-center justify-center text-brand-secondary hover:bg-brand-surface transition-colors"
+                    onClick={() => setQuantity((q) => q + 1)}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
-            </div>
-          )}
-          <Button
-            className={`w-full shadow-lg hover:shadow-xl transition-all duration-300 group/btn ${
-              isSold
-                ? 'bg-brand-text/40 cursor-not-allowed'
-                : 'bg-gradient-to-r from-brand-primary to-brand-secondary hover:opacity-90'
-            } text-white`}
-            onClick={() => !isSold && onBuyClick?.(product, quantity)}
-            disabled={isSold}
-          >
-            <ShoppingCart className="h-4 w-4 mr-2 group-hover/btn:animate-bounce" />
-            {isSold ? 'Agotado' : 'Comprar Ahora'}
-          </Button>
-        </CardFooter>
+            )}
+
+            <Button
+              className={`w-full py-6 rounded-xl text-base font-semibold shadow-lg transition-all active:scale-[0.98] ${
+                isSold
+                  ? 'bg-devs-muted cursor-not-allowed'
+                  : 'bg-brand-primary hover:bg-brand-secondary'
+              } text-white`}
+              onClick={() => !isSold && onBuyClick?.(product, quantity)}
+              disabled={isSold}
+            >
+              <ShoppingCart className="h-5 w-5" />
+              {isSold ? 'Agotado' : 'Comprar Ahora'}
+            </Button>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );

@@ -46,9 +46,9 @@ const iconBySection = (index: number): React.ReactNode | null => {
 export function InfoModal({ open, onOpenChange }: InfoModalProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[500px] overflow-y-auto bg-gradient-to-br bg-white backdrop-blur-md border-brand-secondary/20">
+      <DialogContent className="max-w-4xl max-h-[500px] overflow-y-auto bg-white/80 backdrop-blur-md border-brand-secondary/20">
         <DialogHeader>
-          <DialogTitle className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-brand-primary to-brand-secondary bg-clip-text text-transparent">
+          <DialogTitle className="font-mono text-2xl md:text-3xl font-bold bg-gradient-to-r from-brand-primary to-brand-secondary bg-clip-text text-transparent">
             Sobre la Tienda devsChile
           </DialogTitle>
         </DialogHeader>
@@ -69,16 +69,14 @@ export function InfoModal({ open, onOpenChange }: InfoModalProps) {
                   {iconBySection(index)}
                 </div>
                 <div>
-                  <h4 className="font-bold text-brand-text mb-1">{section.title}</h4>
-                  <p className="text-brand-text/70 text-sm leading-relaxed">
-                    {section.description}
-                  </p>
+                  <h4 className="font-mono font-bold text-devs-text mb-1">{section.title}</h4>
+                  <p className="text-devs-text/70 text-sm leading-relaxed">{section.description}</p>
                 </div>
               </div>
             ))}
           </div>
 
-          <div className="text-brand-text p-6 rounded-xl shadow-lg">
+          <div className="text-devs-text p-6 rounded-xl shadow-lg">
             <p className="text-center font-bold text-lg">
               ¡Gracias por apoyar a la comunidad devsChile! 🦌
             </p>
@@ -93,14 +91,12 @@ export function InfoModal({ open, onOpenChange }: InfoModalProps) {
                   {iconBySection(index)}
                 </div>
                 <div>
-                  <h4 className="font-bold text-brand-text mb-1">{section.title}</h4>
-                  <p className="text-brand-text/70 text-sm leading-relaxed">
-                    {section.description}
-                  </p>
+                  <h4 className="font-mono font-bold text-devs-text mb-1">{section.title}</h4>
+                  <p className="text-devs-text/70 text-sm leading-relaxed">{section.description}</p>
                 </div>
               </div>
             ))}
-            <div className="text-brand-text p-6 rounded-xl mt-6">
+            <div className="text-devs-text p-6 rounded-xl mt-6">
               <p className="text-center font-bold text-lg">
                 ¡Gracias por apoyar a la comunidad devsChile! 🦌
               </p>

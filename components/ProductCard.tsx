@@ -38,7 +38,7 @@ export function ProductCard({
 
   return (
     <Card
-      className={`group flex flex-col h-full bg-white/90 backdrop-blur-sm hover:shadow-2xl transition-all duration-300 border-brand-secondary/20 hover:border-brand-secondary/40 hover:-translate-y-2 overflow-hidden ${isSold ? 'product-sold' : ''}`}
+      className={`group flex flex-col h-full bg-brand-surface/90 backdrop-blur-sm hover:shadow-2xl transition-all duration-300 border-brand-secondary/20 hover:border-brand-secondary/40 hover:-translate-y-2 overflow-hidden ${isSold ? 'product-sold' : ''}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -70,7 +70,7 @@ export function ProductCard({
               <Button
                 size="sm"
                 variant="secondary"
-                className="bg-white/90 backdrop-blur-sm text-brand-primary hover:bg-white shadow-lg"
+                className="bg-brand-surface/90 backdrop-blur-sm text-brand-primary hover:bg-brand-surface shadow-lg"
                 onClick={(e) => {
                   e.stopPropagation();
                   onImageClick(product);
@@ -90,14 +90,14 @@ export function ProductCard({
               e.stopPropagation();
               onCategoryClick?.(product.fields.category || 'Varios');
             }}
-            className="mb-2 inline-block px-2 py-1 bg-brand-secondary/10 hover:bg-brand-secondary/20 transition-colors text-brand-secondary text-xs font-semibold rounded-full uppercase tracking-wider text-left"
+            className="mb-2 inline-block px-2 py-1 bg-brand-accent/20 hover:bg-brand-accent/30 transition-colors text-brand-secondary text-xs font-semibold rounded-full uppercase tracking-wider text-left"
           >
             {product.fields.category || 'Varios'}
           </button>
-          <h3 className="font-bold text-lg mb-2 text-brand-text line-clamp-2 min-h-[3.5rem] group-hover:text-brand-secondary transition-colors">
+          <h3 className="font-mono font-bold text-lg mb-2 text-devs-text line-clamp-2 min-h-[3.5rem] group-hover:text-brand-secondary transition-colors">
             {name}
           </h3>
-          <p className="text-sm text-brand-text/70 mb-4 line-clamp-2 min-h-[2.5rem]">
+          <p className="text-sm text-devs-text/70 mb-4 line-clamp-2 min-h-[2.5rem]">
             {description}
           </p>
           <div className="flex items-center justify-between">
@@ -113,8 +113,8 @@ export function ProductCard({
 
       <CardFooter className="p-5 pt-0 flex flex-col gap-4">
         {!isSold && (
-          <div className="flex items-center justify-between w-full bg-brand-secondary/5 p-2 rounded-lg border border-brand-secondary/10">
-            <span className="text-sm font-medium text-brand-text/70">Cantidad:</span>
+          <div className="flex items-center justify-between w-full bg-brand-surface p-2 rounded-lg border border-brand-secondary/10">
+            <span className="text-sm font-medium text-devs-text/70">Cantidad:</span>
             <div className="flex items-center gap-3">
               <Button
                 variant="outline"
@@ -125,7 +125,7 @@ export function ProductCard({
               >
                 -
               </Button>
-              <span className="font-bold text-brand-text min-w-[1.5rem] text-center">
+              <span className="font-bold text-devs-text min-w-[1.5rem] text-center">
                 {quantity}
               </span>
               <Button
@@ -142,7 +142,7 @@ export function ProductCard({
         <Button
           className={`w-full shadow-lg hover:shadow-xl transition-all duration-300 group/btn ${
             isSold
-              ? 'bg-brand-text/40 cursor-not-allowed'
+              ? 'bg-devs-text/40 cursor-not-allowed'
               : 'bg-gradient-to-r from-brand-primary to-brand-secondary hover:opacity-90'
           } text-white`}
           onClick={() => !isSold && onBuyClick(product, quantity)}

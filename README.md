@@ -197,10 +197,21 @@ Los precios se muestran en CLP (Pesos Chilenos) y se formatean automáticamente.
 
 ### Personalizar Estilos:
 
-- Colores principales: `brand-primary` (#85422b) y `brand-secondary` (#b45b38)
-- Texto principal: `brand-text` (#1d1d1d)
+Paleta definida en `tailwind.config.js`:
+
+| Token              | Color     | Uso                          |
+| ------------------ | --------- | ----------------------------- |
+| `brand-primary`     | `#b45b38` | Botones, CTAs                |
+| `brand-secondary`   | `#85422b` | Títulos, bordes              |
+| `brand-accent`      | `#d4a373` | Detalles, hovers              |
+| `brand-background`  | `#fdfaf8` | Fondo general                 |
+| `brand-surface`     | `#f5ece4` | Cards, secciones               |
+| `devs-text`         | `#2d1a12` | Texto principal                |
+| `devs-muted`        | `#7a6b63` | Texto secundario                |
+
 - Gradientes: `from-brand-primary to-brand-secondary`
-- Tipografía: Sistema fonts optimizados
+- Tipografía: `Onest` (sans, para textos/body) y `Fira Mono` (mono, aplicada a títulos para el look dev) — ambas cargadas desde Google Fonts en `index.html`
+- Radio de bordes: `rounded-brand` (0.5rem) disponible como utilidad adicional
 
 ## 🛡️ Seguridad
 

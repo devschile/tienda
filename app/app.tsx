@@ -152,7 +152,7 @@ function App() {
   const availableCount = availableProducts.length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-brand-secondary/5 via-brand-primary/5 to-brand-secondary/5">
+    <div className="min-h-screen bg-brand-background bg-gradient-to-br from-brand-secondary/5 via-brand-primary/5 to-brand-secondary/5">
       {/* Decorative elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 right-0 w-96 h-96 bg-brand-primary/10 rounded-full blur-3xl"></div>
@@ -160,7 +160,7 @@ function App() {
       </div>
 
       {/* Header */}
-      <header className="bg-white/80 backdrop-blur-md shadow-sm border-b border-brand-secondary/20 sticky top-0 z-50">
+      <header className="bg-brand-surface/80 backdrop-blur-md shadow-sm border-b border-brand-secondary/20 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
@@ -168,9 +168,7 @@ function App() {
                 <img style={{ minWidth: 40 }} width={50} src={logo} />
               </div>
               <div>
-                <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-brand-primary to-brand-secondary bg-clip-text text-transparent">
-                  Tienda devsChile
-                </h1>
+                <h1 className="font-mono text-2xl sm:text-3xl font-bold">Tienda devsChile</h1>
               </div>
             </div>
             <Button
@@ -210,12 +208,14 @@ function App() {
         )}
 
         {!loadingProducts && !errorProducts && allProducts.length === 0 && (
-          <div className="bg-white/80 backdrop-blur-sm border-2 border-brand-secondary/20 rounded-2xl p-12 text-center shadow-lg">
+          <div className="bg-brand-surface/80 backdrop-blur-sm border-2 border-brand-secondary/20 rounded-2xl p-12 text-center shadow-lg">
             <div className="inline-flex items-center justify-center w-20 h-20 bg-brand-secondary/10 rounded-full mb-6">
               <ShoppingBag className="h-10 w-10 text-brand-secondary" />
             </div>
-            <h3 className="text-xl font-bold text-brand-text mb-2">No hay productos disponibles</h3>
-            <p className="text-brand-text/70">
+            <h3 className="font-mono text-xl font-bold text-devs-text mb-2">
+              No hay productos disponibles
+            </h3>
+            <p className="text-devs-text/70">
               Pronto tendré nuevas creaciones disponibles. ¡Vuelve pronto!
             </p>
           </div>
@@ -227,7 +227,7 @@ function App() {
               <Button
                 variant={selectedCategory === null ? 'default' : 'outline'}
                 size="sm"
-                className={`rounded-full shadow-sm transition-all duration-300 ${selectedCategory === null ? 'bg-gradient-to-r from-brand-primary to-brand-secondary text-white border-transparent' : 'text-brand-text border-brand-secondary/30 bg-white hover:bg-brand-secondary/10'}`}
+                className={`rounded-full shadow-sm transition-all duration-300 ${selectedCategory === null ? 'bg-gradient-to-r from-brand-primary to-brand-secondary text-white border-transparent' : 'text-devs-text border-brand-secondary/30 bg-brand-surface hover:bg-brand-accent/20'}`}
                 onClick={() => handleCategoryChange(null)}
               >
                 Todos
@@ -237,7 +237,7 @@ function App() {
                   key={category}
                   variant={selectedCategory === category ? 'default' : 'outline'}
                   size="sm"
-                  className={`rounded-full shadow-sm transition-all duration-300 ${selectedCategory === category ? 'bg-gradient-to-r from-brand-primary to-brand-secondary text-white border-transparent' : 'text-brand-text border-brand-secondary/30 bg-white hover:bg-brand-secondary/10'}`}
+                  className={`rounded-full shadow-sm transition-all duration-300 ${selectedCategory === category ? 'bg-gradient-to-r from-brand-primary to-brand-secondary text-white border-transparent' : 'text-devs-text border-brand-secondary/30 bg-brand-surface hover:bg-brand-accent/20'}`}
                   onClick={() => handleCategoryChange(category as string)}
                 >
                   {category}
@@ -248,7 +248,7 @@ function App() {
                 onChange={(e) =>
                   setSortOrder(e.target.value as 'default' | 'price-asc' | 'price-desc')
                 }
-                className="ml-auto rounded-full shadow-sm border border-brand-secondary/30 bg-white text-brand-text text-sm px-3 py-1.5 outline-none focus:border-brand-secondary/50 focus:ring-2 focus:ring-brand-secondary/20 transition-all cursor-pointer"
+                className="ml-auto rounded-full shadow-sm border border-brand-secondary/30 bg-brand-surface text-devs-text text-sm px-3 py-1.5 outline-none focus:border-brand-secondary/50 focus:ring-2 focus:ring-brand-secondary/20 transition-all cursor-pointer"
               >
                 <option value="default">Ordenar por</option>
                 <option value="price-asc">Precio: menor a mayor</option>
@@ -257,7 +257,7 @@ function App() {
             </div>
 
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-brand-text">
+              <h2 className="font-mono text-2xl font-bold text-devs-text">
                 {selectedCategory ? `Productos: ${selectedCategory}` : 'Todos los Productos'}
               </h2>
               <div className="text-right">
@@ -265,21 +265,21 @@ function App() {
                   {availableCount} producto{availableCount === 1 ? '' : 's'} disponible
                   {availableCount === 1 ? '' : 's'}
                 </p>
-                <p className="text-xs text-brand-text/50">
+                <p className="text-xs text-devs-text/50">
                   {totalCount} producto{totalCount === 1 ? '' : 's'} en total
                 </p>
               </div>
             </div>
 
             {filteredProducts.length === 0 ? (
-              <div className="bg-white/80 backdrop-blur-sm border-2 border-brand-secondary/20 rounded-2xl p-12 text-center shadow-lg">
+              <div className="bg-brand-surface/80 backdrop-blur-sm border-2 border-brand-secondary/20 rounded-2xl p-12 text-center shadow-lg">
                 <div className="inline-flex items-center justify-center w-20 h-20 bg-brand-secondary/10 rounded-full mb-6">
                   <ShoppingBag className="h-10 w-10 text-brand-secondary" />
                 </div>
-                <h3 className="text-xl font-bold text-brand-text mb-2">
+                <h3 className="font-mono text-xl font-bold text-devs-text mb-2">
                   No hay productos en esta categoría
                 </h3>
-                <p className="text-brand-text/70 mb-6">
+                <p className="text-devs-text/70 mb-6">
                   Intenta seleccionar otra categoría o ver todos los productos.
                 </p>
                 <Button
@@ -307,10 +307,10 @@ function App() {
       </main>
 
       {/* Footer */}
-      <footer className="relative bg-white/60 backdrop-blur-sm border-t border-brand-secondary/20 mt-12">
+      <footer className="relative bg-brand-surface/60 backdrop-blur-sm border-t border-brand-secondary/20 mt-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center">
-            <p className="text-sm text-brand-text/70 mb-2">
+            <p className="text-sm text-devs-text/70 mb-2">
               © {new Date().getFullYear()} Tienda devsChile. Todos los derechos reservados.
             </p>
             <p className="text-xs text-brand-secondary"></p>
