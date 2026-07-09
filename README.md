@@ -9,7 +9,7 @@ Construido con React, TypeScript, Tailwind CSS y Vite.
 - **Frontend**: React 18 + TypeScript + Vite
 - **Estilos**: Tailwind CSS + Gradientes personalizados
 - **UI Components**: Radix UI + shadcn/ui
-- **Datos**: API Genérica / Mock Data
+- **Datos**: NeonDB (Postgres serverless) vía Netlify Functions, con fallback a Mock Data
 - **Pagos**: MercadoPago SDK + Netlify Functions
 - **Despliegue**: Netlify (Frontend + Functions)
 - **Seguridad**: CORS whitelist, validación de entrada, headers de seguridad
@@ -24,20 +24,19 @@ npm install
 
 ### 2. Configurar Variables de Entorno
 
-**⚠️ IMPORTANTE**: Crea un archivo `.env` basado en `.env.example` o `.env.secure`:
+**⚠️ IMPORTANTE**: Crea un archivo `.env` basado en `.env.example`:
 
 ```bash
 cp .env.example .env
-# O para más seguridad:
-cp .env.secure .env
 ```
 
 **Variables requeridas:**
 
-#### API Configuration (para productos)
+#### NeonDB (para productos)
 
 ```env
-VITE_API_URL=https://tu-api.com/v1
+# Solo Netlify Functions - NUNCA con prefijo VITE_
+NEON_DATABASE_URL=postgresql://user:password@host/dbname?sslmode=require
 ```
 
 #### MercadoPago (para pagos)
@@ -59,7 +58,18 @@ ALLOWED_ORIGINS=https://tienda-devschile.cl,http://localhost:3000
 NODE_ENV=production
 ```
 
-### 3. Configurar MercadoPago
+### 3. Configurar NeonDB (Base de datos de productos)
+
+1. **Crea un proyecto en [Neon](https://console.neon.tech)** (Postgres serverless).
+2. **Copia el connection string** (formato `postgresql://user:password@host/dbname?sslmode=require`) y colócalo en `NEON_DATABASE_URL` en tu `.env`. Esta variable **nunca** debe llevar el prefijo `VITE_`, ya que solo se usa dentro de la Netlify Function `get-products.js` (server-side) y jamás debe llegar al bundle del navegador.
+3. **Aplica las migraciones** en orden desde la carpeta `migrations/` (usando el SQL Editor de Neon, `psql`, o tu herramienta favorita):
+   - `migrations/01_create_products_schema.sql` — crea las tablas `products` y `product_images`.
+   - `migrations/02_seed_products_from_mock.sql` — carga los productos de `app/productsMock.ts` como datos iniciales.
+4. **Configura la misma variable en Netlify Dashboard** (`NEON_DATABASE_URL`) para que la función funcione en producción.
+
+El frontend consulta los productos vía `actions/loadProducts.ts`, que llama a `/.netlify/functions/get-products`. Si la función no responde (por ejemplo, corriendo `vite dev` sin `netlify dev`, o la base de datos caída), la app cae automáticamente de vuelta a los datos de `app/productsMock.ts` para que el desarrollo local nunca se bloquee.
+
+### 4. Configurar MercadoPago
 
 1. **Crea una cuenta en [MercadoPago Developers](https://www.mercadopago.cl/developers)**
 2. **Crea una nueva aplicación**
@@ -67,18 +77,35 @@ NODE_ENV=production
    - `Public Key`: Para el frontend (VITE_MERCADOPAGO_PUBLIC_KEY)
    - `Access Token`: Para el backend (MERCADOPAGO_ACCESS_TOKEN)
 
-### 4. Configuración de API de Productos
+### 5. Esquema de Productos (NeonDB)
 
-La aplicación espera un endpoint `GET /products` que retorne una estructura compatible con `ProductResponse` conteniendo estos campos:
+Los productos se guardan en dos tablas (ver `migrations/01_create_products_schema.sql`):
 
-| Campo              | Tipo        | Requerido | Descripción              |
-| ------------------ | ----------- | --------- | ------------------------ |
-| `name`             | Texto       | ✅        | Nombre del producto      |
-| `description`      | Texto largo | ✅        | Descripción detallada    |
-| `price`            | Número      | ✅        | Precio en CLP            |
-| `thumbnailImages`  | Attachment  | ✅        | Imagen 300x300px         |
-| `largeImages`      | Attachment  | ✅        | Imágenes alta resolución |
-| `active`           | Checkbox    | ✅        | Disponible para venta    |
+**Tabla `products`**
+
+| Campo          | Tipo        | Requerido | Descripción           |
+| -------------- | ----------- | --------- | ---------------------- |
+| `id`           | text (PK)   | ✅        | Identificador del producto |
+| `name`         | text        | ✅        | Nombre del producto     |
+| `description`  | text        | ✅        | Descripción detallada   |
+| `category`     | text        | ✅        | Categoría del producto  |
+| `price`        | integer     | ✅        | Precio en CLP           |
+| `active`       | boolean     | ✅        | Disponible para venta   |
+| `created_time` | timestamptz | ✅        | Fecha de creación       |
+
+**Tabla `product_images`** (una fila por imagen, `variant` indica si es `thumbnail` o `large`)
+
+| Campo        | Tipo    | Requerido | Descripción                         |
+| ------------ | ------- | --------- | ------------------------------------ |
+| `product_id` | text    | ✅        | FK a `products.id`                   |
+| `variant`    | enum    | ✅        | `thumbnail` o `large`                |
+| `position`   | integer | ✅        | Orden dentro de la variante          |
+| `url`        | text    | ✅        | URL de la imagen                     |
+| `filename`   | text    | ✅        | Nombre de archivo                    |
+| `size`       | integer | ✅        | Tamaño en bytes                      |
+| `type`       | text    | ✅        | MIME type (ej. `image/jpeg`)         |
+
+Para agregar/editar productos, inserta filas directamente en Neon (SQL Editor o `psql`) siguiendo el patrón de `migrations/02_seed_products_from_mock.sql`.
 
 ## 🏃‍♂️ Desarrollo
 
@@ -116,9 +143,13 @@ npm run lint
 
 ```
 /
+├── migrations/
+│   ├── 01_create_products_schema.sql  # Tablas products / product_images
+│   └── 02_seed_products_from_mock.sql # Seed inicial (basado en productsMock.ts)
 ├── netlify/
 │   └── functions/
 │       ├── create-payment.js      # Netlify Function para MercadoPago (segura)
+│       ├── get-products.js        # Netlify Function que consulta NeonDB
 │       └── package.json           # Dependencias de Functions
 ├── public/
 │   └── images/                    # Imágenes estáticas (accesibles vía /images/*)

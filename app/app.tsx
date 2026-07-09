@@ -8,13 +8,9 @@ import { InfoModal } from '@/components/InfoModal';
 import { Toaster } from '@/components/ui/toaster';
 import { useToast } from '@/hooks/use-toast';
 import type { ProductRecord, ProductResponse } from '@/types/products';
-import { productsMock as records } from '@/app/productsMock.ts';
 import logo from '@/images/devschile2026.png';
 import createPayment from '@/actions/createPayment';
-
-const API_CONFIG = {
-  apiUrl: import.meta.env.VITE_API_URL || 'https://api.example.com/v1',
-};
+import loadProducts, { productsMockFallback } from '@/actions/loadProducts';
 
 function App() {
   const { toast } = useToast();
@@ -68,33 +64,19 @@ function App() {
     }
   }, [loadingProducts, productsData, selectedCategory, toast]);
 
-  // Load products on component mount
+  // Load products on component mount (desde NeonDB vía Netlify Function,
+  // con fallback automático a productsMock si la función no responde)
   useEffect(() => {
     const loadProductsData = async () => {
       try {
         setLoadingProducts(true);
         setErrorProducts(null);
 
-        // In development, use mock data
-        if (import.meta.env.DEV) {
-          console.log('Using mock products data for development');
-          setProductsData({ records });
-          return;
-        }
-
-        const response = await fetch(`${API_CONFIG.apiUrl}/products`);
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch products');
-        }
-
-        const data: ProductResponse = await response.json();
+        const data = await loadProducts();
         setProductsData(data);
       } catch (error) {
-        console.error('Error loading products:', error);
-        setErrorProducts('Error loading products');
-        // Fallback to mock data
-        setProductsData({ records });
+        console.error('Error loading products, using fallback mock data:', error);
+        setProductsData(productsMockFallback);
         setErrorProducts(null);
       } finally {
         setLoadingProducts(false);

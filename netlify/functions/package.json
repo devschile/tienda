@@ -4,6 +4,7 @@
   "description": "Netlify Functions for Tienda devsChile",
   "main": "create-payment.js",
   "dependencies": {
+    "@neondatabase/serverless": "^1.1.0",
     "mercadopago": "^1.5.17"
   }
 }
