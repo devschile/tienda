@@ -78,7 +78,7 @@ export function InfoModal({ open, onOpenChange }: InfoModalProps) {
             ))}
           </div>
 
-          <div className="bg-gradient-to-r from-brand-primary to-brand-secondary text-white p-6 rounded-xl shadow-lg">
+          <div className="text-brand-text p-6 rounded-xl shadow-lg">
             <p className="text-center font-bold text-lg">
               ¡Gracias por apoyar a la comunidad devsChile! 🦌
             </p>
@@ -100,7 +100,7 @@ export function InfoModal({ open, onOpenChange }: InfoModalProps) {
                 </div>
               </div>
             ))}
-            <div className="bg-gradient-to-r from-brand-primary to-brand-secondary text-white p-6 rounded-xl shadow-lg mt-6">
+            <div className="text-brand-text p-6 rounded-xl mt-6">
               <p className="text-center font-bold text-lg">
                 ¡Gracias por apoyar a la comunidad devsChile! 🦌
               </p>
