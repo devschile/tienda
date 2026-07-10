@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Info, Loader2, ShoppingBag } from 'lucide-react';
+import { Info, Loader2, ShoppingBag, ShoppingCart } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { ProductCard } from '@/components/ProductCard';
@@ -10,7 +10,12 @@ import { useToast } from '@/hooks/use-toast';
 import type { ProductRecord, ProductResponse } from '@/types/products';
 import logo from '@/images/devschile2026.png';
 import createPayment from '@/actions/createPayment';
+import type { CustomerData } from '@/actions/createPayment';
 import loadProducts, { productsMockFallback } from '@/actions/loadProducts';
+import { useCart } from '@/hooks/useCart';
+import { CartDrawer } from '@/components/CartDrawer';
+import { CheckoutModal } from '@/components/CheckoutModal';
+import { DevTools } from '@/components/DevTools';
 
 function App() {
   const { toast } = useToast();
@@ -22,7 +27,10 @@ function App() {
   const [productsData, setProductsData] = useState<ProductResponse | null>(null);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [errorProducts, setErrorProducts] = useState<string | null>(null);
-  const [loadingPayment, setLoadingPayment] = useState(false);
+  const cart = useCart();
+  const [cartOpen, setCartOpen] = useState(false);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(() => {
     return new URLSearchParams(window.location.search).get('category');
   });
@@ -129,44 +137,42 @@ function App() {
     window.history.pushState({}, '', url);
   };
 
-  const handleBuyClick = async (product: ProductRecord, quantity: number) => {
-    if (loadingPayment) return;
+  const handleBuyClick = (product: ProductRecord, quantity: number) => {
+    cart.addItem(product, quantity);
+    setCartOpen(true);
+    toast({
+      title: `${product.fields.name} agregado`,
+      description: `${quantity} ${quantity === 1 ? 'unidad' : 'unidades'} en tu carrito`,
+    });
+  };
 
+  const handleCheckout = async (customer: CustomerData) => {
+    if (checkoutLoading) return;
     try {
-      setLoadingPayment(true);
-
-      toast({
-        title: 'Preparando pago...',
-        description: `Creando preferencia de pago para ${quantity}x ${product.fields.name}...`,
-      });
-      // Llamamos a la función referenciada para crear el pago
+      setCheckoutLoading(true);
       const data = await createPayment(
-        product.fields.price,
-        product.fields.name,
-        product.id,
-        quantity,
+        cart.items.map((i) => ({
+          productId: i.product.id,
+          productName: i.product.fields.name,
+          quantity: i.quantity,
+          unitPrice: i.product.fields.price,
+        })),
+        customer,
       );
-
       if (!data.success || !data.checkout_url) {
         throw new Error(data.error || 'No se pudo obtener la URL de pago');
       }
-
-      toast({
-        title: '¡Redirigiendo a MercadoPago!',
-        description: `Serás redirigido para completar el pago de ${quantity}x ${product.fields.name}`,
-      });
-
-      // Redirect to MercadoPago checkout
+      cart.clearCart();
       window.location.href = data.checkout_url;
     } catch (error) {
-      console.error('Payment error:', error);
+      console.error('Checkout error:', error);
       toast({
-        title: 'Error en la compra',
-        description: 'No se pudo procesar el pago. Verifica tu conexión e intenta nuevamente.',
+        title: 'Error al procesar el pago',
+        description: 'Intenta nuevamente.',
         variant: 'destructive',
       });
     } finally {
-      setLoadingPayment(false);
+      setCheckoutLoading(false);
     }
   };
 
@@ -203,14 +209,28 @@ function App() {
                 <h1 className="font-mono text-2xl sm:text-3xl font-bold">Tienda devsChile</h1>
               </div>
             </div>
-            <Button
-              variant="outline"
-              className="gap-1 border-brand-secondary/30 text-brand-primary hover:bg-brand-secondary/5 hover:border-brand-secondary/50 transition-all shadow-sm"
-              onClick={() => setInfoModalOpen(true)}
-            >
-              <Info className="h-5 w-5 mr-2" />
-              <span className="hidden sm:inline">Sobre</span>devsChile
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                className="gap-1 border-brand-secondary/30 text-brand-primary hover:bg-brand-secondary/5 hover:border-brand-secondary/50 transition-all shadow-sm"
+                onClick={() => setInfoModalOpen(true)}
+              >
+                <Info className="h-5 w-5 mr-2" />
+                <span className="hidden sm:inline">Sobre</span>devsChile
+              </Button>
+              <Button
+                variant="outline"
+                className="relative border-brand-secondary/30 text-brand-primary hover:bg-brand-secondary/5"
+                onClick={() => setCartOpen(true)}
+              >
+                <ShoppingCart className="h-5 w-5" />
+                {cart.totalItems > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 bg-brand-primary text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                    {cart.totalItems > 9 ? '9+' : cart.totalItems}
+                  </span>
+                )}
+              </Button>
+            </div>
           </div>
         </div>
       </header>
@@ -368,7 +388,42 @@ function App() {
 
       <InfoModal open={infoModalOpen} onOpenChange={setInfoModalOpen} />
 
+      <CartDrawer
+        open={cartOpen}
+        onOpenChange={setCartOpen}
+        items={cart.items}
+        totalAmount={cart.totalAmount}
+        onUpdateQuantity={cart.updateQuantity}
+        onRemoveItem={cart.removeItem}
+        onCheckout={() => {
+          setCartOpen(false);
+          setCheckoutOpen(true);
+        }}
+      />
+
+      <CheckoutModal
+        open={checkoutOpen}
+        onOpenChange={setCheckoutOpen}
+        totalAmount={cart.totalAmount}
+        onSubmit={handleCheckout}
+        loading={checkoutLoading}
+      />
+
       <Toaster />
+
+      {import.meta.env.DEV && (
+        <DevTools
+          onTestCart={() => {
+            if (allProducts[0]) cart.addItem(allProducts[0], 1);
+            setCartOpen(true);
+          }}
+          onTestCheckout={() => {
+            if (allProducts[0]) cart.addItem(allProducts[0], 1);
+            setCartOpen(false);
+            setCheckoutOpen(true);
+          }}
+        />
+      )}
     </div>
   );
 }
