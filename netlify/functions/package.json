@@ -5,6 +5,6 @@
   "main": "create-payment.js",
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
-    "mercadopago": "^1.5.17"
+    "mercadopago": "^2.0.0"
   }
 }
