@@ -61,3 +61,23 @@ body {
 .animate-slide-prev {
   animation: slide-in-left 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
 }
+
+/* Confetti de monedas — página de éxito */
+@keyframes coin-fall {
+  0% {
+    transform: translateY(-80px) translateX(0) rotate(0deg);
+    opacity: 1;
+  }
+  40% {
+    transform: translateY(40vh) translateX(var(--sway, 20px)) rotate(360deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(110vh) translateX(0) rotate(780deg);
+    opacity: 0;
+  }
+}
+
+.animate-coin-fall {
+  animation: coin-fall linear forwards;
+}
