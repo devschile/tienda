@@ -1,6 +1,7 @@
 [build]
   publish = "dist"
-  command = "npm install && npx vite build"
+  # Instala deps de la raíz Y de las Netlify Functions antes del build
+  command = "npm install && npm install --prefix netlify/functions && npx vite build"
 
 [functions]
   directory = "netlify/functions"

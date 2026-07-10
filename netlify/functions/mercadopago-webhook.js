@@ -17,12 +17,12 @@ const crypto = require('crypto');
 
 // Mapeo de estados de MercadoPago a nuestro enum order_status
 const MP_STATUS_MAP = {
-  approved:   'approved',
-  rejected:   'rejected',
-  cancelled:  'cancelled',
-  refunded:   'refunded',
+  approved: 'approved',
+  rejected: 'rejected',
+  cancelled: 'cancelled',
+  refunded: 'refunded',
   in_process: 'pending_transfer',
-  pending:    'pending',
+  pending: 'pending',
 };
 
 exports.handler = async (event) => {
@@ -34,9 +34,9 @@ exports.handler = async (event) => {
   }
 
   try {
-    const webhookSecret  = process.env.MERCADOPAGO_WEBHOOK_SECRET;
-    const accessToken    = process.env.MERCADOPAGO_ACCESS_TOKEN;
-    const databaseUrl    = process.env.NEON_DATABASE_URL;
+    const webhookSecret = process.env.MERCADOPAGO_WEBHOOK_SECRET;
+    const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
+    const databaseUrl = process.env.NEON_DATABASE_URL;
 
     if (!accessToken || !databaseUrl) {
       console.error('Configuración incompleta');
@@ -46,18 +46,18 @@ exports.handler = async (event) => {
 
     // ── Validar firma HMAC-SHA256 (si el secret está configurado) ──────────
     if (webhookSecret) {
-      const xSignature  = event.headers['x-signature']   || '';
-      const xRequestId  = event.headers['x-request-id']  || '';
+      const xSignature = event.headers['x-signature'] || '';
+      const xRequestId = event.headers['x-request-id'] || '';
 
       // Formato: "ts=<timestamp>,v1=<hash>"
-      const parts = Object.fromEntries(
-        xSignature.split(',').map(p => p.trim().split('=')),
-      );
+      const parts = Object.fromEntries(xSignature.split(',').map((p) => p.trim().split('=')));
       const ts = parts.ts || '';
       const v1 = parts.v1 || '';
 
       let dataId = '';
-      try { dataId = JSON.parse(event.body || '{}')?.data?.id || ''; } catch {}
+      try {
+        dataId = JSON.parse(event.body || '{}')?.data?.id || '';
+      } catch {}
 
       // Cadena firmada: id:<data.id>;request-id:<x-request-id>;ts:<ts>
       const toSign = `id:${dataId};request-id:${xRequestId};ts:${ts}`;
@@ -74,7 +74,11 @@ exports.handler = async (event) => {
 
     // Solo procesamos notificaciones de tipo 'payment'
     if (body.type !== 'payment') {
-      return { statusCode: 200, headers, body: JSON.stringify({ received: true, skipped: body.type }) };
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({ received: true, skipped: body.type }),
+      };
     }
 
     const paymentId = body.data?.id;
@@ -83,10 +87,21 @@ exports.handler = async (event) => {
     }
 
     // ── Consultar el pago real a la API de MercadoPago ─────────────────────
-    const client  = new MercadoPagoConfig({ accessToken });
-    const payment = await new Payment(client).get({ id: paymentId });
+    let payment;
+    try {
+      const client = new MercadoPagoConfig({ accessToken });
+      payment = await new Payment(client).get({ id: paymentId });
+    } catch (mpError) {
+      // El pago no existe (ej. ID de prueba 123456) o error de red
+      console.warn('No se pudo obtener el pago de MP:', mpError.message);
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({ received: true, skipped: 'payment_not_found' }),
+      };
+    }
 
-    const orderId  = payment.external_reference;
+    const orderId = payment.external_reference;
     const mpStatus = payment.status;
 
     if (!orderId) {
@@ -110,7 +125,11 @@ exports.handler = async (event) => {
     // Si ya estaba aprobada y vuelve 'approved', no reprocessar (idempotencia)
     if (currentOrder.status === 'approved' && newStatus === 'approved') {
       console.log('Webhook duplicado ignorado para orden ya aprobada:', orderId);
-      return { statusCode: 200, headers, body: JSON.stringify({ received: true, idempotent: true }) };
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({ received: true, idempotent: true }),
+      };
     }
 
     // ── Actualizar estado de la orden ──────────────────────────────────────
@@ -140,7 +159,9 @@ exports.handler = async (event) => {
         `;
         // El trigger fn_sync_available_on_stock pone available=false si stock=0
         if (updated) {
-          console.log(`  Producto ${updated.id}: stock=${updated.stock}, available=${updated.available}`);
+          console.log(
+            `  Producto ${updated.id}: stock=${updated.stock}, available=${updated.available}`,
+          );
         }
       }
     }
@@ -150,7 +171,6 @@ exports.handler = async (event) => {
       headers,
       body: JSON.stringify({ received: true, order_id: orderId, status: newStatus }),
     };
-
   } catch (error) {
     console.error('Error en webhook:', error.message);
     // 200 para evitar reintentos indefinidos de MP ante errores internos
