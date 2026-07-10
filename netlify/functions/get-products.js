@@ -5,7 +5,7 @@ exports.handler = async (event, context) => {
   // Get allowed origins from environment (should be set in Netlify)
   const allowedOrigins = process.env.ALLOWED_ORIGINS
     ? process.env.ALLOWED_ORIGINS.split(',')
-    : ['https://tienda-devschile.netlify.app'];
+    : ['https://tienda.devschile.cl', 'https://tienda-devschile.netlify.app'];
 
   const origin = event.headers.origin || event.headers.Origin || '';
   const isAllowedOrigin = allowedOrigins.includes(origin) || allowedOrigins.includes('*');
@@ -61,6 +61,7 @@ exports.handler = async (event, context) => {
         p.visible,
         p.available,
         p.stock,
+        p.on_sale,
         p.created_time,
 
         -- Imagen de portada del card (is_cover = true, máximo 1 por producto)
@@ -139,6 +140,7 @@ exports.handler = async (event, context) => {
         visible: row.visible,
         available: row.available,
         stock: Number(row.stock),
+        on_sale: row.on_sale,
       },
       createdTime:
         row.created_time instanceof Date ? row.created_time.toISOString() : row.created_time,
