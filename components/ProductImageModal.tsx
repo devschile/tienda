@@ -45,6 +45,8 @@ export function ProductImageModal({ product, open, onOpenChange }: ProductImageM
 
   if (!product) return null;
 
+  const { on_sale } = product.fields;
+
   const images = product.fields.images?.length
     ? product.fields.images
     : product.fields.largeImages?.length
@@ -85,7 +87,14 @@ export function ProductImageModal({ product, open, onOpenChange }: ProductImageM
             />
           </div>
 
-          {hasMultiple && (
+          {/* Badge oferta */}
+          {on_sale && (
+            <div className="absolute top-3 left-3 z-20 bg-amber-400 text-amber-900 text-xs font-bold px-3 py-1.5 rounded-full shadow-md tracking-wide uppercase flex items-center gap-1.5">
+              <span>⚡</span> Oferta
+            </div>
+          )}
+
+          {images.length > 1 && (
             <>
               <button
                 type="button"

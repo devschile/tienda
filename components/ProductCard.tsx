@@ -20,7 +20,7 @@ export function ProductCard({
 }: ProductCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [quantity, setQuantity] = useState(1);
-  const { name, description, price, coverImage, available, stock } = product.fields;
+  const { name, description, price, coverImage, available, stock, on_sale } = product.fields;
   const isSold = !available;
   const isLowStock = available && stock > 0 && stock <= 5;
 
@@ -50,6 +50,14 @@ export function ProductCard({
             alt={name}
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
           />
+
+          {/* Badge oferta */}
+          {on_sale && (
+            <div className="absolute top-3 left-3 z-20 bg-amber-400 text-amber-900 text-xs font-bold px-2.5 py-1 rounded-full shadow-md tracking-wide uppercase flex items-center gap-1">
+              <span className="absolute -left-3 text-[36px]">💸</span>{' '}
+              <span className="pl-8">Oferta</span>
+            </div>
+          )}
 
           {/* Sold indicator */}
           {isSold && (

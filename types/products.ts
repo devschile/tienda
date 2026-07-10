@@ -27,6 +27,7 @@ export interface ProductFields {
   visible: boolean;
   available: boolean;
   stock: number;
+  on_sale: boolean;
 }
 
 export interface ProductRecord {
