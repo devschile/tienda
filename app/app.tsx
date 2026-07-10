@@ -342,10 +342,9 @@ function App() {
       <footer className="relative bg-brand-surface/60 backdrop-blur-sm border-t border-brand-secondary/20 mt-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="text-center">
-            <p className="text-sm text-devs-text/70 mb-2">
+            <p className="text-sm text-devs-text/70">
               © {new Date().getFullYear()} Tienda devsChile. Todos los derechos reservados.
             </p>
-            <p className="text-xs text-brand-secondary"></p>
           </div>
         </div>
       </footer>
