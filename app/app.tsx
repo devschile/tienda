@@ -190,16 +190,10 @@ function App() {
   const availableCount = availableProducts.length;
 
   return (
-    <div className="min-h-screen bg-brand-background bg-gradient-to-br from-brand-secondary/5 via-brand-primary/5 to-brand-secondary/5">
-      {/* Decorative elements */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-brand-primary/10 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-brand-secondary/10 rounded-full blur-3xl"></div>
-      </div>
-
+    <div className="min-h-screen">
       {/* Header */}
       <header className="bg-brand-surface/80 backdrop-blur-md shadow-sm border-b border-brand-secondary/20 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <div className="border-2 border-brand-primary/40 p-2 rounded-xl">
@@ -346,7 +340,7 @@ function App() {
 
       {/* Footer */}
       <footer className="relative bg-brand-surface/60 backdrop-blur-sm border-t border-brand-secondary/20 mt-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="text-center">
             <p className="text-sm text-devs-text/70 mb-2">
               © {new Date().getFullYear()} Tienda devsChile. Todos los derechos reservados.
@@ -371,7 +365,6 @@ function App() {
             }
           }
         }}
-        onBuyClick={handleBuyClick}
       />
 
       <InfoModal open={infoModalOpen} onOpenChange={setInfoModalOpen} />

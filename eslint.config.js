@@ -8,7 +8,7 @@ import eslintConfigPrettier from 'eslint-config-prettier';
 import react from 'eslint-plugin-react';
 
 export default tseslint.config(
-  { ignores: ['dist', 'node_modules', '.idea'] },
+  { ignores: ['dist', 'node_modules', '.idea', '.netlify'] },
   {
     extends: [
       js.configs.recommended,

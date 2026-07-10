@@ -39,7 +39,7 @@ export function ProductCard({
 
   return (
     <Card
-      className={`group flex flex-col h-full bg-brand-surface/90 backdrop-blur-sm hover:shadow-2xl transition-all duration-300 border-brand-secondary/20 hover:border-brand-secondary/40 hover:-translate-y-2 overflow-hidden ${isSold ? 'product-sold' : ''}`}
+      className={`group flex flex-col h-full bg-white/70 hover:bg-white hover:shadow-2xl transition-all duration-300 border-brand-secondary/20 hover:border-brand-secondary/40 hover:-translate-y-1 overflow-hidden ${isSold ? 'product-sold' : ''}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -95,7 +95,7 @@ export function ProductCard({
           >
             {product.fields.category || 'Varios'}
           </button>
-          <h3 className="font-mono font-bold text-lg mb-2 text-devs-text line-clamp-2 min-h-[3.5rem] group-hover:text-brand-secondary transition-colors">
+          <h3 className="font-mono font-bold text-lg mb-2 text-devs-text line-clamp-2 min-h-[3.5rem] group-hover:text-brand-secondary transition-colors leading-tight">
             {name}
           </h3>
           <p className="text-sm text-devs-text/70 mb-4 line-clamp-2 min-h-[2.5rem]">
@@ -103,8 +103,8 @@ export function ProductCard({
           </p>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs text-brand-secondary font-medium mb-1">Precio</p>
-              <p className="text-2xl font-bold bg-gradient-to-r from-brand-primary to-brand-secondary bg-clip-text text-transparent">
+              <p className="text-sm text-brand-secondary font-medium mb-1">Precio</p>
+              <p className="text-3xl font-bold bg-gradient-to-r from-brand-primary to-brand-secondary bg-clip-text text-transparent">
                 {formatPrice(price)}
               </p>
             </div>
@@ -147,7 +147,7 @@ export function ProductCard({
           </p>
         )}
         <Button
-          className={`w-full shadow-lg hover:shadow-xl transition-all duration-300 group/btn ${
+          className={`w-full h-12 text-md shadow-lg hover:shadow-xl transition-all duration-300 group/btn ${
             isSold
               ? 'bg-devs-text/40 cursor-not-allowed'
               : 'bg-gradient-to-r from-brand-primary to-brand-secondary hover:opacity-90'

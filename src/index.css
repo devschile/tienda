@@ -15,7 +15,7 @@ body {
   min-width: 320px;
   min-height: 100vh;
   color: #2d1a12;
-  background-color: #fdfaf8;
+  background: radial-gradient(circle at center, #f9f3ee 0%, #e2d1c3 100%);
 }
 
 #root {
@@ -32,4 +32,32 @@ body {
 .product-sold:hover {
   opacity: 0.8;
   transform: none !important;
+}
+
+/* Animaciones de slide para el modal de imagen */
+@keyframes slide-in-right {
+  from {
+    opacity: 0.2;
+    transform: translateX(48px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+@keyframes slide-in-left {
+  from {
+    opacity: 0.2;
+    transform: translateX(-48px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+.animate-slide-next {
+  animation: slide-in-right 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+.animate-slide-prev {
+  animation: slide-in-left 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
 }

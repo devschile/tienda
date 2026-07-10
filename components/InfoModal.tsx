@@ -14,7 +14,7 @@ interface Section {
 
 const sections: Array<Section> = [
   {
-    title: 'Con el huemul en mente',
+    title: 'Con el Huemul en mente',
     description:
       'Nuestros productos son diseñados por nosotros mismos y su objetivo es acercar tu pertenencia a la comunidad en tu vida diaria.',
   },
@@ -52,7 +52,7 @@ export function InfoModal({ open, onOpenChange }: InfoModalProps) {
             Sobre la Tienda devsChile
           </DialogTitle>
         </DialogHeader>
-
+        <hr />
         <div className="md:hidden space-y-6">
           <div className="aspect-video w-full bg-gradient-to-br from-brand-secondary/20 to-brand-primary/20 rounded-xl overflow-hidden shadow-lg">
             <img
