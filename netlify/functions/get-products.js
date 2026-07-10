@@ -50,8 +50,7 @@ exports.handler = async (event, context) => {
 
     const sql = neon(databaseUrl);
 
-    // Fetch products together with their thumbnail/large images,
-    // grouped back into the shape the frontend expects (ProductResponse).
+    // Fetch products with cover image, full image gallery, and legacy thumbnail/large arrays.
     const rows = await sql`
       select
         p.id,
@@ -63,14 +62,46 @@ exports.handler = async (event, context) => {
         p.available,
         p.stock,
         p.created_time,
+
+        -- Imagen de portada del card (is_cover = true, máximo 1 por producto)
+        (
+          select jsonb_build_object(
+            'id',       ci.id,
+            'url',      ci.url,
+            'filename', ci.filename,
+            'size',     ci.size,
+            'type',     ci.type,
+            'is_cover', true
+          )
+          from product_images ci
+          where ci.product_id = p.id
+            and ci.is_cover = true
+          limit 1
+        ) as cover_image,
+
+        -- Todas las imágenes para el carousel del modal
+        -- (cover primero, luego el resto por position)
         coalesce(
           jsonb_agg(
             jsonb_build_object(
-              'id', pi.id,
-              'url', pi.url,
+              'id',       pi.id,
+              'url',      pi.url,
               'filename', pi.filename,
-              'size', pi.size,
-              'type', pi.type
+              'size',     pi.size,
+              'type',     pi.type,
+              'is_cover', pi.is_cover
+            )
+            order by pi.is_cover desc, pi.position asc
+          ),
+          '[]'::jsonb
+        ) as images,
+
+        -- Legacy: thumbnailImages y largeImages (compatibilidad)
+        coalesce(
+          jsonb_agg(
+            jsonb_build_object(
+              'id', pi.id, 'url', pi.url, 'filename', pi.filename,
+              'size', pi.size, 'type', pi.type, 'is_cover', pi.is_cover
             )
             order by pi.position
           ) filter (where pi.variant = 'thumbnail'),
@@ -79,16 +110,14 @@ exports.handler = async (event, context) => {
         coalesce(
           jsonb_agg(
             jsonb_build_object(
-              'id', pi.id,
-              'url', pi.url,
-              'filename', pi.filename,
-              'size', pi.size,
-              'type', pi.type
+              'id', pi.id, 'url', pi.url, 'filename', pi.filename,
+              'size', pi.size, 'type', pi.type, 'is_cover', pi.is_cover
             )
             order by pi.position
           ) filter (where pi.variant = 'large'),
           '[]'::jsonb
         ) as large_images
+
       from products p
       left join product_images pi on pi.product_id = p.id
       group by p.id
@@ -103,6 +132,8 @@ exports.handler = async (event, context) => {
         description: row.description,
         category: row.category,
         price: Number(row.price),
+        coverImage: row.cover_image ?? null,
+        images: row.images,
         thumbnailImages: row.thumbnail_images,
         largeImages: row.large_images,
         visible: row.visible,

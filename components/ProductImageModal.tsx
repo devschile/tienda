@@ -45,9 +45,11 @@ export function ProductImageModal({ product, open, onOpenChange }: ProductImageM
 
   if (!product) return null;
 
-  const images = product.fields.largeImages?.length
-    ? product.fields.largeImages
-    : product.fields.thumbnailImages || [];
+  const images = product.fields.images?.length
+    ? product.fields.images
+    : product.fields.largeImages?.length
+      ? product.fields.largeImages
+      : product.fields.thumbnailImages || [];
 
   const hasMultiple = images.length > 1;
   const currentImage = images[currentIndex];

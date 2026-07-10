@@ -20,14 +20,11 @@ export function ProductCard({
 }: ProductCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [quantity, setQuantity] = useState(1);
-  const { name, description, price, thumbnailImages, available, stock } = product.fields;
+  const { name, description, price, coverImage, available, stock } = product.fields;
   const isSold = !available;
   const isLowStock = available && stock > 0 && stock <= 5;
 
-  const thumbnailUrl =
-    thumbnailImages?.[0]?.thumbnails?.large?.url ||
-    thumbnailImages?.[0]?.url ||
-    '/assets/images/default.svg';
+  const thumbnailUrl = coverImage?.url || '/assets/images/default.svg';
 
   const formatPrice = (p: number) => {
     return new Intl.NumberFormat('es-CL', {
