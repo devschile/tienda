@@ -128,7 +128,9 @@ exports.handler = async (event, context) => {
       })),
       payer: {
         name: customer.name,
-        email: customer.email,
+        // No enviamos email del payer: si coincide con una cuenta real de MP
+        // en modo sandbox lanza 'Una de las partes es de prueba'.
+        // MP pre-rellena el email cuando el usuario inicia sesión en el checkout.
       },
       payment_methods: {
         installments: 1,
