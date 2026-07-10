@@ -1,58 +1,38 @@
-// Efecto de lluvia de monedas 🪙 para la página de pago exitoso.
-// Solo renderiza en el cliente, sin dependencias externas.
-import { useMemo } from 'react';
+// Efecto de confetti para la página de pago exitoso.
+// Usa canvas-confetti para un burst clásico de partículas.
+import { useEffect } from 'react';
+import confetti from 'canvas-confetti';
 
-interface Coin {
-  id: number;
-  left: number;   // % horizontal
-  delay: number;  // segundos de delay
-  duration: number;
-  size: number;   // px de font-size
-  sway: number;   // px de desplazamiento horizontal en el arco
-}
+export function CoinConfetti() {
+  useEffect(() => {
+    // Paleta: colores de marca + dorado + colores clásicos de confetti
+    const colors = ['#b45b38', '#d4a373', '#ffd700', '#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24'];
 
-function rand(min: number, max: number) {
-  return Math.random() * (max - min) + min;
-}
+    // Burst inicial desde el centro
+    confetti({
+      particleCount: 80,
+      spread: 90,
+      origin: { y: 0.55 },
+      colors,
+    });
 
-export function CoinConfetti({ count = 45 }: { count?: number }) {
-  const coins = useMemo<Coin[]>(
-    () =>
-      Array.from({ length: count }, (_, i) => ({
-        id: i,
-        left: rand(0, 100),
-        delay: rand(0, 3.5),
-        duration: rand(2.8, 5.5),
-        size: rand(14, 26),
-        sway: rand(-45, 45),
-      })),
-    [count],
-  );
+    // Ráfagas desde los lados
+    setTimeout(() => {
+      confetti({ particleCount: 50, angle: 60, spread: 60, origin: { x: 0, y: 0.6 }, colors });
+      confetti({ particleCount: 50, angle: 120, spread: 60, origin: { x: 1, y: 0.6 }, colors });
+    }, 300);
 
-  return (
-    <div
-      className="fixed inset-0 pointer-events-none overflow-hidden"
-      style={{ zIndex: 9998 }}
-      aria-hidden="true"
-    >
-      {coins.map((coin) => (
-        <span
-          key={coin.id}
-          className="absolute animate-coin-fall"
-          style={
-            {
-              left: `${coin.left}%`,
-              top: '-80px',
-              fontSize: `${coin.size}px`,
-              animationDelay: `${coin.delay}s`,
-              animationDuration: `${coin.duration}s`,
-              '--sway': `${coin.sway}px`,
-            } as React.CSSProperties
-          }
-        >
-          🪙
-        </span>
-      ))}
-    </div>
-  );
+    // Burst final
+    setTimeout(() => {
+      confetti({
+        particleCount: 120,
+        spread: 100,
+        origin: { y: 0.5 },
+        colors,
+        gravity: 0.8,
+      });
+    }, 700);
+  }, []);
+
+  return null; // canvas-confetti maneja su propio canvas
 }
