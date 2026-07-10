@@ -5,7 +5,7 @@ exports.handler = async (event, context) => {
   // Get allowed origins from environment (should be set in Netlify)
   const allowedOrigins = process.env.ALLOWED_ORIGINS
     ? process.env.ALLOWED_ORIGINS.split(',')
-    : ['https://tienda.devschile.cl', 'https://tienda-devschile.netlify.app'];
+    : ['https://tienda.devschile.cl', 'https://devschile-tienda.netlify.app'];
 
   const origin = event.headers.origin || event.headers.Origin || '';
   const isAllowedOrigin = allowedOrigins.includes(origin) || allowedOrigins.includes('*');

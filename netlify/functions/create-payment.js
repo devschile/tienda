@@ -5,7 +5,7 @@ const { neon } = require('@neondatabase/serverless');
 exports.handler = async (event, context) => {
   const allowedOrigins = process.env.ALLOWED_ORIGINS
     ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
-    : ['https://tienda.devschile.cl', 'https://tienda-devschile.netlify.app'];
+    : ['https://tienda.devschile.cl', 'https://devschile-tienda.netlify.app'];
 
   const origin = event.headers.origin || event.headers.Origin || '';
   const isAllowedOrigin = allowedOrigins.includes(origin) || allowedOrigins.includes('*');
