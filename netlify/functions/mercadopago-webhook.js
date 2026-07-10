@@ -65,7 +65,12 @@ exports.handler = async (event) => {
 
       if (expected !== v1) {
         console.warn('Firma del webhook inválida — posible petición no autorizada');
-        return { statusCode: 401, headers, body: JSON.stringify({ error: 'Invalid signature' }) };
+        // Retornar 200 para que MP no reintente indefinidamente
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({ received: true, error: 'invalid_signature' }),
+        };
       }
     }
 
