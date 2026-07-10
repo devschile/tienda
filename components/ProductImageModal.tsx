@@ -1,80 +1,145 @@
-// Modal mejorado para imágenes del producto
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { useState } from 'react';
-import type { AirtableRecord } from '@/types/product';
-import { ChevronLeft, ChevronRight, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+// Modal de zoom/lightbox de imágenes del producto.
+// Muestra: nombre, imágenes con slide animado, flechas de navegación,
+// contador y botón cerrar. Sin precio, descripción ni botón de compra.
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { useState, useEffect } from 'react';
+import type { ProductRecord } from '@/types/products';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface ProductImageModalProps {
-  product: AirtableRecord | null;
+  product: ProductRecord | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
 export function ProductImageModal({ product, open, onOpenChange }: ProductImageModalProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [direction, setDirection] = useState<'next' | 'prev'>('next');
+
+  // Resetear al cambiar de producto
+  useEffect(() => {
+    setCurrentIndex(0);
+    setDirection('next');
+  }, [product?.id]);
+
+  // Navegación por teclado (← →)
+  useEffect(() => {
+    if (!open) return;
+    const total =
+      product?.fields.largeImages?.length || product?.fields.thumbnailImages?.length || 0;
+    if (total <= 1) return;
+
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowRight') {
+        setDirection('next');
+        setCurrentIndex((prev) => (prev + 1) % total);
+      }
+      if (e.key === 'ArrowLeft') {
+        setDirection('prev');
+        setCurrentIndex((prev) => (prev - 1 + total) % total);
+      }
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [open, product]);
 
   if (!product) return null;
 
-  const images = product.fields.imagenes_grandes || product.fields.imagen_miniatura || [];
+  const { on_sale } = product.fields;
+
+  const images = product.fields.images?.length
+    ? product.fields.images
+    : product.fields.largeImages?.length
+      ? product.fields.largeImages
+      : product.fields.thumbnailImages || [];
+
+  const hasMultiple = images.length > 1;
   const currentImage = images[currentIndex];
 
-  const handleNext = () => {
+  const goNext = () => {
+    setDirection('next');
     setCurrentIndex((prev) => (prev + 1) % images.length);
   };
 
-  const handlePrev = () => {
+  const goPrev = () => {
+    setDirection('prev');
     setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl bg-white/95 backdrop-blur-md border-orange-100">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-rose-600 to-orange-600 bg-clip-text text-transparent">
-            {product.fields.nombre}
+      <DialogContent className="max-w-3xl p-0 gap-0 overflow-hidden rounded-2xl border-brand-secondary/10 bg-white">
+        {/* Header: nombre del producto + botón X (Radix lo añade automáticamente) */}
+        <div className="flex items-center px-6 pr-14 py-4 border-b border-brand-secondary/10">
+          <DialogTitle className="font-mono font-bold text-lg text-brand-secondary leading-tight">
+            {product.fields.name}
           </DialogTitle>
-        </DialogHeader>
-        <div className="relative bg-gradient-to-br from-orange-50 to-rose-50 rounded-xl overflow-hidden">
-          <img
-            src={currentImage?.url || '/assets/images/default.svg'}
-            alt={product.fields.nombre}
-            className="w-full h-auto max-h-[70vh] object-contain rounded-lg"
-          />
-          {images.length > 1 && (
-            <div className="absolute inset-0 flex items-center justify-between px-4">
-              <Button
-                variant="secondary"
-                size="icon"
-                className="bg-white/90 backdrop-blur-sm hover:bg-white shadow-xl border-orange-100"
-                onClick={handlePrev}
-              >
-                <ChevronLeft className="h-6 w-6 text-orange-600" />
-              </Button>
-              <Button
-                variant="secondary"
-                size="icon"
-                className="bg-white/90 backdrop-blur-sm hover:bg-white shadow-xl border-orange-100"
-                onClick={handleNext}
-              >
-                <ChevronRight className="h-6 w-6 text-orange-600" />
-              </Button>
+        </div>
+
+        {/* Área de imagen con flechas de navegación */}
+        <div className="relative bg-brand-surface overflow-hidden select-none">
+          <div className="aspect-[4/3] w-full">
+            <img
+              key={currentIndex}
+              src={currentImage?.url || '/assets/images/default.svg'}
+              alt={`${product.fields.name} — imagen ${currentIndex + 1} de ${images.length}`}
+              className={`w-full h-full object-contain ${direction === 'next' ? 'animate-slide-next' : 'animate-slide-prev'}`}
+            />
+          </div>
+
+          {/* Badge oferta */}
+          {on_sale && (
+            <div className="absolute top-3 left-3 z-20 bg-amber-400 text-amber-900 text-xs font-bold px-3 py-1.5 rounded-full shadow-md tracking-wide uppercase flex items-center gap-1.5">
+              <span>⚡</span> Oferta
             </div>
           )}
+
           {images.length > 1 && (
-            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-rose-500 to-orange-500 text-white px-4 py-2 rounded-full text-sm font-medium shadow-lg">
-              {currentIndex + 1} / {images.length}
-            </div>
+            <>
+              <button
+                type="button"
+                onClick={goPrev}
+                aria-label="Imagen anterior"
+                className="absolute left-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-white/90 backdrop-blur-sm shadow-md flex items-center justify-center text-brand-secondary hover:bg-white hover:scale-110 transition-all duration-150"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+              <button
+                type="button"
+                onClick={goNext}
+                aria-label="Siguiente imagen"
+                className="absolute right-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-white/90 backdrop-blur-sm shadow-md flex items-center justify-center text-brand-secondary hover:bg-white hover:scale-110 transition-all duration-150"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </button>
+            </>
           )}
         </div>
-        <div className="bg-orange-50/50 rounded-lg p-4 mt-2">
-          <p className="text-gray-700 leading-relaxed">{product.fields.descripcion}</p>
-        </div>
+
+        {/* Footer: dots clicables + contador de texto */}
+        {hasMultiple && (
+          <div className="flex items-center justify-center gap-2 py-4 border-t border-brand-secondary/10">
+            {images.map((_, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => {
+                  setDirection(i > currentIndex ? 'next' : 'prev');
+                  setCurrentIndex(i);
+                }}
+                aria-label={`Imagen ${i + 1}`}
+                className={`h-2 rounded-full transition-all duration-250 ${
+                  i === currentIndex
+                    ? 'w-5 bg-brand-primary'
+                    : 'w-2 bg-brand-secondary/25 hover:bg-brand-secondary/50'
+                }`}
+              />
+            ))}
+            <span className="ml-2 text-xs font-medium text-devs-muted tabular-nums">
+              {currentIndex + 1} de {images.length}
+            </span>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

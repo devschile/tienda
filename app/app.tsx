@@ -1,244 +1,249 @@
-// Aplicación principal de ecommerce - Diseño comercial cálido
 import { useState, useEffect } from 'react';
+import { Info, Loader2, ShoppingBag, ShoppingCart } from 'lucide-react';
+
 import { Button } from '@/components/ui/button';
 import { ProductCard } from '@/components/ProductCard';
 import { ProductImageModal } from '@/components/ProductImageModal';
 import { InfoModal } from '@/components/InfoModal';
 import { Toaster } from '@/components/ui/toaster';
 import { useToast } from '@/hooks/use-toast';
-import type { AirtableRecord, AirtableResponse } from '@/types/products';
-import { Info, Loader2, Heart, ShoppingBag, Sparkles } from 'lucide-react';
-
-const AIRTABLE_CONFIG = {
-  apiKey: import.meta.env.VITE_AIRTABLE_API_KEY,
-  baseId: import.meta.env.VITE_AIRTABLE_BASE_ID,
-  tableName: import.meta.env.VITE_AIRTABLE_TABLE_NAME,
-};
-
+import type { ProductRecord, ProductResponse } from '@/types/products';
+import logo from '@/images/devschile2026.png';
+import createPayment from '@/actions/createPayment';
+import type { CustomerData } from '@/actions/createPayment';
+import loadProducts, { productsMockFallback } from '@/actions/loadProducts';
+import { useCart } from '@/hooks/useCart';
+import { CartDrawer } from '@/components/CartDrawer';
+import { CheckoutModal } from '@/components/CheckoutModal';
+import { DevTools } from '@/components/DevTools';
 
 function App() {
   const { toast } = useToast();
-  const [selectedProduct, setSelectedProduct] = useState<AirtableRecord | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<ProductRecord | null>(null);
   const [imageModalOpen, setImageModalOpen] = useState(false);
   const [infoModalOpen, setInfoModalOpen] = useState(false);
-  
+
   // Replace UIBakery hooks with standard React state
-  const [productsData, setProductsData] = useState<AirtableResponse | null>(null);
+  const [productsData, setProductsData] = useState<ProductResponse | null>(null);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [errorProducts, setErrorProducts] = useState<string | null>(null);
-  const [loadingPayment, setLoadingPayment] = useState(false);
+  const cart = useCart();
+  const [cartOpen, setCartOpen] = useState(false);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(() => {
+    return new URLSearchParams(window.location.search).get('category');
+  });
+  const [sortOrder, setSortOrder] = useState<'default' | 'price-asc' | 'price-desc'>('default');
 
-  // Load products on component mount
+  useEffect(() => {
+    const handlePopState = () => {
+      setSelectedCategory(new URLSearchParams(window.location.search).get('category'));
+
+      const hashId = window.location.hash.replace('#', '');
+      const match = hashId ? productsData?.records.find((p) => p.id === hashId) : undefined;
+      if (match) {
+        setSelectedProduct(match);
+        setImageModalOpen(true);
+      } else {
+        setImageModalOpen(false);
+        setSelectedProduct(null);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [productsData]);
+
+  const handleCategoryChange = (category: string | null) => {
+    setSelectedCategory(category);
+    const url = new URL(window.location.href);
+    if (category) {
+      url.searchParams.set('category', category);
+    } else {
+      url.searchParams.delete('category');
+    }
+    window.history.pushState({}, '', url);
+  };
+
+  // Process and validate categories
+  useEffect(() => {
+    if (!loadingProducts && productsData && productsData.records.length > 0) {
+      if (selectedCategory) {
+        const matches = productsData.records.filter((p) => p.fields.category === selectedCategory);
+        if (matches.length === 0) {
+          toast({
+            title: 'Categoría no encontrada',
+            description: `No hay productos en la categoría "${selectedCategory}".`,
+            variant: 'destructive',
+          });
+          handleCategoryChange(null);
+        }
+      }
+    }
+  }, [loadingProducts, productsData, selectedCategory, toast]);
+
+  // Abrir el modal de un producto si la URL trae un hash con su id
+  // (deep link para compartir el link de un producto específico)
+  useEffect(() => {
+    if (!loadingProducts && productsData && productsData.records.length > 0) {
+      const hashId = window.location.hash.replace('#', '');
+      if (hashId) {
+        const match = productsData.records.find((p) => p.id === hashId);
+        if (match) {
+          setSelectedProduct(match);
+          setImageModalOpen(true);
+        } else {
+          toast({
+            title: 'Producto no encontrado',
+            description: 'El producto que buscas ya no está disponible o el enlace es inválido.',
+            variant: 'destructive',
+          });
+          const url = new URL(window.location.href);
+          url.hash = '';
+          window.history.replaceState({}, '', url);
+        }
+      }
+    }
+  }, [loadingProducts, productsData, toast]);
+
+  // Load products on component mount (desde NeonDB vía Netlify Function,
+  // con fallback automático a productsMock si la función no responde)
   useEffect(() => {
     const loadProductsData = async () => {
       try {
         setLoadingProducts(true);
         setErrorProducts(null);
-        
-        // Simulate API call - replace with actual Airtable API call
-        const response = await fetch(
-          `https://api.airtable.com/v0/${AIRTABLE_CONFIG.baseId}/${AIRTABLE_CONFIG.tableName}`,
-          {
-            headers: {
-              'Authorization': `Bearer ${AIRTABLE_CONFIG.apiKey}`,
-            },
-          }
-        );
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch products');
-        }
-        
-        const data: AirtableResponse = await response.json();
+
+        const data = await loadProducts();
         setProductsData(data);
       } catch (error) {
-        console.error('Error loading products:', error);
-        setErrorProducts('Error loading products');
-        // For demo purposes, set some mock data
-        setProductsData({
-          records: [
-            {
-              id: 'rec1',
-              fields: {
-                id: 'rec1',
-                nombre: 'Amigurumi Osito',
-                precio: 25000,
-                descripcion: 'Adorable osito tejido a mano',
-                imagen_miniatura: [{ 
-                  id: 'img1',
-                  url: 'https://via.placeholder.com/300x300?text=Osito',
-                  filename: 'osito.jpg',
-                  size: 12345,
-                  type: 'image/jpeg'
-                }],
-                imagenes_grandes: [{ 
-                  id: 'img1',
-                  url: 'https://via.placeholder.com/600x600?text=Osito+Grande',
-                  filename: 'osito_grande.jpg',
-                  size: 54321,
-                  type: 'image/jpeg'
-                }],
-                activo: true
-              },
-              createdTime: '2025-01-01T00:00:00.000Z'
-            },
-            {
-              id: 'rec2', 
-              fields: {
-                id: 'rec2',
-                nombre: 'Amigurumi Unicornio',
-                precio: 30000,
-                descripcion: 'Mágico unicornio multicolor',
-                imagen_miniatura: [{ 
-                  id: 'img2',
-                  url: 'https://via.placeholder.com/300x300?text=Unicornio',
-                  filename: 'unicornio.jpg',
-                  size: 12345,
-                  type: 'image/jpeg'
-                }],
-                imagenes_grandes: [{ 
-                  id: 'img2',
-                  url: 'https://via.placeholder.com/600x600?text=Unicornio+Grande',
-                  filename: 'unicornio_grande.jpg',
-                  size: 54321,
-                  type: 'image/jpeg'
-                }],
-                activo: false
-              },
-              createdTime: '2025-01-01T00:00:00.000Z'
-            }
-          ]
-        });
+        console.error('Error loading products, using fallback mock data:', error);
+        setProductsData(productsMockFallback);
         setErrorProducts(null);
       } finally {
         setLoadingProducts(false);
       }
     };
-    
+
     loadProductsData();
   }, []);
 
-  const handleImageClick = (product: AirtableRecord) => {
+  const handleImageClick = (product: ProductRecord) => {
     setSelectedProduct(product);
     setImageModalOpen(true);
+
+    const url = new URL(window.location.href);
+    url.hash = product.id;
+    window.history.pushState({}, '', url);
   };
 
-  const handleBuyClick = async (product: AirtableRecord) => {
+  const handleBuyClick = (product: ProductRecord, quantity: number) => {
+    cart.addItem(product, quantity);
+    setCartOpen(true);
+    toast({
+      title: `${product.fields.name} agregado`,
+      description: `${quantity} ${quantity === 1 ? 'unidad' : 'unidades'} en tu carrito`,
+    });
+  };
+
+  const handleCheckout = async (customer: CustomerData) => {
+    if (checkoutLoading) return;
     try {
-      setLoadingPayment(true);
-      
-      toast({
-        title: 'Preparando pago...',
-        description: `Creando preferencia de pago para ${product.fields.nombre}...`,
-      });
-
-      // Call Netlify function to create MercadoPago payment
-      const response = await fetch('/.netlify/functions/create-payment', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          amount: product.fields.precio,
-          productName: product.fields.nombre,
-          productId: product.id
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to create payment');
-      }
-
-      const data = await response.json();
-      
+      setCheckoutLoading(true);
+      const data = await createPayment(
+        cart.items.map((i) => ({
+          productId: i.product.id,
+          productName: i.product.fields.name,
+          quantity: i.quantity,
+          unitPrice: i.product.fields.price,
+        })),
+        customer,
+      );
       if (!data.success || !data.checkout_url) {
-        throw new Error(data.error || 'Failed to get checkout URL');
+        throw new Error(data.error || 'No se pudo obtener la URL de pago');
       }
-
-      toast({
-        title: '¡Redirigiendo a MercadoPago!',
-        description: `Serás redirigido para completar el pago de ${product.fields.nombre}`,
-      });
-
-      // Redirect to MercadoPago checkout
+      cart.clearCart();
       window.location.href = data.checkout_url;
-      
     } catch (error) {
-      console.error('Payment error:', error);
+      console.error('Checkout error:', error);
       toast({
-        title: 'Error en la compra',
-        description: 'No se pudo procesar el pago. Verifica tu conexión e intenta nuevamente.',
+        title: 'Error al procesar el pago',
+        description: 'Intenta nuevamente.',
         variant: 'destructive',
       });
     } finally {
-      setLoadingPayment(false);
+      setCheckoutLoading(false);
     }
   };
 
-  const allProducts = productsData?.records || [];
-  const availableProducts = allProducts.filter(product => product.fields.activo);
-  const totalCount = allProducts.length;
+  const allProducts = (productsData?.records || []).filter((p) => p.fields.visible);
+  const uniqueCategories = Array.from(
+    new Set(allProducts.map((p) => p.fields.category).filter(Boolean)),
+  ).sort();
+
+  const filteredByCategory = selectedCategory
+    ? allProducts.filter((p) => p.fields.category === selectedCategory)
+    : allProducts;
+
+  const filteredProducts = [...filteredByCategory].sort((a, b) => {
+    if (sortOrder === 'price-asc') return a.fields.price - b.fields.price;
+    if (sortOrder === 'price-desc') return b.fields.price - a.fields.price;
+    return 0;
+  });
+
+  const availableProducts = filteredProducts.filter((product) => product.fields.available);
+  const totalCount = filteredProducts.length;
   const availableCount = availableProducts.length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-rose-50">
-      {/* Decorative elements */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-rose-200/20 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-amber-200/20 rounded-full blur-3xl"></div>
-      </div>
-
+    <div className="min-h-screen">
       {/* Header */}
-      <header className="relative bg-white/80 backdrop-blur-md shadow-sm border-b border-orange-100/50 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <header className="bg-brand-surface/80 backdrop-blur-md shadow-sm border-b border-brand-secondary/20 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="bg-gradient-to-br from-rose-400 to-orange-400 p-2 rounded-xl">
-                <Heart className="h-6 w-6 text-white fill-white" />
+              <div className="border-2 border-brand-primary/40 p-2 rounded-xl">
+                <img style={{ minWidth: 40 }} width={50} src={logo} />
               </div>
               <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-rose-600 to-orange-600 bg-clip-text text-transparent">
-                  Amigurumis de Inés
-                </h1>
-                <p className="text-sm text-orange-600/80 font-medium">Hechos con amor y dedicación</p>
+                <h1 className="font-mono text-2xl sm:text-3xl font-bold">Tienda devsChile</h1>
               </div>
             </div>
-            <Button
-              variant="outline"
-              className="border-orange-200 text-orange-700 hover:bg-orange-50 hover:border-orange-300 transition-all shadow-sm"
-              onClick={() => setInfoModalOpen(true)}
-            >
-              <Info className="h-5 w-5 mr-2" />
-              Sobre Mí
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                className="gap-1 border-brand-secondary/30 text-brand-primary hover:bg-brand-secondary/5 hover:border-brand-secondary/50 transition-all shadow-sm"
+                onClick={() => setInfoModalOpen(true)}
+              >
+                <Info className="h-5 w-5 mr-2" />
+                <span className="hidden sm:inline">Sobre</span>devsChile
+              </Button>
+              <Button
+                variant="outline"
+                className="relative border-brand-secondary/30 text-brand-primary hover:bg-brand-secondary/5"
+                onClick={() => setCartOpen(true)}
+              >
+                <ShoppingCart className="h-5 w-5" />
+                {cart.totalItems > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 bg-brand-primary text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                    {cart.totalItems > 9 ? '9+' : cart.totalItems}
+                  </span>
+                )}
+              </Button>
+            </div>
           </div>
         </div>
       </header>
 
-      {/* Hero banner */}
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-6">
-        <div className="bg-gradient-to-r from-rose-500 to-orange-500 rounded-2xl p-8 text-white shadow-xl overflow-hidden relative">
-          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4xIj48cGF0aCBkPSJNMzYgMzRjMC0yLjIxIDEuNzktNCA0LTRzNCAxLjc5IDQgNC0xLjc5IDQtNCA0LTQtMS43OS00LTR6bTAgMTBjMC0yLjIxIDEuNzktNCA0LTRzNCAxLjc5IDQgNC0xLjc5IDQtNCA0LTQtMS43OS00LTR6TTI0IDI0YzAtMi4yMSAxLjc5LTQgNC00czQgMS43OSA0IDQtMS43OSA0LTQgNC00LTEuNzktNC00eiIvPjwvZz48L2c+PC9zdmc+')] opacity-20"></div>
-          <div className="relative z-10 flex items-center justify-between">
-            <div>
-              <div className="flex items-center space-x-2 mb-2">
-                <Sparkles className="h-5 w-5" />
-                <span className="text-sm font-semibold uppercase tracking-wide">Colección Especial</span>
-              </div>
-              <h2 className="text-2xl md:text-3xl font-bold mb-2">Mis Creaciones Únicas para Ti</h2>
-              <p className="text-orange-50 max-w-xl">Cada amigurumi lo tejo a mano con amor, cuidado y los mejores materiales</p>
-            </div>
-            <ShoppingBag className="h-24 w-24 text-white/20 hidden md:block" />
-          </div>
-        </div>
-      </div>
+      {/* Hero banner
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-6"></div>*/}
 
       {/* Main Content */}
       <main className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-16">
         {loadingProducts && (
           <div className="flex flex-col justify-center items-center min-h-[400px]">
-            <Loader2 className="h-16 w-16 animate-spin text-orange-400 mb-4" />
-            <p className="text-orange-600 font-medium">Cargando amigurumis mágicos...</p>
+            <Loader2 className="h-16 w-16 animate-spin text-brand-secondary/60 mb-4" />
+            <p className="text-brand-secondary font-medium">Cargando productos mágicos...</p>
           </div>
         )}
 
@@ -247,24 +252,22 @@ function App() {
             <div className="inline-flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mb-4">
               <span className="text-3xl">⚠️</span>
             </div>
-            <p className="text-red-800 font-semibold text-lg mb-2">
-              Oops, algo salió mal
-            </p>
+            <p className="text-red-800 font-semibold text-lg mb-2">Oops, algo salió mal</p>
             <p className="text-red-600 text-sm">
-              No pudimos cargar los amigurumis. Verifica tu configuración de Airtable.
+              No pudimos cargar los productos. Verifica tu conexión e intenta nuevamente.
             </p>
           </div>
         )}
 
         {!loadingProducts && !errorProducts && allProducts.length === 0 && (
-          <div className="bg-white/80 backdrop-blur-sm border-2 border-orange-100 rounded-2xl p-12 text-center shadow-lg">
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-orange-100 rounded-full mb-6">
-              <ShoppingBag className="h-10 w-10 text-orange-500" />
+          <div className="bg-brand-surface/80 backdrop-blur-sm border-2 border-brand-secondary/20 rounded-2xl p-12 text-center shadow-lg">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-brand-secondary/10 rounded-full mb-6">
+              <ShoppingBag className="h-10 w-10 text-brand-secondary" />
             </div>
-            <h3 className="text-xl font-bold text-gray-800 mb-2">
-              No hay amigurumis disponibles
+            <h3 className="font-mono text-xl font-bold text-devs-text mb-2">
+              No hay productos disponibles
             </h3>
-            <p className="text-gray-600">
+            <p className="text-devs-text/70">
               Pronto tendré nuevas creaciones disponibles. ¡Vuelve pronto!
             </p>
           </div>
@@ -272,42 +275,95 @@ function App() {
 
         {!loadingProducts && allProducts.length > 0 && (
           <>
+            <div className="flex flex-wrap items-center gap-2 mb-8 mt-4">
+              <Button
+                variant={selectedCategory === null ? 'default' : 'outline'}
+                size="sm"
+                className={`rounded-full shadow-sm transition-all duration-300 ${selectedCategory === null ? 'bg-gradient-to-r from-brand-primary to-brand-secondary text-white border-transparent' : 'text-devs-text border-brand-secondary/30 bg-brand-surface hover:bg-brand-accent/20'}`}
+                onClick={() => handleCategoryChange(null)}
+              >
+                Todos
+              </Button>
+              {uniqueCategories.map((category) => (
+                <Button
+                  key={category}
+                  variant={selectedCategory === category ? 'default' : 'outline'}
+                  size="sm"
+                  className={`rounded-full shadow-sm transition-all duration-300 ${selectedCategory === category ? 'bg-gradient-to-r from-brand-primary to-brand-secondary text-white border-transparent' : 'text-devs-text border-brand-secondary/30 bg-brand-surface hover:bg-brand-accent/20'}`}
+                  onClick={() => handleCategoryChange(category as string)}
+                >
+                  {category}
+                </Button>
+              ))}
+              <select
+                value={sortOrder}
+                onChange={(e) =>
+                  setSortOrder(e.target.value as 'default' | 'price-asc' | 'price-desc')
+                }
+                className="ml-auto rounded-full shadow-sm border border-brand-secondary/30 bg-brand-surface text-devs-text text-sm px-3 py-1.5 outline-none focus:border-brand-secondary/50 focus:ring-2 focus:ring-brand-secondary/20 transition-all cursor-pointer"
+              >
+                <option value="default">Ordenar por</option>
+                <option value="price-asc">Precio: menor a mayor</option>
+                <option value="price-desc">Precio: mayor a menor</option>
+              </select>
+            </div>
+
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-800">
-                Mis Creaciones
+              <h2 className="font-mono text-2xl font-bold text-devs-text">
+                {selectedCategory ? `Productos: ${selectedCategory}` : 'Todos los Productos'}
               </h2>
               <div className="text-right">
-                <p className="text-sm text-orange-600 font-medium">
-                  {availableCount} {availableCount === 1 ? 'amigurumi' : 'amigurumis'} disponibles
+                <p className="text-sm text-brand-secondary font-medium">
+                  {availableCount} producto{availableCount === 1 ? '' : 's'} disponible
+                  {availableCount === 1 ? '' : 's'}
                 </p>
-                <p className="text-xs text-gray-500">
-                  {totalCount} {totalCount === 1 ? 'amigurumi hecho' : 'amigurumis hechos'} en total
+                <p className="text-xs text-devs-text/50">
+                  {totalCount} producto{totalCount === 1 ? '' : 's'} en total
                 </p>
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
-              {allProducts.map((product) => (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                  onImageClick={handleImageClick}
-                  onBuyClick={handleBuyClick}
-                />
-              ))}
-            </div>
+
+            {filteredProducts.length === 0 ? (
+              <div className="bg-brand-surface/80 backdrop-blur-sm border-2 border-brand-secondary/20 rounded-2xl p-12 text-center shadow-lg">
+                <div className="inline-flex items-center justify-center w-20 h-20 bg-brand-secondary/10 rounded-full mb-6">
+                  <ShoppingBag className="h-10 w-10 text-brand-secondary" />
+                </div>
+                <h3 className="font-mono text-xl font-bold text-devs-text mb-2">
+                  No hay productos en esta categoría
+                </h3>
+                <p className="text-devs-text/70 mb-6">
+                  Intenta seleccionar otra categoría o ver todos los productos.
+                </p>
+                <Button
+                  onClick={() => handleCategoryChange(null)}
+                  className="bg-brand-primary text-white"
+                >
+                  Ver Todos los Productos
+                </Button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
+                {filteredProducts.map((product) => (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    onImageClick={handleImageClick}
+                    onBuyClick={handleBuyClick}
+                    onCategoryClick={handleCategoryChange}
+                  />
+                ))}
+              </div>
+            )}
           </>
         )}
       </main>
 
       {/* Footer */}
-      <footer className="relative bg-white/60 backdrop-blur-sm border-t border-orange-100 mt-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <footer className="relative bg-brand-surface/60 backdrop-blur-sm border-t border-brand-secondary/20 mt-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="text-center">
-            <p className="text-sm text-gray-600 mb-2">
-              © 2025 Amigurumis de Inés. Todos los derechos reservados.
-            </p>
-            <p className="text-xs text-orange-600">
-              Hecho con ❤️ y mucho cariño
+            <p className="text-sm text-devs-text/70">
+              © {new Date().getFullYear()} Tienda devsChile. Todos los derechos reservados.
             </p>
           </div>
         </div>
@@ -319,13 +375,55 @@ function App() {
         open={imageModalOpen}
         onOpenChange={(open) => {
           setImageModalOpen(open);
-          if (!open) setSelectedProduct(null);
+          if (!open) {
+            setSelectedProduct(null);
+            if (window.location.hash) {
+              const url = new URL(window.location.href);
+              url.hash = '';
+              window.history.pushState({}, '', url);
+            }
+          }
         }}
       />
 
       <InfoModal open={infoModalOpen} onOpenChange={setInfoModalOpen} />
 
+      <CartDrawer
+        open={cartOpen}
+        onOpenChange={setCartOpen}
+        items={cart.items}
+        totalAmount={cart.totalAmount}
+        onUpdateQuantity={cart.updateQuantity}
+        onRemoveItem={cart.removeItem}
+        onCheckout={() => {
+          setCartOpen(false);
+          setCheckoutOpen(true);
+        }}
+      />
+
+      <CheckoutModal
+        open={checkoutOpen}
+        onOpenChange={setCheckoutOpen}
+        totalAmount={cart.totalAmount}
+        onSubmit={handleCheckout}
+        loading={checkoutLoading}
+      />
+
       <Toaster />
+
+      {import.meta.env.DEV && (
+        <DevTools
+          onTestCart={() => {
+            if (allProducts[0]) cart.addItem(allProducts[0], 1);
+            setCartOpen(true);
+          }}
+          onTestCheckout={() => {
+            if (allProducts[0]) cart.addItem(allProducts[0], 1);
+            setCartOpen(false);
+            setCheckoutOpen(true);
+          }}
+        />
+      )}
     </div>
   );
 }

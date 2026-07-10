@@ -1,20 +1,22 @@
-// Acción para cargar todos los productos activos desde Airtable
-import { action } from '@uibakery/data';
+// Acción para cargar productos desde NeonDB (vía Netlify Function),
+// con fallback automático a los datos mock si la función no está disponible.
+import type { ProductResponse } from '@/types/products';
+import { productsMock as records } from '@/app/productsMock';
 
-function loadProducts() {
-  return action('loadProducts', 'HTTP', {
-    datasourceName: 'httpApi',
-    options: {
-      method: 'GET',
-      url: 'https://api.airtable.com/v0/{{params?.baseId}}/{{params?.tableName}}',
-      queryParams: {
-        filterByFormula: '{activo} = TRUE()',
-      },
-      headers: {
-        Authorization: 'Bearer {{params?.apiKey}}',
-      },
-    },
+export const loadProducts = async (): Promise<ProductResponse> => {
+  const response = await fetch('/.netlify/functions/get-products', {
+    cache: 'no-store', // siempre ir a Neon, nunca servir caché del browser
   });
-}
+
+  if (!response.ok) {
+    throw new Error('Error al cargar los productos desde el servidor');
+  }
+
+  return response.json();
+};
+
+// Datos de respaldo si la Netlify Function no responde (ej. desarrollo con `vite dev`
+// en lugar de `netlify dev`, o la base de datos momentáneamente no disponible).
+export const productsMockFallback: ProductResponse = { records };
 
 export default loadProducts;

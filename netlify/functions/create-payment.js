@@ -1,193 +1,178 @@
-// Netlify Function to handle MercadoPago payment creation
-const mercadopago = require('mercadopago');
+// Netlify Function — Crea preferencia de MercadoPago y persiste la orden en NeonDB
+const { MercadoPagoConfig, Preference } = require('mercadopago');
+const { neon } = require('@neondatabase/serverless');
 
 exports.handler = async (event, context) => {
-  // Get allowed origins from environment (should be set in Netlify)
   const allowedOrigins = process.env.ALLOWED_ORIGINS
-    ? process.env.ALLOWED_ORIGINS.split(',')
-    : ['https://amigurumi-de-ines.netlify.app'];
-  
+    ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
+    : ['https://tienda.devschile.cl', 'https://tienda-devschile.netlify.app'];
+
   const origin = event.headers.origin || event.headers.Origin || '';
   const isAllowedOrigin = allowedOrigins.includes(origin) || allowedOrigins.includes('*');
 
-  // Set secure CORS headers
   const headers = {
     'Access-Control-Allow-Origin': isAllowedOrigin ? origin : 'null',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Credentials': 'true',
     'Content-Type': 'application/json',
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'DENY',
-    'X-XSS-Protection': '1; mode=block'
   };
 
-  // Handle preflight requests
-  if (event.httpMethod === 'OPTIONS') {
-    return {
-      statusCode: 200,
-      headers,
-      body: ''
-    };
-  }
-
-  // Only allow POST requests
+  if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers, body: '' };
   if (event.httpMethod !== 'POST') {
-    return {
-      statusCode: 405,
-      headers,
-      body: JSON.stringify({ error: 'Method not allowed' })
-    };
+    return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) };
   }
-
-  // Validate origin for security
   if (!isAllowedOrigin) {
-    console.warn('Blocked request from unauthorized origin:', origin);
-    return {
-      statusCode: 403,
-      headers,
-      body: JSON.stringify({ error: 'Origin not allowed' })
-    };
+    return { statusCode: 403, headers, body: JSON.stringify({ error: 'Origin not allowed' }) };
   }
 
   try {
-    // Get MercadoPago credentials from environment variables
     const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
-    
-    if (!accessToken) {
-      console.error('MercadoPago access token not configured');
-      throw new Error('Payment service unavailable');
+    const databaseUrl = process.env.NEON_DATABASE_URL;
+
+    if (!accessToken) throw new Error('Payment service unavailable');
+    if (!databaseUrl) throw new Error('Database unavailable');
+
+    // Parsear body
+    let body;
+    try {
+      body = JSON.parse(event.body || '{}');
+    } catch {
+      return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid JSON' }) };
     }
 
-    // Configure MercadoPago SDK
-    mercadopago.configure({
-      access_token: accessToken
+    // items: [{ productId, productName, quantity, unitPrice }]
+    // customer: { name, email, address, city, region, zip }
+    const { items, customer } = body;
+
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return { statusCode: 400, headers, body: JSON.stringify({ error: 'items requeridos' }) };
+    }
+    if (!customer?.name || !customer?.email) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'customer.name y customer.email requeridos' }),
+      };
+    }
+
+    // Validar y sanitizar items
+    const sanitizedItems = items.map((item) => {
+      const qty = parseInt(item.quantity, 10);
+      const price = parseInt(item.unitPrice, 10);
+      if (!item.productName || isNaN(qty) || qty <= 0 || isNaN(price) || price <= 0) {
+        throw new Error(`Item inválido: ${JSON.stringify(item)}`);
+      }
+      return {
+        productId: String(item.productId || '')
+          .substring(0, 50)
+          .replace(/[<>]/g, ''),
+        productName: String(item.productName).substring(0, 100).replace(/[<>]/g, ''),
+        quantity: qty,
+        unitPrice: price,
+        subtotal: qty * price,
+      };
     });
 
-    // Parse and validate request body
-    let requestBody;
-    try {
-      requestBody = JSON.parse(event.body || '{}');
-    } catch (parseError) {
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({ error: 'Invalid JSON in request body' })
-      };
+    const totalAmount = sanitizedItems.reduce((sum, i) => sum + i.subtotal, 0);
+    if (totalAmount <= 0 || totalAmount > 5000000) {
+      return { statusCode: 400, headers, body: JSON.stringify({ error: 'Total fuera de rango' }) };
     }
 
-    const { amount, productName, productId } = requestBody;
+    // URL base según entorno
+    // process.env.URL es seteado automáticamente por Netlify (URL del deploy actual)
+    const siteUrl = process.env.URL || process.env.SITE_URL || 'https://tienda.devschile.cl';
 
-    // Enhanced input validation
-    if (!amount || !productName) {
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({
-          error: 'Missing required fields: amount, productName'
-        })
-      };
+    // ── 1. Persistir la orden como PENDING en Neon ─────────────────────────
+    const sql = neon(databaseUrl);
+
+    const [order] = await sql`
+      INSERT INTO orders (
+        status, total_amount,
+        customer_name, customer_email,
+        shipping_address, shipping_city, shipping_region, shipping_zip
+      )
+      VALUES (
+        'pending', ${totalAmount},
+        ${String(customer.name).substring(0, 120)},
+        ${String(customer.email).substring(0, 200).toLowerCase()},
+        ${customer.address ? String(customer.address).substring(0, 200) : null},
+        ${customer.city ? String(customer.city).substring(0, 100) : null},
+        ${customer.region ? String(customer.region).substring(0, 100) : null},
+        ${customer.zip ? String(customer.zip).substring(0, 20) : null}
+      )
+      RETURNING id
+    `;
+
+    // Insertar items de la orden
+    for (const item of sanitizedItems) {
+      await sql`
+        INSERT INTO order_items (order_id, product_id, product_name, quantity, unit_price)
+        VALUES (${order.id}, ${item.productId}, ${item.productName}, ${item.quantity}, ${item.unitPrice})
+      `;
     }
 
-    // Validate data types and sanitize inputs
-    const numericAmount = parseFloat(amount);
-    if (isNaN(numericAmount) || numericAmount <= 0) {
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({
-          error: 'Invalid amount: must be a positive number'
-        })
-      };
-    }
+    // ── 2. Crear preferencia en MercadoPago v2 ─────────────────────────────
+    const client = new MercadoPagoConfig({ accessToken });
 
-    if (numericAmount > 1000000) { // Max 1M CLP
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({
-          error: 'Amount exceeds maximum limit'
-        })
-      };
-    }
-
-    // Sanitize string inputs
-    const sanitizedProductName = String(productName).substring(0, 100).replace(/[<>]/g, '');
-    const sanitizedProductId = productId ? String(productId).substring(0, 50).replace(/[<>]/g, '') : null;
-
-    // Get site URL from environment
-    const siteUrl = process.env.URL || process.env.SITE_URL || 'https://amigurumi-de-ines.netlify.app';
-
-    // Create payment preference with enhanced security
-    const preference = {
-      items: [
-        {
-          id: sanitizedProductId || `amigurumi-${Date.now()}`,
-          title: sanitizedProductName,
-          description: `Amigurumi: ${sanitizedProductName}`,
-          unit_price: numericAmount,
-          currency_id: 'CLP',
-          quantity: 1,
-          category_id: 'handmade'
-        }
-      ],
+    const preferenceBody = {
+      items: sanitizedItems.map((item) => ({
+        id: item.productId || `prod-${Date.now()}`,
+        title: item.productName,
+        description: item.productName,
+        unit_price: item.unitPrice,
+        currency_id: 'CLP',
+        quantity: item.quantity,
+        category_id: 'handmade',
+      })),
+      payer: {
+        name: customer.name,
+        email: customer.email,
+      },
       payment_methods: {
-        excluded_payment_types: [
-          {
-            id: 'ticket' // Exclude bank transfers for faster processing
-          }
-        ],
-        installments: 1 // Limit to single payment for simplicity
+        installments: 1,
       },
       back_urls: {
-        success: `${siteUrl}/success`,
-        failure: `${siteUrl}/failure`,
-        pending: `${siteUrl}/pending`
+        success: `${siteUrl}/success?order_id=${order.id}`,
+        failure: `${siteUrl}/failure?order_id=${order.id}`,
+        pending: `${siteUrl}/pending?order_id=${order.id}`,
       },
       auto_return: 'approved',
-      expires: false,
-      marketplace_fee: 0,
-      differential_pricing: {
-        mode: 'grand_total'
-      },
-      shipments: {
-        receiver_address: {
-          zip_code: '0000000',
-          city_name: 'Santiago',
-          state_name: 'Región Metropolitana',
-          country_name: 'Chile'
-        }
-      }
+      external_reference: order.id, // clave para identificar la orden en el webhook
+      notification_url: `${siteUrl}/.netlify/functions/mercadopago-webhook`,
     };
 
-    // Create the preference
-    const response = await mercadopago.preferences.create(preference);
+    const preference = await new Preference(client).create({ body: preferenceBody });
 
-    // Return the checkout URL
+    // Guardar el preference_id en la orden
+    await sql`
+      UPDATE orders
+      SET mp_preference_id = ${preference.id}
+      WHERE id = ${order.id}
+    `;
+
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({
         success: true,
-        checkout_url: response.body.init_point,
-        preference_id: response.body.id
-      })
+        order_id: order.id,
+        checkout_url: preference.init_point,
+        preference_id: preference.id,
+      }),
     };
-
   } catch (error) {
     console.error('Error creating payment:', error.message);
-    
-    // Don't expose internal error details in production
-    const isDevelopment = process.env.NODE_ENV === 'development';
-    
+    const isDev = process.env.NODE_ENV === 'development';
     return {
       statusCode: 500,
       headers,
       body: JSON.stringify({
         success: false,
-        error: 'Payment service temporarily unavailable. Please try again.',
-        ...(isDevelopment && { details: error.message })
-      })
+        error: 'Error al procesar el pago. Intenta nuevamente.',
+        ...(isDev && { details: error.message }),
+      }),
     };
   }
 };

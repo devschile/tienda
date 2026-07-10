@@ -1,10 +1,10 @@
-// Tipos para los productos
-export interface AirtableAttachment {
+export interface ProductAttachment {
   id: string;
   url: string;
   filename: string;
   size: number;
   type: string;
+  is_cover: boolean;
   width?: number;
   height?: number;
   thumbnails?: {
@@ -16,20 +16,26 @@ export interface AirtableAttachment {
 
 export interface ProductFields {
   id: string;
-  nombre: string;
-  descripcion: string;
-  precio: number;
-  imagen_miniatura: AirtableAttachment[];
-  imagenes_grandes: AirtableAttachment[];
-  activo: boolean;
+  name: string;
+  description: string;
+  category: string;
+  price: number;
+  coverImage: ProductAttachment | null; // imagen visible en el card (is_cover=true)
+  images: ProductAttachment[]; // todas las imágenes, cover primero (para el modal)
+  thumbnailImages: ProductAttachment[]; // legacy — mantener para compatibilidad
+  largeImages: ProductAttachment[]; // legacy — mantener para compatibilidad
+  visible: boolean;
+  available: boolean;
+  stock: number;
+  on_sale: boolean;
 }
 
-export interface AirtableRecord {
+export interface ProductRecord {
   id: string;
   fields: ProductFields;
   createdTime: string;
 }
 
-export interface AirtableResponse {
-  records: AirtableRecord[];
+export interface ProductResponse {
+  records: ProductRecord[];
 }

@@ -175,3 +175,8 @@ SECURITY.md
 *.pem
 *.key
 *.crt
+
+# Local environment variables source
+.env
+.env.local
+deno.lock

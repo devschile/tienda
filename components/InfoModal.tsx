@@ -1,141 +1,114 @@
-// Modal de información mejorado
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Heart, Scissors, Sparkles } from 'lucide-react';
+import * as React from 'react';
+import { Heart, HeartHandshake, Recycle } from 'lucide-react';
+
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface InfoModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
+interface Section {
+  title: string;
+  description: string;
+}
+
+const sections: Array<Section> = [
+  {
+    title: 'Con el Huemul en mente',
+    description:
+      'Nuestros productos son diseñados por nosotros mismos y su objetivo es acercar tu pertenencia a la comunidad en tu vida diaria.',
+  },
+  {
+    title: 'De la comunidad para la comunidad',
+    description:
+      'Tu compra nos ayuda a mantener las iniciativas que desarrollamos y queremos realizar en el futuro.',
+  },
+  {
+    title: 'Algo que usaríamos',
+    description:
+      'Nos interesa reducir el impacto negativo de lo que generamos, por lo que solo vendemos productos que creemos sirven un propósito y nosotros mismos usaríamos.',
+  },
+];
+
+const iconBySection = (index: number): React.ReactNode | null => {
+  switch (index) {
+    case 0:
+      return <Heart className="h-5 w-5 text-white" />;
+    case 1:
+      return <HeartHandshake className="h-5 w-5 text-white" />;
+    case 2:
+      return <Recycle className="h-5 w-5 text-white" />;
+    default:
+      return null;
+  }
+};
 
 export function InfoModal({ open, onOpenChange }: InfoModalProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[500px] overflow-y-auto bg-gradient-to-br from-white to-orange-50/30 backdrop-blur-md border-orange-100">
+      <DialogContent className="max-w-4xl max-h-[500px] overflow-y-auto bg-white/80 backdrop-blur-md border-brand-secondary/20">
         <DialogHeader>
-          <DialogTitle className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-rose-600 to-orange-600 bg-clip-text text-transparent">
-            Sobre Amigurumis de Inés
+          <DialogTitle className="font-mono text-2xl md:text-3xl font-bold bg-gradient-to-r from-brand-primary to-brand-secondary bg-clip-text text-transparent">
+            Sobre la Tienda devsChile
           </DialogTitle>
         </DialogHeader>
-        
-        {/* Mobile layout - stacked */}
+        <hr />
         <div className="md:hidden space-y-6">
-          <div className="aspect-video w-full bg-gradient-to-br from-orange-100 to-rose-100 rounded-xl overflow-hidden shadow-lg">
+          <div className="aspect-video w-full bg-gradient-to-br from-brand-secondary/20 to-brand-primary/20 rounded-xl overflow-hidden shadow-lg">
             <img
               src="/assets/images/default.svg"
-              alt="Amigurumis de Inés"
+              alt="Tienda devsChile"
               className="w-full h-full object-cover"
             />
           </div>
-          
+
           <div className="space-y-4">
-            <div className="flex items-start space-x-3">
-              <div className="bg-gradient-to-br from-rose-400 to-orange-400 p-2 rounded-lg flex-shrink-0">
-                <Heart className="h-5 w-5 text-white" />
+            {sections.map((section, index) => (
+              <div key={index} className="flex items-start space-x-3">
+                <div className="bg-gradient-to-br from-brand-primary to-brand-secondary p-2 rounded-lg flex-shrink-0">
+                  {iconBySection(index)}
+                </div>
+                <div>
+                  <h4 className="font-mono font-bold text-devs-text mb-1">{section.title}</h4>
+                  <p className="text-devs-text/70 text-sm leading-relaxed">{section.description}</p>
+                </div>
               </div>
-              <div>
-                <h4 className="font-bold text-gray-800 mb-1">Hecho con Amor</h4>
-                <p className="text-gray-600 text-sm leading-relaxed">
-                  Cada pieza es creada con amor y dedicación. Mis amigurumis son únicos y especiales, 
-                  perfectos para regalar o decorar tu hogar con calidez.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start space-x-3">
-              <div className="bg-gradient-to-br from-rose-400 to-orange-400 p-2 rounded-lg flex-shrink-0">
-                <Scissors className="h-5 w-5 text-white" />
-              </div>
-              <div>
-                <h4 className="font-bold text-gray-800 mb-1">Técnica Artesanal</h4>
-                <p className="text-gray-600 text-sm leading-relaxed">
-                  Utilizo técnicas tradicionales de crochet con materiales de alta calidad 
-                  para garantizar productos duraderos y hermosos que perdurarán en el tiempo.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start space-x-3">
-              <div className="bg-gradient-to-br from-rose-400 to-orange-400 p-2 rounded-lg flex-shrink-0">
-                <Sparkles className="h-5 w-5 text-white" />
-              </div>
-              <div>
-                <h4 className="font-bold text-gray-800 mb-1">Piezas Únicas</h4>
-                <p className="text-gray-600 text-sm leading-relaxed">
-                  Cada creación tiene pequeñas variaciones que la hacen única. 
-                  No encontrarás dos amigurumis exactamente iguales, ¡eso es parte de su magia!
-                </p>
-              </div>
-            </div>
+            ))}
           </div>
 
-          <div className="bg-gradient-to-r from-rose-500 to-orange-500 text-white p-6 rounded-xl shadow-lg">
+          <div className="text-devs-text p-6 rounded-xl shadow-lg">
             <p className="text-center font-bold text-lg">
-              ¡Gracias por apoyar el arte hecho a mano! 💕
+              ¡Gracias por apoyar a la comunidad devsChile! 🦌
             </p>
           </div>
         </div>
-        
-        {/* Desktop layout - side by side */}
+
         <div className="hidden md:flex md:gap-8">
-          {/* Left column - Text content */}
           <div className="flex-1 space-y-4">
-            <div className="flex items-start space-x-3">
-              <div className="bg-gradient-to-br from-rose-400 to-orange-400 p-2 rounded-lg flex-shrink-0">
-                <Heart className="h-5 w-5 text-white" />
+            {sections.map((section, index) => (
+              <div key={index} className="flex items-start space-x-3">
+                <div className="bg-gradient-to-br from-brand-primary to-brand-secondary p-2 rounded-lg flex-shrink-0">
+                  {iconBySection(index)}
+                </div>
+                <div>
+                  <h4 className="font-mono font-bold text-devs-text mb-1">{section.title}</h4>
+                  <p className="text-devs-text/70 text-sm leading-relaxed">{section.description}</p>
+                </div>
               </div>
-              <div>
-                <h4 className="font-bold text-gray-800 mb-1">Hecho con Amor</h4>
-                <p className="text-gray-600 text-sm leading-relaxed">
-                  Cada pieza es creada con amor y dedicación. Mis amigurumis son únicos y especiales, 
-                  perfectos para regalar o decorar tu hogar con calidez.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start space-x-3">
-              <div className="bg-gradient-to-br from-rose-400 to-orange-400 p-2 rounded-lg flex-shrink-0">
-                <Scissors className="h-5 w-5 text-white" />
-              </div>
-              <div>
-                <h4 className="font-bold text-gray-800 mb-1">Técnica Artesanal</h4>
-                <p className="text-gray-600 text-sm leading-relaxed">
-                  Utilizo técnicas tradicionales de crochet con materiales de alta calidad 
-                  para garantizar productos duraderos y hermosos que perdurarán en el tiempo.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start space-x-3">
-              <div className="bg-gradient-to-br from-rose-400 to-orange-400 p-2 rounded-lg flex-shrink-0">
-                <Sparkles className="h-5 w-5 text-white" />
-              </div>
-              <div>
-                <h4 className="font-bold text-gray-800 mb-1">Piezas Únicas</h4>
-                <p className="text-gray-600 text-sm leading-relaxed">
-                  Cada creación tiene pequeñas variaciones que la hacen única. 
-                  No encontrarás dos amigurumis exactamente iguales, ¡eso es parte de su magia!
-                </p>
-              </div>
-            </div>
-            
-            <div className="bg-gradient-to-r from-rose-500 to-orange-500 text-white p-6 rounded-xl shadow-lg mt-6">
+            ))}
+            <div className="text-devs-text p-6 rounded-xl mt-6">
               <p className="text-center font-bold text-lg">
-                ¡Gracias por apoyar el arte hecho a mano! 💕
+                ¡Gracias por apoyar a la comunidad devsChile! 🦌
               </p>
             </div>
           </div>
-          
+
           {/* Right column - Image */}
           <div className="w-80 flex-shrink-0">
-            <div className="aspect-square w-full bg-gradient-to-br from-orange-100 to-rose-100 rounded-xl overflow-hidden shadow-lg">
+            <div className="aspect-square w-full bg-gradient-to-br from-brand-secondary/20 to-brand-primary/20 rounded-xl overflow-hidden shadow-lg">
               <img
                 src="/assets/images/default.svg"
-                alt="Amigurumis de Inés"
+                alt="Tienda devsChile"
                 className="w-full h-full object-cover"
               />
             </div>

@@ -1,9 +1,10 @@
 {
-  "name": "amigurumis-functions",
+  "name": "productos-functions",
   "version": "1.0.0",
-  "description": "Netlify Functions for Amigurumis de Inés",
+  "description": "Netlify Functions for Tienda devsChile",
   "main": "create-payment.js",
   "dependencies": {
-    "mercadopago": "^1.5.17"
+    "@neondatabase/serverless": "^1.1.0",
+    "mercadopago": "^2.0.0"
   }
 }

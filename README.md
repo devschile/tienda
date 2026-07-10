@@ -1,29 +1,15 @@
-# Amigurumis de Inés - Ecommerce con MercadoPago
+# Tienda devsChile - Ecommerce con MercadoPago
 
-Sitio web para la venta de amigurumis tejidos a mano por Inés. Construido con React, TypeScript, Tailwind CSS y Vite. **Ahora con integración completa de MercadoPago para pagos reales**.
-
-## 🚨 AVISO DE SEGURIDAD IMPORTANTE
-
-**⚠️ ANTES DE USAR EN PRODUCCIÓN: Se realizó una auditoría de seguridad completa. Las credenciales expuestas deben rotarse inmediatamente. Ver la sección [Seguridad](#-seguridad) para más detalles.**
-
-## ✨ Características
-
-- 🎨 Diseño responsivo y atractivo con gradientes cálidos
-- 📱 Interfaz moderna optimizada para móviles
-- 🛍️ Catálogo de productos dinámico desde Airtable
-- 💳 **Pagos reales con MercadoPago** (¡NUEVO!)
-- 🔒 Pago seguro con redirección a MercadoPago
-- ✅ Páginas de confirmación: éxito, falla y pendiente
-- 📊 Gestión de estados de pago completa
-- 🎯 Sin carrito de compras - compra directa por producto
-- 🛡️ **Auditoría de seguridad completa implementada**
+Sitio web para la venta de productos de la comunidad devsChile.
+Construido con React, TypeScript, Tailwind CSS y Vite.
+**Ahora con integración completa de MercadoPago para transacciones reales**.
 
 ## 🛠️ Tecnologías
 
 - **Frontend**: React 18 + TypeScript + Vite
 - **Estilos**: Tailwind CSS + Gradientes personalizados
 - **UI Components**: Radix UI + shadcn/ui
-- **Datos**: Airtable API
+- **Datos**: NeonDB (Postgres serverless) vía Netlify Functions, con fallback a Mock Data
 - **Pagos**: MercadoPago SDK + Netlify Functions
 - **Despliegue**: Netlify (Frontend + Functions)
 - **Seguridad**: CORS whitelist, validación de entrada, headers de seguridad
@@ -38,24 +24,23 @@ npm install
 
 ### 2. Configurar Variables de Entorno
 
-**⚠️ IMPORTANTE**: Crea un archivo `.env` basado en `.env.example` o `.env.secure`:
+**⚠️ IMPORTANTE**: Crea un archivo `.env` basado en `.env.example`:
 
 ```bash
 cp .env.example .env
-# O para más seguridad:
-cp .env.secure .env
 ```
 
 **Variables requeridas:**
 
-#### Airtable (para productos)
+#### NeonDB (para productos)
+
 ```env
-VITE_AIRTABLE_API_KEY=tu_airtable_api_key_aqui
-VITE_AIRTABLE_BASE_ID=tu_base_id_aqui
-VITE_AIRTABLE_TABLE_NAME=Productos
+# Solo Netlify Functions - NUNCA con prefijo VITE_
+NEON_DATABASE_URL=postgresql://user:password@host/dbname?sslmode=require
 ```
 
 #### MercadoPago (para pagos)
+
 ```env
 # Clave pública (frontend) - esta se puede exponer
 VITE_MERCADOPAGO_PUBLIC_KEY=tu_public_key_aqui
@@ -65,14 +50,26 @@ MERCADOPAGO_ACCESS_TOKEN=tu_access_token_aqui
 ```
 
 #### Seguridad (Netlify Functions)
+
 ```env
 # Orígenes permitidos (comas separadas)
-ALLOWED_ORIGINS=https://amigurumi-de-ines.netlify.app,https://localhost:3000
+ALLOWED_ORIGINS=https://tienda-devschile.cl,http://localhost:3000
 
 NODE_ENV=production
 ```
 
-### 3. Configurar MercadoPago
+### 3. Configurar NeonDB (Base de datos de productos)
+
+1. **Crea un proyecto en [Neon](https://console.neon.tech)** (Postgres serverless).
+2. **Copia el connection string** (formato `postgresql://user:password@host/dbname?sslmode=require`) y colócalo en `NEON_DATABASE_URL` en tu `.env`. Esta variable **nunca** debe llevar el prefijo `VITE_`, ya que solo se usa dentro de la Netlify Function `get-products.js` (server-side) y jamás debe llegar al bundle del navegador.
+3. **Aplica las migraciones** en orden desde la carpeta `migrations/` (usando el SQL Editor de Neon, `psql`, o tu herramienta favorita):
+   - `migrations/01_create_products_schema.sql` — crea las tablas `products` y `product_images`.
+   - `migrations/02_seed_products_from_mock.sql` — carga los productos de `app/productsMock.ts` como datos iniciales.
+4. **Configura la misma variable en Netlify Dashboard** (`NEON_DATABASE_URL`) para que la función funcione en producción.
+
+El frontend consulta los productos vía `actions/loadProducts.ts`, que llama a `/.netlify/functions/get-products`. Si la función no responde (por ejemplo, corriendo `vite dev` sin `netlify dev`, o la base de datos caída), la app cae automáticamente de vuelta a los datos de `app/productsMock.ts` para que el desarrollo local nunca se bloquee.
+
+### 4. Configurar MercadoPago
 
 1. **Crea una cuenta en [MercadoPago Developers](https://www.mercadopago.cl/developers)**
 2. **Crea una nueva aplicación**
@@ -80,18 +77,35 @@ NODE_ENV=production
    - `Public Key`: Para el frontend (VITE_MERCADOPAGO_PUBLIC_KEY)
    - `Access Token`: Para el backend (MERCADOPAGO_ACCESS_TOKEN)
 
-### 4. Configurar Airtable
+### 5. Esquema de Productos (NeonDB)
 
-La aplicación espera una tabla llamada "Productos" con estos campos:
+Los productos se guardan en dos tablas (ver `migrations/01_create_products_schema.sql`):
 
-| Campo | Tipo | Requerido | Descripción |
-|-------|------|-----------|-------------|
-| `nombre` | Texto | ✅ | Nombre del producto |
-| `descripcion` | Texto largo | ✅ | Descripción detallada |
-| `precio` | Número | ✅ | Precio en CLP |
-| `imagen_miniatura` | Attachment | ✅ | Imagen 300x300px |
-| `imagenes_grandes` | Attachment | ✅ | Imágenes alta resolución |
-| `activo` | Checkbox | ✅ | Disponible para venta |
+**Tabla `products`**
+
+| Campo          | Tipo        | Requerido | Descripción           |
+| -------------- | ----------- | --------- | ---------------------- |
+| `id`           | text (PK)   | ✅        | Identificador del producto |
+| `name`         | text        | ✅        | Nombre del producto     |
+| `description`  | text        | ✅        | Descripción detallada   |
+| `category`     | text        | ✅        | Categoría del producto  |
+| `price`        | integer     | ✅        | Precio en CLP           |
+| `active`       | boolean     | ✅        | Disponible para venta   |
+| `created_time` | timestamptz | ✅        | Fecha de creación       |
+
+**Tabla `product_images`** (una fila por imagen, `variant` indica si es `thumbnail` o `large`)
+
+| Campo        | Tipo    | Requerido | Descripción                         |
+| ------------ | ------- | --------- | ------------------------------------ |
+| `product_id` | text    | ✅        | FK a `products.id`                   |
+| `variant`    | enum    | ✅        | `thumbnail` o `large`                |
+| `position`   | integer | ✅        | Orden dentro de la variante          |
+| `url`        | text    | ✅        | URL de la imagen                     |
+| `filename`   | text    | ✅        | Nombre de archivo                    |
+| `size`       | integer | ✅        | Tamaño en bytes                      |
+| `type`       | text    | ✅        | MIME type (ej. `image/jpeg`)         |
+
+Para agregar/editar productos, inserta filas directamente en Neon (SQL Editor o `psql`) siguiendo el patrón de `migrations/02_seed_products_from_mock.sql`.
 
 ## 🏃‍♂️ Desarrollo
 
@@ -129,10 +143,16 @@ npm run lint
 
 ```
 /
+├── migrations/
+│   ├── 01_create_products_schema.sql  # Tablas products / product_images
+│   └── 02_seed_products_from_mock.sql # Seed inicial (basado en productsMock.ts)
 ├── netlify/
 │   └── functions/
 │       ├── create-payment.js      # Netlify Function para MercadoPago (segura)
+│       ├── get-products.js        # Netlify Function que consulta NeonDB
 │       └── package.json           # Dependencias de Functions
+├── public/
+│   └── images/                    # Imágenes estáticas (accesibles vía /images/*)
 ├── app/
 │   └── app.tsx                    # Componente principal con pago
 ├── components/
@@ -147,34 +167,9 @@ npm run lint
 └── package.json                   # Dependencias del proyecto
 ```
 
-## 🌐 Despliegue en Netlify
-
-### Configuración Automática:
-
-1. **Conecta tu repositorio a Netlify**
-2. **Variables de entorno en Netlify Dashboard:**
-   - Todas las variables `VITE_*` en "Build & deploy" → "Environment"
-   - `MERCADOPAGO_ACCESS_TOKEN` en "Functions" → "Environment"
-   - `ALLOWED_ORIGINS` en "Functions" → "Environment"
-   - `NODE_ENV=production` en "Functions" → "Environment"
-3. **Netlify detectará automáticamente:**
-   - Build: `npm ci && npm run build`
-   - Publish directory: `dist`
-   - Functions directory: `netlify/functions`
-
 ### URLs de Función:
 
 - Crear pago: `https://tu-sitio.netlify.app/.netlify/functions/create-payment`
-
-### 🛠️ Solución de Problemas de Despliegue:
-
-#### Error "vite: not found"
-
-Si encuentras el error `sh: 1: vite: not found` durante el build:
-
-1. **✅ Ya solucionado**: El archivo `netlify.toml` incluye `npm ci &&` para instalar dependencias
-2. **Node.js Version**: El proyecto usa Node.js 18 (ver `.nvmrc`)
-3. **Dependencias**: Asegúrate de que `package-lock.json` esté en el repositorio
 
 #### Comandos de Build Configurados:
 
@@ -189,7 +184,12 @@ Esto asegura que las dependencias se instalen antes del build.
 
 ### Modificar Productos:
 
-Edita directamente en tu tabla de Airtable. Los cambios se reflejan automáticamente.
+Edita tus datos en el archivo `app/productsMock.ts` o configura tu API Genérica. Los cambios se reflejan automáticamente.
+
+#### Imágenes Locales:
+
+Puedes guardar imágenes estáticas en la carpeta `public/images/`. Para usarlas en tus productos, utiliza la ruta relativa comenzando con `/images/`.
+Ejemplo: Si guardas `mi-producto.jpg` en `public/images/`, la URL en tu JSON/Mock será `/images/mi-producto.jpg`.
 
 ### Cambiar Precios:
 
@@ -197,22 +197,21 @@ Los precios se muestran en CLP (Pesos Chilenos) y se formatean automáticamente.
 
 ### Personalizar Estilos:
 
-- Colores principales: `rose-500` y `orange-500`
-- Gradientes: `from-rose-500 to-orange-500`
-- Tipografía: Sistema fonts optimizados
+Paleta definida en `tailwind.config.js`:
 
-## 📋 Checklist de Configuración
+| Token              | Color     | Uso                          |
+| ------------------ | --------- | ----------------------------- |
+| `brand-primary`     | `#b45b38` | Botones, CTAs                |
+| `brand-secondary`   | `#85422b` | Títulos, bordes              |
+| `brand-accent`      | `#d4a373` | Detalles, hovers              |
+| `brand-background`  | `#fdfaf8` | Fondo general                 |
+| `brand-surface`     | `#f5ece4` | Cards, secciones               |
+| `devs-text`         | `#2d1a12` | Texto principal                |
+| `devs-muted`        | `#7a6b63` | Texto secundario                |
 
-- [ ] ✅ Instalar dependencias
-- [ ] ✅ Configurar variables de Airtable
-- [ ] ✅ Crear cuenta en MercadoPago
-- [ ] ✅ Obtener credenciales de MercadoPago
-- [ ] ✅ **ROTAR credenciales expuestas** (Ver sección Seguridad)
-- [ ] ✅ Configurar variables de entorno
-- [ ] ✅ Conectar repositorio a Netlify
-- [ ] ✅ Probar flujo de pagos
-- [ ] ✅ Verificar páginas de confirmación
-- [ ] ✅ Configurar variables de seguridad en Netlify
+- Gradientes: `from-brand-primary to-brand-secondary`
+- Tipografía: `Onest` (sans, para textos/body) y `Fira Mono` (mono, aplicada a títulos para el look dev) — ambas cargadas desde Google Fonts en `index.html`
+- Radio de bordes: `rounded-brand` (0.5rem) disponible como utilidad adicional
 
 ## 🛡️ Seguridad
 
@@ -221,6 +220,7 @@ Los precios se muestran en CLP (Pesos Chilenos) y se formatean automáticamente.
 Se realizó una auditoría completa de seguridad que identificó y corrigió vulnerabilidades críticas:
 
 #### Vulnerabilidades Corregidas:
+
 - ✅ **CORS mejorado**: Reemplazado wildcard `*` con whitelist de orígenes
 - ✅ **Validación de entrada**: Sanitización y validación de todos los inputs
 - ✅ **Headers de seguridad**: X-Frame-Options, X-XSS-Protection, X-Content-Type-Options
@@ -231,25 +231,22 @@ Se realizó una auditoría completa de seguridad que identificó y corrigió vul
 
 **Las siguientes credenciales están expuestas y deben rotarse INMEDIATAMENTE:**
 
-1. **Airtable API Key**: `patDvA7InUnb2X449.*` (PAT completa expuesta)
-2. **Airtable Base ID**: `apprLGWcETltWUXpn` 
-3. **MercadoPago Public Key**: `APP_USR-0ce0eeab-*` (Key completa expuesta)
-4. **MercadoPago Access Token**: `APP_USR-2637451468197049-*` (Token completo expuesto)
+1. **MercadoPago Public Key**: `APP_USR-0ce0eeab-*` (Key completa expuesta)
+2. **MercadoPago Access Token**: `APP_USR-2637451468197049-*` (Token completo expuesto)
 
 #### Pasos de Rotación CRÍTICOS:
 
 1. **🔄 Rotar credenciales inmediatamente:**
-   - Airtable: [Personal Access Tokens](https://airtable.com/developers/web/api/personal-access-tokens)
    - MercadoPago: [Developer Panel](https://www.mercadopago.com.ar/developers/panel/credentials)
 
 2. **🗑️ Eliminar archivo .env actual** después de la rotación
 
-3. **🧹 Limpiar historial de git** si las credenciales fueron commitadas
+3. **🧹 Limpiar historial de git** si las credenciales fueron commiteadas
 
 4. **⚙️ Configurar en Netlify Dashboard:**
    ```
    MERCADOPAGO_ACCESS_TOKEN=nueva_token_rotado
-   ALLOWED_ORIGINS=https://amigurumi-de-ines.netlify.app,https://localhost:3000
+   ALLOWED_ORIGINS=https://tienda-devschile.netlify.app,http://localhost:5173
    NODE_ENV=production
    ```
 
@@ -281,10 +278,8 @@ Si tienes problemas con la integración de MercadoPago:
 
 ## 📄 Licencia
 
-Proyecto privado - © 2025 Amigurumis de Inés. Todos los derechos reservados.
+Proyecto privado - © 2026 Tienda devsChile. Todos los derechos reservados.
 
 ---
 
 **🎉 ¡Listo para recibir pagos reales con MercadoPago!** 💳
-
-**⚠️ RECORDATORIO**: Rotar credenciales expuestas antes del despliegue en producción.
