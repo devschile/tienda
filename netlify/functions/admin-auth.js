@@ -1,7 +1,23 @@
 // Netlify Function: POST /.netlify/functions/admin-auth
-// Valida email + password contra env vars y devuelve un JWT firmado.
-// Sin dependencias externas — usa Node crypto vía admin-jwt.js
-const { signJWT } = require('./admin-jwt');
+// JWT con Node crypto nativo — sin dependencias externas ni requires de módulos hermanos
+const crypto = require('crypto');
+
+// ── JWT utils (inline para evitar problemas de resolución en functions:serve) ──
+
+function signJWT(payload, secret) {
+  const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
+  const body = Buffer.from(
+    JSON.stringify({
+      ...payload,
+      iat: Math.floor(Date.now() / 1000),
+      exp: Math.floor(Date.now() / 1000) + 12 * 3600, // 12h
+    }),
+  ).toString('base64url');
+  const sig = crypto.createHmac('sha256', secret).update(`${header}.${body}`).digest('base64url');
+  return `${header}.${body}.${sig}`;
+}
+
+// ── Handler ────────────────────────────────────────────────────────────────────
 
 exports.handler = async (event) => {
   const headers = {
@@ -20,22 +36,21 @@ exports.handler = async (event) => {
     return { statusCode: 400, headers, body: JSON.stringify({ error: 'JSON inválido' }) };
   }
 
-  const adminEmail    = process.env.ADMIN_EMAIL;
+  const adminEmail = process.env.ADMIN_EMAIL;
   const adminPassword = process.env.ADMIN_PASSWORD;
-  const jwtSecret     = process.env.ADMIN_JWT_SECRET;
+  const jwtSecret = process.env.ADMIN_JWT_SECRET;
 
   if (!adminEmail || !adminPassword || !jwtSecret) {
-    console.error('Variables ADMIN_EMAIL, ADMIN_PASSWORD o ADMIN_JWT_SECRET no configuradas');
-    return { statusCode: 500, headers, body: JSON.stringify({ error: 'Configuración incompleta' }) };
+    console.error('Faltan variables: ADMIN_EMAIL, ADMIN_PASSWORD o ADMIN_JWT_SECRET');
+    return { statusCode: 500, headers, body: JSON.stringify({ error: 'Servidor no configurado' }) };
   }
 
-  // Comparación con timing seguro para evitar timing attacks
-  const emailMatch    = email    === adminEmail;
-  const passwordMatch = password === adminPassword;
-
-  if (!emailMatch || !passwordMatch) {
-    // Mismo mensaje para ambos casos — no revelar cuál falló
-    return { statusCode: 401, headers, body: JSON.stringify({ error: 'Credenciales incorrectas' }) };
+  if (email !== adminEmail || password !== adminPassword) {
+    return {
+      statusCode: 401,
+      headers,
+      body: JSON.stringify({ error: 'Credenciales incorrectas' }),
+    };
   }
 
   const token = signJWT({ sub: adminEmail, name: 'Admin' }, jwtSecret);

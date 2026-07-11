@@ -45,7 +45,7 @@ export function LoginPage({ auth }: Props) {
               onChange={(e) => setEmail(e.target.value)}
               required
               autoComplete="email"
-              className="w-full px-3 py-2.5 text-sm bg-slate-800 border border-slate-700 text-white placeholder-slate-500 rounded-lg outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors"
+              className="w-full px-3 py-2.5 text-sm bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-500 rounded-lg outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors"
               placeholder="admin@devschile.cl"
             />
           </div>
@@ -58,7 +58,7 @@ export function LoginPage({ auth }: Props) {
               onChange={(e) => setPassword(e.target.value)}
               required
               autoComplete="current-password"
-              className="w-full px-3 py-2.5 text-sm bg-slate-800 border border-slate-700 text-white placeholder-slate-500 rounded-lg outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors"
+              className="w-full px-3 py-2.5 text-sm bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-500 rounded-lg outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors"
               placeholder="••••••••"
             />
           </div>
