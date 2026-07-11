@@ -3,15 +3,16 @@
 // Mobile: columna única apilada.
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import type { ProductRecord } from '@/types/products';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ShoppingCart } from 'lucide-react';
 import { MarkdownText } from '@/components/MarkdownText';
 
 interface ProductImageModalProps {
   product: ProductRecord | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onBuyClick?: (product: ProductRecord, quantity: number) => void;
 }
 
 const formatPrice = (n: number) =>
@@ -21,13 +22,20 @@ const formatPrice = (n: number) =>
     minimumFractionDigits: 0,
   }).format(n);
 
-export function ProductImageModal({ product, open, onOpenChange }: ProductImageModalProps) {
+export function ProductImageModal({
+  product,
+  open,
+  onOpenChange,
+  onBuyClick,
+}: ProductImageModalProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [direction, setDirection] = useState<'next' | 'prev'>('next');
+  const [added, setAdded] = useState(false);
 
   useEffect(() => {
     setCurrentIndex(0);
     setDirection('next');
+    setAdded(false);
   }, [product?.id]);
 
   useEffect(() => {
@@ -54,7 +62,8 @@ export function ProductImageModal({ product, open, onOpenChange }: ProductImageM
 
   if (!product) return null;
 
-  const { on_sale, long_description, price, sale_price } = product.fields;
+  const { on_sale, long_description, price, sale_price, available } = product.fields;
+  const isSold = !available;
 
   const images = product.fields.images?.length
     ? product.fields.images
@@ -74,19 +83,101 @@ export function ProductImageModal({ product, open, onOpenChange }: ProductImageM
     setCurrentIndex((p) => (p - 1 + images.length) % images.length);
   };
 
+  const handleBuy = () => {
+    if (isSold || !onBuyClick) return;
+    onBuyClick(product, 1);
+    setAdded(true);
+    setTimeout(() => setAdded(false), 1400);
+  };
+
+  // Botón "Lo quiero!" / "✓ Añadido" reutilizable
+  const WantButton = ({ size = 'md' }: { size?: 'sm' | 'md' }) => {
+    const base =
+      size === 'sm' ? 'px-4 py-2 text-sm rounded-xl' : 'px-5 py-2.5 text-base rounded-xl';
+    return (
+      <motion.button
+        type="button"
+        onClick={handleBuy}
+        disabled={isSold}
+        whileTap={!isSold ? { scale: 0.95 } : undefined}
+        className={`${base} font-bold text-white transition-colors btn-glow flex-shrink-0 ${
+          isSold ? 'bg-devs-text/30 cursor-not-allowed' : added ? 'bg-emerald-500' : 'btn-buy'
+        }`}
+      >
+        <AnimatePresence mode="wait" initial={false}>
+          {added ? (
+            <motion.span
+              key="added"
+              initial={{ opacity: 0, scale: 0.6 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.6 }}
+              transition={{ type: 'spring', bounce: 0.5, duration: 0.3 }}
+              className="flex items-center gap-1.5"
+            >
+              ✓ Añadido
+            </motion.span>
+          ) : (
+            <motion.span
+              key="want"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex items-center gap-1.5"
+            >
+              {isSold ? (
+                'Agotado'
+              ) : (
+                <>
+                  <ShoppingCart className="h-4 w-4" /> ¡Lo quiero!
+                </>
+              )}
+            </motion.span>
+          )}
+        </AnimatePresence>
+      </motion.button>
+    );
+  };
+
+  // Sección de precio + botón (reutilizada en header y footer mobile)
+  const PriceRow = ({ size = 'md' }: { size?: 'sm' | 'md' }) => (
+    <div className="flex items-center justify-between gap-3 flex-wrap">
+      <div>
+        {on_sale && sale_price ? (
+          <div className="space-y-0.5">
+            <div className="flex items-end gap-2 flex-wrap">
+              <span
+                className={`font-bold text-brand-primary ${size === 'sm' ? 'text-2xl' : 'text-3xl'}`}
+              >
+                {formatPrice(sale_price)}
+              </span>
+              <span className="text-sm text-devs-muted line-through pb-0.5">
+                {formatPrice(price)}
+              </span>
+            </div>
+            <span className="inline-flex items-center gap-1 text-xs font-bold bg-amber-400 text-amber-900 px-2 py-0.5 rounded-full">
+              💰 Ahorras {formatPrice(price - sale_price)} (
+              {Math.round((1 - sale_price / price) * 100)}% off)
+            </span>
+          </div>
+        ) : (
+          <span
+            className={`font-bold bg-gradient-to-r from-brand-primary to-brand-secondary bg-clip-text text-transparent ${size === 'sm' ? 'text-2xl' : 'text-3xl'}`}
+          >
+            {formatPrice(price)}
+          </span>
+        )}
+      </div>
+      {onBuyClick && <WantButton size={size} />}
+    </div>
+  );
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      {/*
-        max-w-5xl: más ancho que antes (max-w-3xl)
-        Desktop: flex-row — imagen izq fija, textos der scrollables
-        Mobile: flex-col apilado
-      */}
-      <DialogContent className="max-w-5xl p-0 gap-0 md:rounded-2xl md:border-brand-secondary/10 bg-white overflow-hidden flex flex-col md:flex-row max-h-[92vh] overflow-y-auto md:overflow-hidden md:max-h-[68vh]">
+      <DialogContent className="max-w-5xl p-0 gap-0 rounded-2xl border-brand-secondary/10 bg-white overflow-hidden flex flex-col md:flex-row md:max-h-[60vh]">
         {/* ── COLUMNA IZQUIERDA: imagen (fija, no scrollea) ─────────────────── */}
         <div className="md:w-[52%] md:flex-shrink-0 flex flex-col bg-brand-surface">
-          {/* Imagen */}
           <div className="relative overflow-hidden select-none flex-1">
-            <div className="aspect-square w-full">
+            <div className="aspect-[4/3] md:aspect-square w-full">
               {currentIndex === 0 ? (
                 <motion.img
                   layoutId={`product-cover-${product.id}`}
@@ -105,14 +196,12 @@ export function ProductImageModal({ product, open, onOpenChange }: ProductImageM
               )}
             </div>
 
-            {/* Badge oferta */}
             {on_sale && (
               <div className="absolute top-3 left-3 z-20 bg-amber-400 text-amber-900 text-xs font-bold px-3 py-1.5 rounded-full shadow-md tracking-wide uppercase flex items-center gap-1.5">
-                <span className="text-[36px]">💸</span> Oferta
+                <span>⚡</span> Oferta
               </div>
             )}
 
-            {/* Flechas */}
             {hasMultiple && (
               <>
                 <button
@@ -133,37 +222,8 @@ export function ProductImageModal({ product, open, onOpenChange }: ProductImageM
                 </button>
               </>
             )}
-            <div className="md:hidden absolute flex bottom-0 bg-white/20 z-10 px-4 py-5 backdrop-blur-md shadow-sm">
-              <DialogTitle className="font-mono font-medium text-lg text-brand leading-tight">
-                {product.fields.name}
-              </DialogTitle>
-              {/* Precio */}
-              <div className="mt-4">
-                {on_sale && sale_price ? (
-                  <div className="space-y-1">
-                    <div className="flex items-end gap-3 flex-wrap">
-                      <span className="text-3xl font-bold text-brand-primary">
-                        {formatPrice(sale_price)}
-                      </span>
-                      <span className="text-base text-devs-muted line-through pb-0.5">
-                        {formatPrice(price)}
-                      </span>
-                    </div>
-                    <span className="inline-flex items-center gap-1 text-xs font-bold bg-amber-400 text-amber-900 px-2.5 py-1 rounded-full">
-                      💰 Ahorras {formatPrice(price - sale_price)} (
-                      {Math.round((1 - sale_price / price) * 100)}% off)
-                    </span>
-                  </div>
-                ) : (
-                  <span className="text-3xl font-bold bg-gradient-to-r from-brand-primary to-brand-secondary bg-clip-text text-transparent">
-                    {formatPrice(price)}
-                  </span>
-                )}
-              </div>
-            </div>
           </div>
 
-          {/* Dots + contador */}
           {hasMultiple && (
             <div className="flex items-center justify-center gap-2 py-3 border-t border-brand-secondary/10 bg-brand-background/50">
               {images.map((_, i) => (
@@ -187,39 +247,21 @@ export function ProductImageModal({ product, open, onOpenChange }: ProductImageM
 
         {/* ── COLUMNA DERECHA: textos scrollables ───────────────────────────── */}
         <div className="md:flex-1 overflow-y-auto flex flex-col">
-          {/* Header: nombre + botón X (Radix lo agrega automáticamente) */}
-          <div className="hidden md:block sticky top-0 bg-white z-10 px-4 pr-14 py-5 border-b border-brand-secondary/10">
-            <DialogTitle className="font-mono font-bold text-xl text-brand leading-tight">
+          {/* Header sticky (desktop) — nombre + precio + botón */}
+          <div className="sticky top-0 bg-white z-10 px-6 pr-14 py-5 border-b border-brand-secondary/10 shadow-md shadow-black/10 space-y-3">
+            <DialogTitle className="font-mono font-bold text-xl text-black leading-tight">
               {product.fields.name}
             </DialogTitle>
-            {/* Precio */}
-            <div className="mt-4">
-              {on_sale && sale_price ? (
-                <div className="space-y-1">
-                  <div className="flex items-end gap-3 flex-wrap">
-                    <span className="text-3xl font-bold text-brand-primary">
-                      {formatPrice(sale_price)}
-                    </span>
-                    <span className="text-base text-devs-muted line-through pb-0.5">
-                      {formatPrice(price)}
-                    </span>
-                  </div>
-                  <span className="inline-flex items-center gap-1 text-xs font-bold bg-amber-400 text-amber-900 px-2.5 py-1 rounded-full">
-                    💰 Ahorras {formatPrice(price - sale_price)} (
-                    {Math.round((1 - sale_price / price) * 100)}% off)
-                  </span>
-                </div>
-              ) : (
-                <span className="text-3xl font-bold bg-gradient-to-r from-brand-primary to-brand-secondary bg-clip-text text-transparent">
-                  {formatPrice(price)}
-                </span>
-              )}
-            </div>
+            <PriceRow />
           </div>
 
-          {/* Contenido scrollable */}
-          <div className="px-6 py-5 space-y-5 flex-1">
-            {/* Descripción larga en Markdown */}
+          {/* Descripción scrollable */}
+          <div className="px-6 py-5 space-y-4 flex-1">
+            {product.fields.description && (
+              <p className="text-sm text-devs-muted leading-relaxed">
+                {product.fields.description}
+              </p>
+            )}
             {long_description && <MarkdownText content={long_description} />}
           </div>
         </div>

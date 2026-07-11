@@ -62,18 +62,28 @@ body {
   animation: slide-in-left 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
 }
 
-/* Botón con glow pulsante — Comprar Ahora */
+/* Botones de compra — verde oliva/ocre con glow sutil */
+.btn-buy {
+  background: linear-gradient(135deg, #96ba22 0%, #7b911e 100%);
+  color: #ffffff;
+  transition: 0.3s;
+}
+.btn-buy:hover {
+  background: linear-gradient(135deg, #59692b 0%, #6b7c33 100%);
+}
+
+/* Glow: mismo color oliva, intensidad reducida a la mitad */
 @keyframes glow-pulse {
   0%,
   100% {
     box-shadow:
-      0 0 16px rgba(180, 91, 56, 0.45),
-      0 4px 12px rgba(180, 91, 56, 0.25);
+      0 0 8px rgba(107, 124, 51, 0.4),
+      0 2px 8px rgba(107, 124, 51, 0.2);
   }
   50% {
     box-shadow:
-      0 0 30px rgba(180, 91, 56, 0.75),
-      0 6px 20px rgba(180, 91, 56, 0.45);
+      0 0 16px rgba(107, 124, 51, 0.6),
+      0 4px 12px rgba(107, 124, 51, 0.3);
   }
 }
 .btn-glow {
@@ -82,6 +92,6 @@ body {
 .btn-glow:hover {
   animation: none;
   box-shadow:
-    0 0 44px rgba(180, 91, 56, 0.9),
-    0 8px 28px rgba(180, 91, 56, 0.55) !important;
+    0 0 20px rgba(107, 124, 51, 0.65),
+    0 4px 14px rgba(107, 124, 51, 0.35) !important;
 }

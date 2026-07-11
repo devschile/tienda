@@ -194,7 +194,7 @@ export function ProductCard({
                 ? 'bg-devs-text/30 cursor-not-allowed text-white/60'
                 : added
                   ? 'bg-emerald-500 text-white btn-glow'
-                  : 'bg-brand-primary hover:bg-brand-secondary text-white btn-glow hover:scale-[1.02]'
+                  : 'btn-buy btn-glow hover:scale-[1.02]'
             }`}
             onClick={() => {
               if (!isSold) {

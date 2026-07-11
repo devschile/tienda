@@ -261,7 +261,7 @@ function App() {
                       animate={{ scale: 1, opacity: 1 }}
                       exit={{ scale: 0, opacity: 0 }}
                       transition={{ type: 'spring', bounce: 0.6, duration: 0.3 }}
-                      className="absolute -top-1.5 -right-1.5 bg-brand-primary text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center"
+                      className="absolute -top-1.5 -right-1.5 bg-green-700 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center"
                     >
                       {cart.totalItems > 9 ? '9+' : cart.totalItems}
                     </motion.span>
@@ -484,6 +484,7 @@ function App() {
             }
           }
         }}
+        onBuyClick={handleBuyClick}
       />
 
       <InfoModal open={infoModalOpen} onOpenChange={setInfoModalOpen} />
