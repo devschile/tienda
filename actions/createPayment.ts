@@ -10,10 +10,12 @@ export interface CartItem {
 export interface CustomerData {
   name: string;
   email: string;
+  wantsDelivery?: boolean;
   address?: string;
   city?: string;
   region?: string;
   zip?: string;
+  wantsNewsletter?: boolean;
 }
 
 export interface CreatePaymentResult {

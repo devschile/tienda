@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 06_create_orders.sql
--- Tablas de órdenes y items de compra para el carrito de Tienda devsChile
+-- Tablas de órdenes y items de compra para el carrito de Tienda devsChile™
 -- =============================================================================
 --
 -- DISEÑO

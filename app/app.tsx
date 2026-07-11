@@ -206,7 +206,9 @@ function App() {
                 <img style={{ minWidth: 40 }} width={50} src={logo} />
               </div>
               <div>
-                <h1 className="font-mono text-2xl sm:text-3xl font-bold">Tienda devsChile</h1>
+                <h1 className="font-mono text-2xl sm:text-3xl font-bold leading-tight">
+                  Tienda devsChile™
+                </h1>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -215,8 +217,8 @@ function App() {
                 className="gap-1 border-brand-secondary/30 text-brand-primary hover:bg-brand-secondary/5 hover:border-brand-secondary/50 transition-all shadow-sm"
                 onClick={() => setInfoModalOpen(true)}
               >
-                <Info className="h-5 w-5 mr-2" />
-                <span className="hidden sm:inline">Sobre</span>devsChile
+                <Info className="h-5 w-5 md:mr-2" />
+                <span className="hidden sm:inline">Sobre devsChile™</span>
               </Button>
               <Button
                 variant="outline"
@@ -342,7 +344,7 @@ function App() {
                 </Button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
                 {filteredProducts.map((product) => (
                   <ProductCard
                     key={product.id}
@@ -363,7 +365,7 @@ function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="text-center">
             <p className="text-sm text-devs-text/70">
-              © {new Date().getFullYear()} Tienda devsChile. Todos los derechos reservados.
+              © {new Date().getFullYear()} Tienda devsChile™. Todos los derechos reservados.
             </p>
           </div>
         </div>

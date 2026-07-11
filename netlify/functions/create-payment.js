@@ -91,7 +91,8 @@ exports.handler = async (event, context) => {
       INSERT INTO orders (
         status, total_amount,
         customer_name, customer_email,
-        shipping_address, shipping_city, shipping_region, shipping_zip
+        shipping_address, shipping_city, shipping_region, shipping_zip,
+        wants_newsletter
       )
       VALUES (
         'pending', ${totalAmount},
@@ -100,7 +101,8 @@ exports.handler = async (event, context) => {
         ${customer.address ? String(customer.address).substring(0, 200) : null},
         ${customer.city ? String(customer.city).substring(0, 100) : null},
         ${customer.region ? String(customer.region).substring(0, 100) : null},
-        ${customer.zip ? String(customer.zip).substring(0, 20) : null}
+        ${customer.zip ? String(customer.zip).substring(0, 20) : null},
+        ${customer.wantsNewsletter === true}
       )
       RETURNING id
     `;

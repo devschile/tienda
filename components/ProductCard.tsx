@@ -20,7 +20,8 @@ export function ProductCard({
 }: ProductCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [quantity, setQuantity] = useState(1);
-  const { name, description, price, coverImage, available, stock, on_sale } = product.fields;
+  const { name, description, price, coverImage, available, stock, on_sale, sale_price } =
+    product.fields;
   const isSold = !available;
   const isLowStock = available && stock > 0 && stock <= 5;
 
@@ -53,9 +54,8 @@ export function ProductCard({
 
           {/* Badge oferta */}
           {on_sale && (
-            <div className="absolute top-3 left-3 z-20 bg-amber-400 text-amber-900 text-xs font-bold px-2.5 py-1 rounded-full shadow-md tracking-wide uppercase flex items-center gap-1">
-              <span className="absolute -left-3 text-[36px]">💸</span>{' '}
-              <span className="pl-8">Oferta</span>
+            <div className="absolute top-3 -left-6 -rotate-45 z-20 px-6 bg-amber-400 text-amber-900 text-xs font-bold px-2.5 py-1 shadow-md tracking-wide uppercase flex items-center gap-1">
+              <span className="absolute left-8 top-10 rotate-45 text-[48px]">💸</span> Oferta
             </div>
           )}
 
@@ -100,18 +100,34 @@ export function ProductCard({
           >
             {product.fields.category || 'Varios'}
           </button>
-          <h3 className="font-mono font-bold text-lg mb-2 text-devs-text line-clamp-2 min-h-[3.5rem] group-hover:text-brand-secondary transition-colors leading-tight">
+          <h3 className="font-mono font-light text-lg mb-2 text-devs-text line-clamp-3 min-h-[4.5rem] group-hover:text-brand-secondary transition-colors leading-tight">
             {name}
           </h3>
-          <p className="text-sm text-devs-text/70 mb-4 line-clamp-2 min-h-[2.5rem]">
+          <p className="text-sm text-devs-text/70 mb-4 line-clamp-4 min-h-[4.5rem]">
             {description}
           </p>
-          <div className="flex items-center justify-between">
+          <div className="flex items-end justify-between">
             <div>
-              <p className="text-sm text-brand-secondary font-medium mb-1">Precio</p>
-              <p className="text-3xl font-bold bg-gradient-to-r from-brand-primary to-brand-secondary bg-clip-text text-transparent">
-                {formatPrice(price)}
-              </p>
+              {on_sale && sale_price ? (
+                <>
+                  <p className="text-xs text-devs-muted line-through leading-none mb-0.5">
+                    {formatPrice(price)}
+                  </p>
+                  <p className="text-3xl font-bold text-brand-primary leading-none">
+                    {formatPrice(sale_price)}
+                  </p>
+                  <p className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-bold bg-amber-400 text-amber-900 px-2 py-0.5 rounded-full">
+                    💰 Ahorras {formatPrice(price - sale_price)}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-xs text-brand-secondary font-medium mb-1">Precio</p>
+                  <p className="text-3xl font-bold bg-gradient-to-r from-brand-primary to-brand-secondary bg-clip-text text-transparent">
+                    {formatPrice(price)}
+                  </p>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -152,15 +168,15 @@ export function ProductCard({
           </p>
         )}
         <Button
-          className={`w-full h-12 text-md shadow-lg hover:shadow-xl transition-all duration-300 group/btn ${
+          className={`w-full h-12 text-sm font-bold tracking-wide rounded-xl transition-all duration-200 active:scale-[0.98] ${
             isSold
-              ? 'bg-devs-text/40 cursor-not-allowed'
-              : 'bg-gradient-to-r from-brand-primary to-brand-secondary hover:opacity-90'
-          } text-white`}
+              ? 'bg-devs-text/30 cursor-not-allowed text-white/60'
+              : 'bg-brand-primary hover:bg-brand-secondary text-white btn-glow hover:scale-[1.02]'
+          }`}
           onClick={() => !isSold && onBuyClick(product, quantity)}
           disabled={isSold}
         >
-          <ShoppingCart className="h-4 w-4 mr-2 group-hover/btn:animate-bounce" />
+          <ShoppingCart className="h-4 w-4 mr-2" />
           {isSold ? 'Agotado' : 'Comprar Ahora'}
         </Button>
       </CardFooter>

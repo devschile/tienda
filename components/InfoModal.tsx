@@ -49,7 +49,7 @@ export function InfoModal({ open, onOpenChange }: InfoModalProps) {
       <DialogContent className="max-w-4xl max-h-[500px] overflow-y-auto bg-white/80 backdrop-blur-md border-brand-secondary/20">
         <DialogHeader>
           <DialogTitle className="font-mono text-2xl md:text-3xl font-bold bg-gradient-to-r from-brand-primary to-brand-secondary bg-clip-text text-transparent">
-            Sobre la Tienda devsChile
+            Sobre la Tienda devsChile™
           </DialogTitle>
         </DialogHeader>
         <hr />
@@ -57,7 +57,7 @@ export function InfoModal({ open, onOpenChange }: InfoModalProps) {
           <div className="aspect-video w-full bg-gradient-to-br from-brand-secondary/20 to-brand-primary/20 rounded-xl overflow-hidden shadow-lg">
             <img
               src="/assets/images/default.svg"
-              alt="Tienda devsChile"
+              alt="Tienda devsChile™"
               className="w-full h-full object-cover"
             />
           </div>
@@ -78,7 +78,7 @@ export function InfoModal({ open, onOpenChange }: InfoModalProps) {
 
           <div className="text-devs-text p-6 rounded-xl shadow-lg">
             <p className="text-center font-bold text-lg">
-              ¡Gracias por apoyar a la comunidad devsChile! 🦌
+              ¡Gracias por apoyar a la comunidad devsChile™! 🦌
             </p>
           </div>
         </div>
@@ -98,7 +98,7 @@ export function InfoModal({ open, onOpenChange }: InfoModalProps) {
             ))}
             <div className="text-devs-text p-6 rounded-xl mt-6">
               <p className="text-center font-bold text-lg">
-                ¡Gracias por apoyar a la comunidad devsChile! 🦌
+                ¡Gracias por apoyar a la comunidad devsChile™! 🦌
               </p>
             </div>
           </div>
@@ -108,7 +108,7 @@ export function InfoModal({ open, onOpenChange }: InfoModalProps) {
             <div className="aspect-square w-full bg-gradient-to-br from-brand-secondary/20 to-brand-primary/20 rounded-xl overflow-hidden shadow-lg">
               <img
                 src="/assets/images/default.svg"
-                alt="Tienda devsChile"
+                alt="Tienda devsChile™"
                 className="w-full h-full object-cover"
               />
             </div>

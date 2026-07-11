@@ -36,7 +36,7 @@ function intencionCompraHTML({ customerName, items, totalAmount, checkoutUrl, or
 }
 
 function intencionCompraSubject() {
-  return 'Tu resumen de compra en Tienda devsChile 🛒';
+  return 'Tu resumen de compra en Tienda devsChile™ 🛒';
 }
 
 module.exports = { intencionCompraHTML, intencionCompraSubject };

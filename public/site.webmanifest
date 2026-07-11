@@ -1,7 +1,7 @@
 {
-  "name": "Tienda devsChile",
-  "short_name": "devsChile",
-  "description": "Tienda oficial de la comunidad devsChile. Productos exclusivos diseñados por y para la comunidad.",
+  "name": "Tienda devsChile™",
+  "short_name": "devsChile™",
+  "description": "Tienda oficial de la comunidad devsChile™. Productos exclusivos diseñados por y para la comunidad.",
   "start_url": "/",
   "display": "browser",
   "background_color": "#fdfaf8",

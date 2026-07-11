@@ -28,6 +28,8 @@ export interface ProductFields {
   available: boolean;
   stock: number;
   on_sale: boolean;
+  long_description: string | null;
+  sale_price: number | null;
 }
 
 export interface ProductRecord {

@@ -61,3 +61,27 @@ body {
 .animate-slide-prev {
   animation: slide-in-left 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
 }
+
+/* Botón con glow pulsante — Comprar Ahora */
+@keyframes glow-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 16px rgba(180, 91, 56, 0.45),
+      0 4px 12px rgba(180, 91, 56, 0.25);
+  }
+  50% {
+    box-shadow:
+      0 0 30px rgba(180, 91, 56, 0.75),
+      0 6px 20px rgba(180, 91, 56, 0.45);
+  }
+}
+.btn-glow {
+  animation: glow-pulse 2.5s ease-in-out infinite;
+}
+.btn-glow:hover {
+  animation: none;
+  box-shadow:
+    0 0 44px rgba(180, 91, 56, 0.9),
+    0 8px 28px rgba(180, 91, 56, 0.55) !important;
+}

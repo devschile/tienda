@@ -63,6 +63,11 @@ function confirmacionCompraHTML({ customerName, status, items, totalAmount, orde
       <p style="margin:24px 0 0;color:#7a6b63;font-size:12px;line-height:1.6;">
         N° de orden: <code style="background:#f5ece4;padding:2px 6px;border-radius:4px;font-size:11px;">${orderId.substring(0, 8)}...</code>
       </p>
+
+      <p style="margin:16px 0 0;color:#7a6b63;font-size:13px;line-height:1.7;border-top:1px solid #f0ebe5;padding-top:16px;">
+        Para seguimiento de tu compra e informaciones, escríbenos a
+        <a href="mailto:huemul@devschile.cl" style="color:#b45b38;text-decoration:none;font-weight:600;">huemul@devschile.cl</a>
+      </p>
     </td></tr>
 
     ${emailFooter(url)}`;
@@ -72,11 +77,11 @@ function confirmacionCompraHTML({ customerName, status, items, totalAmount, orde
 
 function confirmacionCompraSubject(status) {
   const subjects = {
-    approved: '¡Tu pedido en Tienda devsChile está confirmado! 🎉',
-    pending_transfer: 'Tu pago está siendo procesado ⏳ — Tienda devsChile',
-    rejected: 'Tu pago no pudo completarse — Tienda devsChile',
+    approved: '¡Tu pedido en Tienda devsChile™ está confirmado! 🎉',
+    pending_transfer: 'Tu pago está siendo procesado ⏳ — Tienda devsChile™',
+    rejected: 'Tu pago no pudo completarse — Tienda devsChile™',
   };
-  return subjects[status] || 'Actualización de tu pedido — Tienda devsChile';
+  return subjects[status] || 'Actualización de tu pedido — Tienda devsChile™';
 }
 
 module.exports = { confirmacionCompraHTML, confirmacionCompraSubject };

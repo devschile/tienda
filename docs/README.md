@@ -1,4 +1,4 @@
-# Documentación Técnica — Tienda devsChile
+# Documentación Técnica — Tienda devsChile™
 
 | Documento | Descripción |
 |---|---|

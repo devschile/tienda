@@ -8,6 +8,7 @@ const App = lazy(() => import('../app/app'));
 const SuccessPage = lazy(() => import('./pages/SuccessPage'));
 const FailurePage = lazy(() => import('./pages/FailurePage'));
 const PendingPage = lazy(() => import('./pages/PendingPage'));
+const TerminosPage = lazy(() => import('./pages/TerminosPage'));
 
 const Loading = () => (
   <div className="min-h-screen flex items-center justify-center bg-brand-background">
@@ -24,6 +25,7 @@ createRoot(document.getElementById('root')!).render(
           <Route path="/success" element={<SuccessPage />} />
           <Route path="/failure" element={<FailurePage />} />
           <Route path="/pending" element={<PendingPage />} />
+          <Route path="/terminos" element={<TerminosPage />} />
         </Routes>
       </Suspense>
     </BrowserRouter>

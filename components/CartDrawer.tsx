@@ -114,10 +114,10 @@ export function CartDrawer({
               </span>
             </div>
             <Button
-              className="w-full h-12 text-md bg-brand-primary hover:bg-brand-secondary text-white font-semibold rounded-xl shadow-lg transition-all active:scale-[0.98]"
+              className="w-full h-12 text-base font-bold tracking-wide bg-brand-primary hover:bg-brand-secondary text-white rounded-xl transition-all duration-200 active:scale-[0.98] hover:scale-[1.02] btn-glow"
               onClick={onCheckout}
             >
-              <span className="text-2xl">💳</span> Pagar Ahora
+              <span className="text-xl mr-1">💳</span> Pagar Ahora
             </Button>
           </div>
         )}

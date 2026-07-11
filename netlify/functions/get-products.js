@@ -62,6 +62,8 @@ exports.handler = async (event, context) => {
         p.available,
         p.stock,
         p.on_sale,
+        p.long_description,
+        p.sale_price,
         p.created_time,
 
         -- Imagen de portada del card (is_cover = true, máximo 1 por producto)
@@ -141,6 +143,8 @@ exports.handler = async (event, context) => {
         available: row.available,
         stock: Number(row.stock),
         on_sale: row.on_sale,
+        long_description: row.long_description ?? null,
+        sale_price: row.sale_price != null ? Number(row.sale_price) : null,
       },
       createdTime:
         row.created_time instanceof Date ? row.created_time.toISOString() : row.created_time,

@@ -119,8 +119,8 @@ export function OrderConfirmation({ urlStatus }: OrderConfirmationProps) {
       {/* Header mínimo */}
       <header className="border-b border-brand-secondary/10 py-4 px-6">
         <a href="/" className="flex items-center gap-2 w-fit">
-          <img src={logo} alt="devsChile" className="h-8 w-8 object-contain" />
-          <span className="font-mono font-bold text-brand-secondary">Tienda devsChile</span>
+          <img src={logo} alt="devsChile™" className="h-8 w-8 object-contain" />
+          <span className="font-mono font-bold text-brand-secondary">Tienda devsChile™</span>
         </a>
       </header>
 

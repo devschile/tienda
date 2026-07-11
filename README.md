@@ -1,6 +1,6 @@
-# Tienda devsChile - Ecommerce con MercadoPago
+# Tienda devsChile™ - Ecommerce con MercadoPago
 
-Sitio web para la venta de productos de la comunidad devsChile.
+Sitio web para la venta de productos de la comunidad devsChile™.
 Construido con React, TypeScript, Tailwind CSS y Vite.
 **Ahora con integración completa de MercadoPago para transacciones reales**.
 
@@ -278,7 +278,7 @@ Si tienes problemas con la integración de MercadoPago:
 
 ## 📄 Licencia
 
-Proyecto privado - © 2026 Tienda devsChile. Todos los derechos reservados.
+Proyecto privado - © 2026 Tienda devsChile™. Todos los derechos reservados.
 
 ---
 
