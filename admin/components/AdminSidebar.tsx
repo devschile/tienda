@@ -1,5 +1,4 @@
-import { useLogout } from '@refinedev/core';
-import { useLocation, NavLink } from 'react-router-dom';
+import { useLocation, NavLink, Link } from 'react-router-dom';
 import { LayoutDashboard, Package, ShoppingBag, LogOut, ChevronRight, Store } from 'lucide-react';
 
 const NAV = [
@@ -9,7 +8,6 @@ const NAV = [
 ];
 
 export function AdminSidebar() {
-  const { mutate: logout } = useLogout();
   const location = useLocation();
 
   return (
@@ -51,22 +49,22 @@ export function AdminSidebar() {
 
       {/* Footer */}
       <div className="px-3 py-4 border-t border-slate-700/60 space-y-1">
-        <a
-          href="/"
+        <Link
+          to="/"
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
         >
           <Store className="h-4 w-4 shrink-0" />
           Ver tienda
-        </a>
-        <button
-          onClick={() => logout()}
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-red-400 hover:bg-slate-800 transition-colors"
+        </Link>
+        <Link
+          to="/admin/login"
+          className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-red-400 hover:bg-slate-800 transition-colors"
         >
           <LogOut className="h-4 w-4 shrink-0" />
           Cerrar sesión
-        </button>
+        </Link>
       </div>
     </aside>
   );
