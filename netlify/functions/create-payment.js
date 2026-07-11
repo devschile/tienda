@@ -154,6 +154,56 @@ exports.handler = async (event, context) => {
       WHERE id = ${order.id}
     `;
 
+    // ── 3. Email de intención de compra ────────────────────────────────────
+    const { sendEmail } = require('./emails');
+    const {
+      intencionCompraHTML,
+      intencionCompraSubject,
+    } = require('./emails/templates/intencion-compra');
+
+    await sendEmail({
+      to: customer.email,
+      subject: intencionCompraSubject(),
+      html: intencionCompraHTML({
+        customerName: customer.name,
+        items: sanitizedItems,
+        totalAmount,
+        checkoutUrl: preference.init_point,
+        orderId: order.id,
+      }),
+    });
+
+    // Email al admin — intención de compra
+    if (process.env.ADMIN_EMAIL) {
+      const {
+        nuevaOrdenAdminHTML,
+        nuevaOrdenAdminSubject,
+      } = require('./emails/templates/nueva-orden-admin');
+      await sendEmail({
+        to: process.env.ADMIN_EMAIL,
+        subject: nuevaOrdenAdminSubject({
+          status: 'pending',
+          customerName: customer.name,
+          totalAmount,
+        }),
+        html: nuevaOrdenAdminHTML({
+          status: 'pending',
+          orderId: order.id,
+          customerName: customer.name,
+          customerEmail: customer.email,
+          shipping: {
+            address: customer.address,
+            city: customer.city,
+            region: customer.region,
+            zip: customer.zip,
+          },
+          items: sanitizedItems.map((i) => ({ ...i, subtotal: i.subtotal })),
+          totalAmount,
+          siteUrl,
+        }),
+      });
+    }
+
     return {
       statusCode: 200,
       headers,

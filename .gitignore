@@ -180,3 +180,4 @@ SECURITY.md
 .env
 .env.local
 deno.lock
+email-preview/

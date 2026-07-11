@@ -171,6 +171,82 @@ exports.handler = async (event) => {
       }
     }
 
+    // ── Email de confirmación al comprador y admin ──────────────────────────
+    try {
+      const { sendEmail } = require('./emails');
+      const {
+        confirmacionCompraHTML,
+        confirmacionCompraSubject,
+      } = require('./emails/templates/confirmacion-compra');
+      const {
+        nuevaOrdenAdminHTML,
+        nuevaOrdenAdminSubject,
+      } = require('./emails/templates/nueva-orden-admin');
+      const siteUrl = process.env.URL || process.env.SITE_URL || 'https://tienda.devschile.cl';
+
+      // Solo enviamos email de confirmación para estados que el comprador debe saber
+      const emailStatuses = ['approved', 'pending_transfer', 'rejected'];
+      if (emailStatuses.includes(newStatus)) {
+        // Obtener datos completos de la orden para los templates
+        const [orderData] = await sql`
+          SELECT customer_name, customer_email,
+                 shipping_address, shipping_city, shipping_region, shipping_zip,
+                 total_amount
+          FROM orders WHERE id = ${orderId}
+        `;
+        const orderItems = await sql`
+          SELECT product_name, quantity, unit_price, subtotal
+          FROM order_items WHERE order_id = ${orderId}
+        `;
+
+        if (orderData) {
+          // Email al comprador
+          await sendEmail({
+            to: orderData.customer_email,
+            subject: confirmacionCompraSubject(newStatus),
+            html: confirmacionCompraHTML({
+              customerName: orderData.customer_name,
+              status: newStatus,
+              items: orderItems,
+              totalAmount: orderData.total_amount,
+              orderId,
+              siteUrl,
+            }),
+          });
+
+          // Email al admin (solo approved y pending_transfer)
+          if (process.env.ADMIN_EMAIL && ['approved', 'pending_transfer'].includes(newStatus)) {
+            await sendEmail({
+              to: process.env.ADMIN_EMAIL,
+              subject: nuevaOrdenAdminSubject({
+                status: newStatus,
+                customerName: orderData.customer_name,
+                totalAmount: orderData.total_amount,
+              }),
+              html: nuevaOrdenAdminHTML({
+                status: newStatus,
+                orderId,
+                customerName: orderData.customer_name,
+                customerEmail: orderData.customer_email,
+                shipping: {
+                  address: orderData.shipping_address,
+                  city: orderData.shipping_city,
+                  region: orderData.shipping_region,
+                  zip: orderData.shipping_zip,
+                },
+                items: orderItems.map((i) => ({ ...i, product_name: i.product_name })),
+                totalAmount: orderData.total_amount,
+                siteUrl,
+              }),
+            });
+          }
+        }
+      }
+    } catch (emailError) {
+      // Los emails son best-effort — no deben bloquear el webhook
+      console.error('Error enviando emails:', emailError.message);
+    }
+
     return {
       statusCode: 200,
       headers,
