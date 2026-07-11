@@ -1,7 +1,6 @@
-// Entry point del admin — Refine + React Router integración
-// Vive dentro del BrowserRouter existente en src/main.tsx
+// Entry point del admin — Refine sin routerProvider propio
+// (el BrowserRouter ya existe en src/main.tsx; usar dos routers anidados rompe React Router v6)
 import { Refine } from '@refinedev/core';
-import routerBindings from '@refinedev/react-router';
 import { Routes, Route } from 'react-router-dom';
 
 import { stubAuthProvider, stubDataProvider } from './providers/stubs';
@@ -14,9 +13,11 @@ import { LoginPage } from './pages/LoginPage';
 export default function AdminApp() {
   return (
     <Refine
-      routerProvider={routerBindings}
-      authProvider={stubAuthProvider} // Phase 1: reemplazar con authProvider real
-      dataProvider={stubDataProvider} // Phase 2: reemplazar con dataProvider real
+      // Sin routerProvider: @refinedev/react-router inyecta un BrowserRouter
+      // extra que rompe el router existente en main.tsx.
+      // Navegación gestionada directamente con useNavigate/useLocation de react-router-dom.
+      authProvider={stubAuthProvider}
+      dataProvider={stubDataProvider}
       resources={[
         {
           name: 'products',
