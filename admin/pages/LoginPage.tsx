@@ -1,46 +1,84 @@
-import { Store } from 'lucide-react';
+import { useState, type FormEvent } from 'react';
+import { Store, Loader2, AlertCircle } from 'lucide-react';
+import type { AdminAuth } from '../hooks/useAdminAuth';
 
-// Placeholder — reemplazado en Phase 1 con lógica real de auth
-export function LoginPage() {
+interface Props {
+  auth: AdminAuth;
+}
+
+export function LoginPage({ auth }: Props) {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    await auth.login(email, password);
+  };
+
   return (
-    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4 font-sans">
+    <div className="fixed inset-0 bg-slate-950 flex items-center justify-center p-4 font-sans">
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-slate-800 mb-4">
-            <Store className="h-6 w-6 text-white" />
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-slate-800 border border-slate-700 mb-4">
+            <Store className="h-6 w-6 text-slate-300" />
           </div>
-          <h1 className="text-xl font-semibold text-slate-800">Admin Panel</h1>
+          <h1 className="text-xl font-semibold text-white">Panel Admin</h1>
           <p className="text-sm text-slate-500 mt-1">Tienda devsChile™</p>
         </div>
 
         {/* Form */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Error */}
+          {auth.error && (
+            <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-red-500/10 border border-red-500/20">
+              <AlertCircle className="h-4 w-4 text-red-400 shrink-0" />
+              <p className="text-sm text-red-400">{auth.error}</p>
+            </div>
+          )}
+
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Email</label>
+            <label className="block text-sm font-medium text-slate-400 mb-1.5">Email</label>
             <input
               type="email"
-              className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-slate-800/20 focus:border-slate-400 transition-colors"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              autoComplete="email"
+              className="w-full px-3 py-2.5 text-sm bg-slate-800 border border-slate-700 text-white placeholder-slate-500 rounded-lg outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors"
               placeholder="admin@devschile.cl"
-              disabled
             />
           </div>
+
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Contraseña</label>
+            <label className="block text-sm font-medium text-slate-400 mb-1.5">Contraseña</label>
             <input
               type="password"
-              className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-slate-800/20 focus:border-slate-400 transition-colors"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              autoComplete="current-password"
+              className="w-full px-3 py-2.5 text-sm bg-slate-800 border border-slate-700 text-white placeholder-slate-500 rounded-lg outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors"
               placeholder="••••••••"
-              disabled
             />
           </div>
+
           <button
-            disabled
-            className="w-full py-2.5 bg-slate-800 text-white text-sm font-medium rounded-lg opacity-50 cursor-not-allowed"
+            type="submit"
+            disabled={auth.loading}
+            className="w-full py-2.5 bg-white hover:bg-slate-100 text-slate-900 text-sm font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
-            Iniciar sesión — Phase 1
+            {auth.loading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" /> Verificando...
+              </>
+            ) : (
+              'Iniciar sesión'
+            )}
           </button>
-        </div>
+        </form>
+
+        <p className="text-center text-xs text-slate-600 mt-6">Solo acceso autorizado</p>
       </div>
     </div>
   );

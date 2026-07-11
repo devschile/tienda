@@ -7,11 +7,15 @@ const NAV = [
   { to: '/admin/orders', label: 'Pedidos', icon: ShoppingBag },
 ];
 
-export function AdminSidebar() {
+interface Props {
+  onLogout: () => void;
+}
+
+export function AdminSidebar({ onLogout }: Props) {
   const location = useLocation();
 
   return (
-    <aside className="w-60 shrink-0 h-screen sticky top-0 bg-slate-900 flex flex-col">
+    <aside className="w-60 shrink-0 h-full bg-slate-900 flex flex-col">
       {/* Logo */}
       <div className="px-5 py-5 border-b border-slate-700/60">
         <div className="flex items-center gap-2.5">
@@ -58,13 +62,13 @@ export function AdminSidebar() {
           <Store className="h-4 w-4 shrink-0" />
           Ver tienda
         </Link>
-        <Link
-          to="/admin/login"
-          className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-red-400 hover:bg-slate-800 transition-colors"
+        <button
+          onClick={onLogout}
+          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-red-400 hover:bg-slate-800 transition-colors"
         >
           <LogOut className="h-4 w-4 shrink-0" />
           Cerrar sesión
-        </Link>
+        </button>
       </div>
     </aside>
   );

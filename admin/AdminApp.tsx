@@ -1,26 +1,33 @@
-// Admin entry point — Phase 0: solo routing + layout
-// Refine se incorpora en Phase 1 (auth) y Phase 2 (data hooks)
-import { Routes, Route } from 'react-router-dom';
-
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { useAdminAuth } from './hooks/useAdminAuth';
 import { AdminLayout } from './components/AdminLayout';
 import { DashboardPage } from './pages/DashboardPage';
 import { ProductListPage } from './pages/ProductListPage';
 import { OrderListPage } from './pages/OrderListPage';
 import { LoginPage } from './pages/LoginPage';
 
-// Rutas RELATIVAS — AdminApp se monta bajo /admin/* en main.tsx
-// React Router v6 resuelve desde el segmento padre, no desde la raíz
 export default function AdminApp() {
+  const auth = useAdminAuth();
+
   return (
     <Routes>
-      <Route path="login" element={<LoginPage />} />
+      <Route
+        path="login"
+        element={
+          auth.isAuthenticated ? <Navigate to="/admin" replace /> : <LoginPage auth={auth} />
+        }
+      />
 
-      {/* Layout compartido */}
-      <Route element={<AdminLayout />}>
-        <Route index element={<DashboardPage />} />
-        <Route path="products" element={<ProductListPage />} />
-        <Route path="orders" element={<OrderListPage />} />
-      </Route>
+      {/* Rutas protegidas */}
+      {auth.isAuthenticated ? (
+        <Route element={<AdminLayout auth={auth} />}>
+          <Route index element={<DashboardPage />} />
+          <Route path="products" element={<ProductListPage />} />
+          <Route path="orders" element={<OrderListPage />} />
+        </Route>
+      ) : (
+        <Route path="*" element={<Navigate to="/admin/login" replace />} />
+      )}
     </Routes>
   );
 }
