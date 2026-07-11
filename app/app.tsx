@@ -214,7 +214,12 @@ function App() {
   return (
     <div className="min-h-screen">
       {/* Header */}
-      <header className="bg-brand-surface/80 backdrop-blur-md shadow-sm border-b border-brand-secondary/20 sticky top-0 z-50">
+      <motion.header
+        className="bg-brand-surface/80 backdrop-blur-md shadow-sm border-b border-brand-secondary/20 sticky top-0 z-50"
+        initial={{ y: -72, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ type: 'spring', bounce: 0.3, duration: 0.6 }}
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
@@ -242,16 +247,25 @@ function App() {
                 onClick={() => setCartOpen(true)}
               >
                 <ShoppingCart className="h-5 w-5" />
-                {cart.totalItems > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 bg-brand-primary text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                    {cart.totalItems > 9 ? '9+' : cart.totalItems}
-                  </span>
-                )}
+                <AnimatePresence>
+                  {cart.totalItems > 0 && (
+                    <motion.span
+                      key={cart.totalItems}
+                      initial={{ scale: 0, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      exit={{ scale: 0, opacity: 0 }}
+                      transition={{ type: 'spring', bounce: 0.6, duration: 0.3 }}
+                      className="absolute -top-1.5 -right-1.5 bg-brand-primary text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center"
+                    >
+                      {cart.totalItems > 9 ? '9+' : cart.totalItems}
+                    </motion.span>
+                  )}
+                </AnimatePresence>
               </Button>
             </div>
           </div>
         </div>
-      </header>
+      </motion.header>
 
       {/* Hero banner
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-6"></div>*/}
@@ -279,7 +293,12 @@ function App() {
         )}
 
         {!loadingProducts && !errorProducts && allProducts.length === 0 && (
-          <div className="bg-brand-surface/80 backdrop-blur-sm border-2 border-brand-secondary/20 rounded-2xl p-12 text-center shadow-lg">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ type: 'spring', bounce: 0.3 }}
+            className="bg-brand-surface/80 backdrop-blur-sm border-2 border-brand-secondary/20 rounded-2xl p-12 text-center shadow-lg"
+          >
             <div className="inline-flex items-center justify-center w-20 h-20 bg-brand-secondary/10 rounded-full mb-6">
               <ShoppingBag className="h-10 w-10 text-brand-secondary" />
             </div>
@@ -289,7 +308,7 @@ function App() {
             <p className="text-devs-text/70">
               Pronto tendré nuevas creaciones disponibles. ¡Vuelve pronto!
             </p>
-          </div>
+          </motion.div>
         )}
 
         {!loadingProducts && allProducts.length > 0 && (
@@ -349,9 +368,15 @@ function App() {
             </div>
 
             <div className="flex items-center justify-between mb-6">
-              <h2 className="font-mono text-2xl font-bold text-devs-text">
+              <motion.h2
+                key={selectedCategory ?? 'all'}
+                className="font-mono text-2xl font-bold text-devs-text"
+                initial={{ opacity: 0, x: -12 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ type: 'spring', bounce: 0.2, duration: 0.35 }}
+              >
                 {selectedCategory ? `Productos: ${selectedCategory}` : 'Todos los Productos'}
-              </h2>
+              </motion.h2>
               <div className="text-right">
                 <p className="text-sm text-brand-secondary font-medium">
                   {availableCount} producto{availableCount === 1 ? '' : 's'} disponible
@@ -364,7 +389,12 @@ function App() {
             </div>
 
             {filteredProducts.length === 0 ? (
-              <div className="bg-brand-surface/80 backdrop-blur-sm border-2 border-brand-secondary/20 rounded-2xl p-12 text-center shadow-lg">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ type: 'spring', bounce: 0.3 }}
+                className="bg-brand-surface/80 backdrop-blur-sm border-2 border-brand-secondary/20 rounded-2xl p-12 text-center shadow-lg"
+              >
                 <div className="inline-flex items-center justify-center w-20 h-20 bg-brand-secondary/10 rounded-full mb-6">
                   <ShoppingBag className="h-10 w-10 text-brand-secondary" />
                 </div>
@@ -380,7 +410,7 @@ function App() {
                 >
                   Ver Todos los Productos
                 </Button>
-              </div>
+              </motion.div>
             ) : (
               <motion.div
                 className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8"

@@ -60,14 +60,17 @@ export function ProductCard({
 
             {/* Badge oferta */}
             {on_sale && (
-              <motion.div
-                initial={{ scale: 0, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ type: 'spring', bounce: 0.5, delay: 0.1 }}
-                className="absolute top-3 -left-6 -rotate-45 z-20 px-6 bg-amber-400 text-amber-900 text-xs font-bold px-2.5 py-1 shadow-md tracking-wide uppercase flex items-center gap-1"
-              >
-                <span className="absolute left-8 top-10 rotate-45 text-[48px]">💸</span> Oferta
-              </motion.div>
+              <div className="absolute top-3 -left-6 -rotate-45 z-20 px-6 bg-amber-400 text-amber-900 text-xs font-bold px-2.5 py-1 shadow-md tracking-wide uppercase flex items-center gap-1">
+                <motion.span
+                  initial={{ scale: 0, opacity: 0, rotate: 45 }}
+                  animate={{ scale: 1, opacity: 1, rotate: 45 }}
+                  transition={{ type: 'spring', bounce: 0.5, delay: 0.1 }}
+                  className="absolute left-8 top-10 rotate-45 text-[48px]"
+                >
+                  💸
+                </motion.span>
+                Oferta
+              </div>
             )}
 
             {/* Sold indicator */}
@@ -117,34 +120,35 @@ export function ProductCard({
             <p className="text-sm text-devs-text/70 mb-4 line-clamp-4 min-h-[4.5rem]">
               {description}
             </p>
-            <div className="flex items-end justify-between">
-              <div>
-                {on_sale && sale_price ? (
-                  <>
-                    <p className="text-xs text-devs-muted line-through leading-none mb-0.5">
+            <div>
+              {on_sale && sale_price ? (
+                <>
+                  <p className="flex align-middle gap-2 mb-1">
+                    <span className="text-xs text-brand-secondary font-medium">Precio</span>
+                    <span className="text-xs text-devs-muted line-through">
                       {formatPrice(price)}
-                    </p>
-                    <p className="text-3xl font-bold text-brand-primary leading-none">
-                      {formatPrice(sale_price)}
-                    </p>
-                    <p className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-bold bg-amber-400 text-amber-900 px-2 py-0.5 rounded-full">
+                    </span>
+                  </p>
+                  <p className="flex align-middle justify-between text-3xl font-bold text-brand-primary leading-none">
+                    <span>{formatPrice(sale_price)}</span>
+                    <span className="h-6 inline-flex items-center gap-1 text-[11px] font-bold bg-amber-300 text-black px-2 py-0.5 rounded-full">
                       💰 Ahorras {formatPrice(price - sale_price)}
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-xs text-brand-secondary font-medium mb-1">Precio</p>
-                    <p className="text-3xl font-bold bg-gradient-to-r from-brand-primary to-brand-secondary bg-clip-text text-transparent">
-                      {formatPrice(price)}
-                    </p>
-                  </>
-                )}
-              </div>
+                    </span>
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-xs text-brand-secondary font-medium mb-1">Precio</p>
+                  <p className="text-3xl font-bold bg-gradient-to-r from-brand-primary to-brand-secondary bg-clip-text text-transparent">
+                    {formatPrice(price)}
+                  </p>
+                </>
+              )}
             </div>
           </div>
         </CardContent>
 
-        <CardFooter className="p-5 pt-0 flex flex-col gap-3">
+        <CardFooter className="p-5 pt-0 flex flex-col gap-5">
           {!isSold && (
             <div className="flex items-center justify-between w-full bg-brand-surface p-2 rounded-lg border border-brand-secondary/10">
               <span className="text-sm font-medium text-devs-text/70">Cantidad:</span>
