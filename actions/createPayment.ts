@@ -4,7 +4,8 @@ export interface CartItem {
   productId: string;
   productName: string;
   quantity: number;
-  unitPrice: number;
+  unitPrice: number; // precio efectivo (sale_price si hay oferta)
+  originalPrice: number; // precio base siempre (para mostrar descuento en emails)
 }
 
 export interface CustomerData {

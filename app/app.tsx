@@ -171,11 +171,13 @@ function App() {
           productId: i.product.id,
           productName: i.product.fields.name,
           quantity: i.quantity,
-          // Usa sale_price cuando el producto está en oferta
+          // precio efectivo: sale_price cuando está en oferta
           unitPrice:
             i.product.fields.on_sale && i.product.fields.sale_price != null
               ? i.product.fields.sale_price
               : i.product.fields.price,
+          // precio original siempre (para mostrar descuento en emails)
+          originalPrice: i.product.fields.price,
         })),
         customer,
       );

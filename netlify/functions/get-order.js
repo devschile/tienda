@@ -47,7 +47,7 @@ exports.handler = async (event) => {
     }
 
     const items = await sql`
-      SELECT product_id, product_name, quantity, unit_price, subtotal
+      SELECT product_id, product_name, quantity, unit_price, subtotal, original_unit_price
       FROM order_items
       WHERE order_id = ${orderId}
       ORDER BY created_at
@@ -58,30 +58,30 @@ exports.handler = async (event) => {
       headers,
       body: JSON.stringify({
         order: {
-          id:           order.id,
-          status:       order.status,
+          id: order.id,
+          status: order.status,
           total_amount: order.total_amount,
           customer: {
             name: order.customer_name,
           },
           shipping: {
-            city:   order.shipping_city,
+            city: order.shipping_city,
             region: order.shipping_region,
           },
           items: items.map((i) => ({
-            product_id:   i.product_id,
+            product_id: i.product_id,
             product_name: i.product_name,
-            quantity:     i.quantity,
-            unit_price:   i.unit_price,
-            subtotal:     i.subtotal,
+            quantity: i.quantity,
+            unit_price: i.unit_price,
+            original_unit_price: i.original_unit_price,
+            subtotal: i.subtotal,
           })),
           mp_payment_id: order.mp_payment_id,
-          created_at:    order.created_at,
-          updated_at:    order.updated_at,
+          created_at: order.created_at,
+          updated_at: order.updated_at,
         },
       }),
     };
-
   } catch (error) {
     console.error('get-order error:', error.message);
     return {

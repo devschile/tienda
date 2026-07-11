@@ -23,16 +23,18 @@ const toastVariants = cva(
   [
     // Base
     'group pointer-events-auto relative flex w-full items-start gap-3',
-    'overflow-hidden rounded-xl border shadow-lg',
+    'overflow-hidden rounded-xl border shadow-xl',
     'pl-4 pr-10 py-4',
     // Swipe to dismiss
     'data-[swipe=cancel]:translate-x-0',
     'data-[swipe=end]:translate-x-[var(--radix-toast-swipe-end-x)]',
     'data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=move]:transition-none',
-    // Animations
-    'transition-all duration-300',
-    'data-[state=open]:animate-in data-[state=open]:slide-in-from-bottom-4 data-[state=open]:fade-in-0',
-    'data-[state=closed]:animate-out data-[state=closed]:slide-out-to-right-4 data-[state=closed]:fade-out-0',
+    // Animaciones — spring easing, más recorrido, más suave
+    'transition-all duration-350',
+    'data-[state=open]:animate-in data-[state=open]:slide-in-from-bottom-6 data-[state=open]:fade-in-0',
+    'data-[state=open]:ease-[cubic-bezier(0.16,1,0.3,1)]',
+    'data-[state=closed]:animate-out data-[state=closed]:slide-out-to-right-6 data-[state=closed]:fade-out-0',
+    'data-[state=closed]:ease-in data-[state=closed]:duration-200',
   ].join(' '),
   {
     variants: {

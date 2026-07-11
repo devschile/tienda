@@ -133,7 +133,7 @@ export function ProductCard({
                   </p>
                   <p className="flex align-middle justify-between text-3xl font-bold text-brand-primary leading-none">
                     <span>{formatPrice(sale_price)}</span>
-                    <span className="h-6 inline-flex items-center gap-1 text-[11px] font-bold bg-amber-300 text-black px-2 py-0.5 rounded-full">
+                    <span className="h-6 inline-flex items-center gap-1 text-[12px] font-bold bg-amber-300 text-black px-2 py-0.5 rounded-full">
                       💰 Ahorras {formatPrice(price - sale_price)}
                     </span>
                   </p>
