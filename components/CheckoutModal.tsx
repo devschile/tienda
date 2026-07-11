@@ -42,7 +42,7 @@ function BrandCheckbox({
           checked={checked}
           onChange={(e) => onChange(e.target.checked)}
         />
-        <div className="w-5 h-5 rounded-md border-2 border-brand-secondary/30 bg-white peer-checked:bg-brand-primary peer-checked:border-brand-primary transition-all duration-150 group-hover:border-brand-primary/60" />
+        <div className="w-5 h-5 rounded-md border-2 border-brand-secondary/30 bg-white peer-checked:bg-green-600 peer-checked:border-green-700 transition-all duration-150 group-hover:green-600" />
         <Check className="absolute inset-0 m-auto h-3 w-3 text-white opacity-0 peer-checked:opacity-100 transition-opacity duration-150 pointer-events-none" />
       </div>
       <div>
@@ -334,7 +334,7 @@ export function CheckoutModal({
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full h-12 text-base bg-brand-primary hover:bg-brand-secondary text-white font-semibold rounded-xl shadow-lg transition-all active:scale-[0.98]"
+                className="w-full h-12 text-base font-semibold rounded-xl transition-all active:scale-[0.98] btn-buy btn-glow"
               >
                 {loading ? (
                   <>

@@ -72,7 +72,7 @@ export function CartDrawer({
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0, opacity: 0 }}
                             transition={{ type: 'spring', bounce: 0.6, duration: 0.3 }}
-                            className="ml-1 bg-brand-primary text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center"
+                            className="ml-1 bg-green-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center"
                           >
                             {items.length}
                           </motion.span>
@@ -199,7 +199,7 @@ export function CartDrawer({
                           </motion.span>
                         </div>
                         <Button
-                          className="w-full h-12 text-base font-bold tracking-wide bg-brand-primary hover:bg-brand-secondary text-white rounded-xl transition-all duration-200 active:scale-[0.98] hover:scale-[1.02] btn-glow"
+                          className="w-full h-12 text-base font-bold tracking-wide btn-buy btn-glow"
                           onClick={onCheckout}
                         >
                           <span className="text-xl mr-1">💳</span> Pagar Ahora

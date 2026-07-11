@@ -10,11 +10,15 @@ export default {
     extend: {
       colors: {
         brand: {
-          primary: '#b45b38', // Terracota del logo (Botones, CTAs)
-          secondary: '#85422b', // Café oscuro (Títulos, Bordes)
-          accent: '#d4a373', // Café claro (Detalles, Hovers)
-          background: '#fdfaf8', // Crema muy claro (Fondo general)
-          surface: '#f5ece4', // Arena suave (Cards, Secciones)
+          primary: '#b45b38',
+          secondary: '#85422b',
+          accent: '#d4a373',
+          background: '#fdfaf8',
+          surface: '#f5ece4',
+          // Verde oliva/ocre — color exclusivo de botones de compra
+          cta: '#6b7c33',
+          'cta-to': '#8c9e44',
+          'cta-hover': '#59692b',
         },
         devs: {
           text: '#2d1a12', // Café casi negro para legibilidad
