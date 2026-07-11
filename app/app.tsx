@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Info, Loader2, ShoppingBag, ShoppingCart } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Info, ShoppingBag, ShoppingCart } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { ProductCard } from '@/components/ProductCard';
@@ -16,6 +17,21 @@ import { useCart } from '@/hooks/useCart';
 import { CartDrawer } from '@/components/CartDrawer';
 import { CheckoutModal } from '@/components/CheckoutModal';
 import { DevTools } from '@/components/DevTools';
+
+function ProductCardSkeleton() {
+  return (
+    <div className="bg-brand-surface/90 rounded-2xl overflow-hidden">
+      <div className="aspect-square bg-brand-secondary/10 animate-pulse" />
+      <div className="p-5 space-y-3">
+        <div className="h-3 w-16 bg-brand-secondary/10 rounded-full animate-pulse" />
+        <div className="h-5 w-full bg-brand-secondary/10 rounded animate-pulse" />
+        <div className="h-5 w-2/3 bg-brand-secondary/10 rounded animate-pulse" />
+        <div className="h-4 w-full bg-brand-secondary/10 rounded animate-pulse mt-4" />
+        <div className="h-10 w-full bg-brand-secondary/10 rounded-xl animate-pulse mt-2" />
+      </div>
+    </div>
+  );
+}
 
 function App() {
   const { toast } = useToast();
@@ -243,9 +259,10 @@ function App() {
       {/* Main Content */}
       <main className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-16">
         {loadingProducts && (
-          <div className="flex flex-col justify-center items-center min-h-[400px]">
-            <Loader2 className="h-16 w-16 animate-spin text-brand-secondary/60 mb-4" />
-            <p className="text-brand-secondary font-medium">Cargando productos mágicos...</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <ProductCardSkeleton key={i} />
+            ))}
           </div>
         )}
 
@@ -278,31 +295,52 @@ function App() {
         {!loadingProducts && allProducts.length > 0 && (
           <>
             <div className="flex flex-wrap items-center gap-2 mb-8 mt-4">
-              <Button
-                variant={selectedCategory === null ? 'default' : 'outline'}
-                size="sm"
-                className={`rounded-full shadow-sm transition-all duration-300 ${selectedCategory === null ? 'bg-gradient-to-r from-brand-primary to-brand-secondary text-white border-transparent' : 'text-devs-text border-brand-secondary/30 bg-brand-surface hover:bg-brand-accent/20'}`}
+              {/* Pill "Todos" */}
+              <button
                 onClick={() => handleCategoryChange(null)}
+                className={`relative rounded-full px-4 py-1.5 text-sm font-medium transition-colors duration-150 shadow-sm ${
+                  selectedCategory === null
+                    ? 'text-white'
+                    : 'text-devs-text border border-brand-secondary/30 bg-brand-surface hover:bg-brand-accent/20'
+                }`}
               >
-                Todos
-              </Button>
+                {selectedCategory === null && (
+                  <motion.span
+                    layoutId="category-active-bg"
+                    className="absolute inset-0 rounded-full bg-gradient-to-r from-brand-primary to-brand-secondary"
+                    transition={{ type: 'spring', bounce: 0.2, duration: 0.4 }}
+                  />
+                )}
+                <span className="relative z-10">Todos</span>
+              </button>
+
               {uniqueCategories.map((category) => (
-                <Button
+                <button
                   key={category}
-                  variant={selectedCategory === category ? 'default' : 'outline'}
-                  size="sm"
-                  className={`rounded-full shadow-sm transition-all duration-300 ${selectedCategory === category ? 'bg-gradient-to-r from-brand-primary to-brand-secondary text-white border-transparent' : 'text-devs-text border-brand-secondary/30 bg-brand-surface hover:bg-brand-accent/20'}`}
                   onClick={() => handleCategoryChange(category as string)}
+                  className={`relative rounded-full px-4 py-1.5 text-sm font-medium transition-colors duration-150 shadow-sm ${
+                    selectedCategory === category
+                      ? 'text-white'
+                      : 'text-devs-text border border-brand-secondary/30 bg-brand-surface hover:bg-brand-accent/20'
+                  }`}
                 >
-                  {category}
-                </Button>
+                  {selectedCategory === category && (
+                    <motion.span
+                      layoutId="category-active-bg"
+                      className="absolute inset-0 rounded-full bg-gradient-to-r from-brand-primary to-brand-secondary"
+                      transition={{ type: 'spring', bounce: 0.2, duration: 0.4 }}
+                    />
+                  )}
+                  <span className="relative z-10">{category}</span>
+                </button>
               ))}
+
               <select
                 value={sortOrder}
                 onChange={(e) =>
                   setSortOrder(e.target.value as 'default' | 'price-asc' | 'price-desc')
                 }
-                className="ml-auto rounded-full shadow-sm border border-brand-secondary/30 bg-brand-surface text-devs-text text-sm px-3 py-1.5 outline-none focus:border-brand-secondary/50 focus:ring-2 focus:ring-brand-secondary/20 transition-all cursor-pointer"
+                className="ml-auto rounded-full shadow-sm border border-brand-secondary/30 bg-white text-devs-text text-sm px-3 py-1.5 outline-none focus:border-brand-secondary/50 focus:ring-2 focus:ring-brand-secondary/20 transition-all cursor-pointer"
               >
                 <option value="default">Ordenar por</option>
                 <option value="price-asc">Precio: menor a mayor</option>
@@ -344,17 +382,30 @@ function App() {
                 </Button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-                {filteredProducts.map((product) => (
-                  <ProductCard
-                    key={product.id}
-                    product={product}
-                    onImageClick={handleImageClick}
-                    onBuyClick={handleBuyClick}
-                    onCategoryClick={handleCategoryChange}
-                  />
-                ))}
-              </div>
+              <motion.div
+                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8"
+                layout
+              >
+                <AnimatePresence mode="popLayout">
+                  {filteredProducts.map((product) => (
+                    <motion.div
+                      key={product.id}
+                      layout
+                      initial={{ opacity: 0, scale: 0.94, y: 20 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.94, y: -10 }}
+                      transition={{ type: 'spring', bounce: 0.25, duration: 0.45 }}
+                    >
+                      <ProductCard
+                        product={product}
+                        onImageClick={handleImageClick}
+                        onBuyClick={handleBuyClick}
+                        onCategoryClick={handleCategoryChange}
+                      />
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </motion.div>
             )}
           </>
         )}

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Dialog, DialogContent, DialogTitle, DialogHeader } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Loader2, Check } from 'lucide-react';
@@ -182,87 +183,101 @@ export function CheckoutModal({
             />
 
             {/* Campos de envío — visibles solo si wantsDelivery */}
-            {form.wantsDelivery && (
-              <div className="space-y-4 pt-1">
-                {/* Dirección */}
-                <div>
-                  <label className="block text-sm font-medium text-devs-text mb-1.5">
-                    Dirección <span className="text-brand-primary">*</span>
-                  </label>
-                  <input
-                    className={inputClass('address')}
-                    value={form.address ?? ''}
-                    onChange={set('address')}
-                    placeholder="Av. Providencia 1234, Depto 5B"
-                    autoComplete="street-address"
-                  />
-                  {errors.address && <p className="text-xs text-red-500 mt-1">{errors.address}</p>}
-                </div>
-
-                {/* Región / Comuna — side by side en desktop, stacked en mobile */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <AnimatePresence initial={false}>
+              {form.wantsDelivery && (
+                <motion.div
+                  key="delivery-fields"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ type: 'spring', bounce: 0, duration: 0.35 }}
+                  style={{ overflow: 'hidden' }}
+                  className="space-y-4 pt-1"
+                >
+                  {/* Dirección */}
                   <div>
                     <label className="block text-sm font-medium text-devs-text mb-1.5">
-                      Región <span className="text-brand-primary">*</span>
+                      Dirección <span className="text-brand-primary">*</span>
                     </label>
-                    <select
-                      className={inputClass('region')}
-                      value={form.region ?? ''}
-                      onChange={set('region')}
-                    >
-                      <option value="">Selecciona región</option>
-                      {REGIONES_COMUNAS.map((r) => (
-                        <option key={r.abbreviation} value={r.name}>
-                          {r.romanNumber} — {r.name}
-                        </option>
-                      ))}
-                    </select>
-                    {errors.region && <p className="text-xs text-red-500 mt-1">{errors.region}</p>}
+                    <input
+                      className={inputClass('address')}
+                      value={form.address ?? ''}
+                      onChange={set('address')}
+                      placeholder="Av. Providencia 1234, Depto 5B"
+                      autoComplete="street-address"
+                    />
+                    {errors.address && (
+                      <p className="text-xs text-red-500 mt-1">{errors.address}</p>
+                    )}
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-devs-text mb-1.5">
-                      Comuna <span className="text-brand-primary">*</span>
-                    </label>
-                    {comunas.length === 0 ? (
-                      <select className={disabledSelectClass} disabled>
-                        <option>Selecciona comuna</option>
-                      </select>
-                    ) : (
+                  {/* Región / Comuna — side by side en desktop, stacked en mobile */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-devs-text mb-1.5">
+                        Región <span className="text-brand-primary">*</span>
+                      </label>
                       <select
-                        className={inputClass('city')}
-                        value={form.city ?? ''}
-                        onChange={set('city')}
+                        className={inputClass('region')}
+                        value={form.region ?? ''}
+                        onChange={set('region')}
                       >
-                        <option value="">Selecciona comuna</option>
-                        {comunas.map((c) => (
-                          <option key={c} value={c}>
-                            {c}
+                        <option value="">Selecciona región</option>
+                        {REGIONES_COMUNAS.map((r) => (
+                          <option key={r.abbreviation} value={r.name}>
+                            {r.romanNumber} — {r.name}
                           </option>
                         ))}
                       </select>
-                    )}
-                    {errors.city && <p className="text-xs text-red-500 mt-1">{errors.city}</p>}
-                  </div>
-                </div>
+                      {errors.region && (
+                        <p className="text-xs text-red-500 mt-1">{errors.region}</p>
+                      )}
+                    </div>
 
-                {/* Código postal */}
-                <div>
-                  <label className="block text-sm font-medium text-devs-text mb-1.5">
-                    Código postal{' '}
-                    <span className="text-devs-muted font-normal text-xs">(opcional)</span>
-                  </label>
-                  <input
-                    className={inputClass('zip')}
-                    value={form.zip ?? ''}
-                    onChange={set('zip')}
-                    placeholder="7500000"
-                    maxLength={7}
-                    autoComplete="postal-code"
-                  />
-                </div>
-              </div>
-            )}
+                    <div>
+                      <label className="block text-sm font-medium text-devs-text mb-1.5">
+                        Comuna <span className="text-brand-primary">*</span>
+                      </label>
+                      {comunas.length === 0 ? (
+                        <select className={disabledSelectClass} disabled>
+                          <option>Selecciona comuna</option>
+                        </select>
+                      ) : (
+                        <select
+                          className={inputClass('city')}
+                          value={form.city ?? ''}
+                          onChange={set('city')}
+                        >
+                          <option value="">Selecciona comuna</option>
+                          {comunas.map((c) => (
+                            <option key={c} value={c}>
+                              {c}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                      {errors.city && <p className="text-xs text-red-500 mt-1">{errors.city}</p>}
+                    </div>
+                  </div>
+
+                  {/* Código postal */}
+                  <div>
+                    <label className="block text-sm font-medium text-devs-text mb-1.5">
+                      Código postal{' '}
+                      <span className="text-devs-muted font-normal text-xs">(opcional)</span>
+                    </label>
+                    <input
+                      className={inputClass('zip')}
+                      value={form.zip ?? ''}
+                      onChange={set('zip')}
+                      placeholder="7500000"
+                      maxLength={7}
+                      autoComplete="postal-code"
+                    />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           {/* Checkbox: newsletter */}
