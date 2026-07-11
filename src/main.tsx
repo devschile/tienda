@@ -9,6 +9,7 @@ const SuccessPage = lazy(() => import('./pages/SuccessPage'));
 const FailurePage = lazy(() => import('./pages/FailurePage'));
 const PendingPage = lazy(() => import('./pages/PendingPage'));
 const TerminosPage = lazy(() => import('./pages/TerminosPage'));
+const AdminApp = lazy(() => import('../admin/AdminApp'));
 
 const Loading = () => (
   <div className="min-h-screen flex items-center justify-center bg-brand-background">
@@ -25,6 +26,8 @@ function AnimatedRoutes() {
       <Route path="/failure" element={<FailurePage />} />
       <Route path="/pending" element={<PendingPage />} />
       <Route path="/terminos" element={<TerminosPage />} />
+      {/* Admin — lazy-loaded, código completamente separado de la tienda */}
+      <Route path="/admin/*" element={<AdminApp />} />
     </Routes>
   );
 }

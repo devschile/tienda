@@ -40,5 +40,11 @@
 
 [[redirects]]
   from = "/*"
-  to = "/index.html"
+  to   = "/index.html"
+  status = 200
+
+# Admin API — enruta /admin-api/* a la función router CRUD
+[[redirects]]
+  from = "/admin-api/*"
+  to   = "/.netlify/functions/admin-api/:splat"
   status = 200
