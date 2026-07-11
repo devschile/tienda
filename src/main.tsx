@@ -1,6 +1,6 @@
 import { StrictMode, lazy, Suspense } from 'react';
 import { createRoot } from 'react-dom/client';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import './index.css';
 
@@ -16,17 +16,24 @@ const Loading = () => (
   </div>
 );
 
+function AnimatedRoutes() {
+  const location = useLocation();
+  return (
+    <Routes location={location}>
+      <Route path="/" element={<App />} />
+      <Route path="/success" element={<SuccessPage />} />
+      <Route path="/failure" element={<FailurePage />} />
+      <Route path="/pending" element={<PendingPage />} />
+      <Route path="/terminos" element={<TerminosPage />} />
+    </Routes>
+  );
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
       <Suspense fallback={<Loading />}>
-        <Routes>
-          <Route path="/" element={<App />} />
-          <Route path="/success" element={<SuccessPage />} />
-          <Route path="/failure" element={<FailurePage />} />
-          <Route path="/pending" element={<PendingPage />} />
-          <Route path="/terminos" element={<TerminosPage />} />
-        </Routes>
+        <AnimatedRoutes />
       </Suspense>
     </BrowserRouter>
   </StrictMode>,

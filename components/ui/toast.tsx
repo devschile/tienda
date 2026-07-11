@@ -23,25 +23,27 @@ const toastVariants = cva(
   [
     // Base
     'group pointer-events-auto relative flex w-full items-start gap-3',
-    'overflow-hidden rounded-xl border shadow-lg',
+    'overflow-hidden rounded-xl border shadow-xl',
     'pl-4 pr-10 py-4',
     // Swipe to dismiss
     'data-[swipe=cancel]:translate-x-0',
     'data-[swipe=end]:translate-x-[var(--radix-toast-swipe-end-x)]',
     'data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=move]:transition-none',
-    // Animations
-    'transition-all duration-300',
-    'data-[state=open]:animate-in data-[state=open]:slide-in-from-bottom-4 data-[state=open]:fade-in-0',
-    'data-[state=closed]:animate-out data-[state=closed]:slide-out-to-right-4 data-[state=closed]:fade-out-0',
+    // Animaciones — spring easing, más recorrido, más suave
+    'transition-all duration-350',
+    'data-[state=open]:animate-in data-[state=open]:slide-in-from-bottom-6 data-[state=open]:fade-in-0',
+    'data-[state=open]:ease-[cubic-bezier(0.16,1,0.3,1)]',
+    'data-[state=closed]:animate-out data-[state=closed]:slide-out-to-right-6 data-[state=closed]:fade-out-0',
+    'data-[state=closed]:ease-in data-[state=closed]:duration-200',
   ].join(' '),
   {
     variants: {
       variant: {
         default: [
-          'bg-white border-brand-secondary/15',
+          'bg-white/10 border-brand-secondary/15 backdrop-blur-md',
           // Barra de acento izquierda
           'before:absolute before:left-0 before:top-0 before:h-full before:w-1',
-          'before:bg-gradient-to-b before:from-brand-primary before:to-brand-secondary',
+          'before:bg-green-500',
           'before:rounded-l-xl',
         ].join(' '),
         destructive: [
@@ -91,7 +93,7 @@ const ToastClose = React.forwardRef<
     ref={ref}
     className={cn(
       'absolute right-2 top-2 rounded-md p-1',
-      'text-devs-muted/50 opacity-0 transition-opacity',
+      'text-white opacity-0 transition-opacity',
       'hover:text-devs-text focus:opacity-100 focus:outline-none',
       'group-hover:opacity-100',
       'group-[.destructive]:text-red-400 group-[.destructive]:hover:text-red-600',
@@ -112,7 +114,7 @@ const ToastTitle = React.forwardRef<
   <ToastPrimitives.Title
     ref={ref}
     className={cn(
-      'font-mono text-sm font-bold leading-snug text-devs-text',
+      'font-mono text-sm font-semibold leading-snug text-white',
       'group-[.destructive]:text-red-700',
       className,
     )}
@@ -128,7 +130,7 @@ const ToastDescription = React.forwardRef<
   <ToastPrimitives.Description
     ref={ref}
     className={cn(
-      'text-xs text-devs-muted leading-relaxed mt-0.5',
+      'text-xs text-white/60 leading-relaxed mt-0.5',
       'group-[.destructive]:text-red-600',
       className,
     )}

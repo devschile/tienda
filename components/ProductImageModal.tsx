@@ -3,6 +3,7 @@
 // Mobile: columna única apilada.
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { useState, useEffect } from 'react';
+import { motion } from 'motion/react';
 import type { ProductRecord } from '@/types/products';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { MarkdownText } from '@/components/MarkdownText';
@@ -86,12 +87,22 @@ export function ProductImageModal({ product, open, onOpenChange }: ProductImageM
           {/* Imagen */}
           <div className="relative overflow-hidden select-none flex-1">
             <div className="aspect-square w-full">
-              <img
-                key={currentIndex}
-                src={currentImage?.url || '/assets/images/default.svg'}
-                alt={`${product.fields.name} — imagen ${currentIndex + 1} de ${images.length}`}
-                className={`w-full h-full object-cover ${direction === 'next' ? 'animate-slide-next' : 'animate-slide-prev'}`}
-              />
+              {currentIndex === 0 ? (
+                <motion.img
+                  layoutId={`product-cover-${product.id}`}
+                  src={currentImage?.url || '/assets/images/default.svg'}
+                  alt={`${product.fields.name} — imagen 1`}
+                  className="w-full h-full object-cover"
+                  transition={{ type: 'spring', bounce: 0.15, duration: 0.45 }}
+                />
+              ) : (
+                <motion.img
+                  key={currentIndex}
+                  src={currentImage?.url || '/assets/images/default.svg'}
+                  alt={`${product.fields.name} — imagen ${currentIndex + 1}`}
+                  className={`w-full h-full object-cover ${direction === 'next' ? 'animate-slide-next' : 'animate-slide-prev'}`}
+                />
+              )}
             </div>
 
             {/* Badge oferta */}

@@ -58,7 +58,12 @@ export function useCart() {
   const clearCart = useCallback(() => setItems([]), []);
 
   const totalItems = items.reduce((sum, i) => sum + i.quantity, 0);
-  const totalAmount = items.reduce((sum, i) => sum + i.product.fields.price * i.quantity, 0);
+  // Usa sale_price cuando el producto está en oferta
+  const effectivePrice = (item: CartItem) =>
+    item.product.fields.on_sale && item.product.fields.sale_price != null
+      ? item.product.fields.sale_price
+      : item.product.fields.price;
+  const totalAmount = items.reduce((sum, i) => sum + effectivePrice(i) * i.quantity, 0);
   const isEmpty = items.length === 0;
 
   return {

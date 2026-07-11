@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { motion } from 'motion/react';
 import { Loader2, CheckCircle2, XCircle, Clock, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import getOrder, { type Order, type OrderStatus } from '@/actions/getOrder';
@@ -125,12 +126,21 @@ export function OrderConfirmation({ urlStatus }: OrderConfirmationProps) {
       </header>
 
       <main className="flex-1 flex items-center justify-center p-6">
-        <div className="w-full max-w-md bg-white rounded-2xl shadow-lg border border-brand-secondary/10 overflow-hidden">
+        <motion.div
+          className="w-full max-w-md bg-white rounded-2xl shadow-lg border border-brand-secondary/10 overflow-hidden"
+          initial={{ opacity: 0, y: 40, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ type: 'spring', bounce: 0.3, duration: 0.6 }}
+        >
           {loading ? (
-            <div className="p-12 flex flex-col items-center gap-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="p-12 flex flex-col items-center gap-4"
+            >
               <Loader2 className="h-12 w-12 text-brand-primary animate-spin" />
               <p className="text-devs-muted font-medium">Verificando tu pago...</p>
-            </div>
+            </motion.div>
           ) : error || !orderId ? (
             <div className="p-10 flex flex-col items-center gap-4 text-center">
               <ShoppingBag className="h-12 w-12 text-devs-muted" />
@@ -205,7 +215,7 @@ export function OrderConfirmation({ urlStatus }: OrderConfirmationProps) {
               </div>
             </>
           )}
-        </div>
+        </motion.div>
       </main>
     </div>
   );

@@ -68,12 +68,22 @@ function itemsTable(items, nameKey = 'productName') {
   const rows = items
     .map((item) => {
       const name = item[nameKey] || item.productName || item.product_name || '';
-      const subtotal = item.subtotal || (item.unitPrice || item.unit_price) * item.quantity;
+      const paid = item.unit_price || item.unitPrice || 0;
+      const original = item.original_unit_price || item.originalPrice || paid;
+      const subtotal = item.subtotal || paid * item.quantity;
+      const hasDiscount = original > paid;
+
+      const priceCell = hasDiscount
+        ? `<span style="text-decoration:line-through;color:#9ca3af;font-size:11px;display:block;">${formatPrice(original * item.quantity)}</span>
+         <span style="font-weight:700;color:#b45b38">${formatPrice(subtotal)}</span>
+         <span style="display:inline-block;background:#fbbf24;color:#92400e;font-size:10px;font-weight:700;padding:1px 5px;border-radius:20px;margin-left:2px;">⚡ Oferta</span>`
+        : `<span style="font-weight:700;">${formatPrice(subtotal)}</span>`;
+
       return `
       <tr>
         <td style="padding:10px 0;border-bottom:1px solid #f0ebe5;color:#2d1a12;font-size:14px;">${name}</td>
         <td style="padding:10px 0;border-bottom:1px solid #f0ebe5;color:#7a6b63;font-size:14px;text-align:center;white-space:nowrap;">×${item.quantity}</td>
-        <td style="padding:10px 0;border-bottom:1px solid #f0ebe5;color:#2d1a12;font-size:14px;text-align:right;font-weight:700;white-space:nowrap;">${formatPrice(subtotal)}</td>
+        <td style="padding:10px 0;border-bottom:1px solid #f0ebe5;color:#2d1a12;font-size:14px;text-align:right;white-space:nowrap;">${priceCell}</td>
       </tr>`;
     })
     .join('');

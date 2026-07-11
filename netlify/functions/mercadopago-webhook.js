@@ -195,7 +195,7 @@ exports.handler = async (event) => {
           FROM orders WHERE id = ${orderId}
         `;
         const orderItems = await sql`
-          SELECT product_name, quantity, unit_price, subtotal
+          SELECT product_name, quantity, unit_price, subtotal, original_unit_price
           FROM order_items WHERE order_id = ${orderId}
         `;
 

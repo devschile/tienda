@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Info, Loader2, ShoppingBag, ShoppingCart } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Info, ShoppingBag, ShoppingCart } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { ProductCard } from '@/components/ProductCard';
@@ -16,6 +17,21 @@ import { useCart } from '@/hooks/useCart';
 import { CartDrawer } from '@/components/CartDrawer';
 import { CheckoutModal } from '@/components/CheckoutModal';
 import { DevTools } from '@/components/DevTools';
+
+function ProductCardSkeleton() {
+  return (
+    <div className="bg-brand-surface/90 rounded-2xl overflow-hidden">
+      <div className="aspect-square bg-brand-secondary/10 animate-pulse" />
+      <div className="p-5 space-y-3">
+        <div className="h-3 w-16 bg-brand-secondary/10 rounded-full animate-pulse" />
+        <div className="h-5 w-full bg-brand-secondary/10 rounded animate-pulse" />
+        <div className="h-5 w-2/3 bg-brand-secondary/10 rounded animate-pulse" />
+        <div className="h-4 w-full bg-brand-secondary/10 rounded animate-pulse mt-4" />
+        <div className="h-10 w-full bg-brand-secondary/10 rounded-xl animate-pulse mt-2" />
+      </div>
+    </div>
+  );
+}
 
 function App() {
   const { toast } = useToast();
@@ -155,7 +171,13 @@ function App() {
           productId: i.product.id,
           productName: i.product.fields.name,
           quantity: i.quantity,
-          unitPrice: i.product.fields.price,
+          // precio efectivo: sale_price cuando está en oferta
+          unitPrice:
+            i.product.fields.on_sale && i.product.fields.sale_price != null
+              ? i.product.fields.sale_price
+              : i.product.fields.price,
+          // precio original siempre (para mostrar descuento en emails)
+          originalPrice: i.product.fields.price,
         })),
         customer,
       );
@@ -198,7 +220,12 @@ function App() {
   return (
     <div className="min-h-screen">
       {/* Header */}
-      <header className="bg-brand-surface/80 backdrop-blur-md shadow-sm border-b border-brand-secondary/20 sticky top-0 z-50">
+      <motion.header
+        className="bg-brand-surface/80 backdrop-blur-md shadow-sm border-b border-brand-secondary/20 sticky top-0 z-50"
+        initial={{ y: -72, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ type: 'spring', bounce: 0.3, duration: 0.6 }}
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
@@ -214,7 +241,7 @@ function App() {
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
-                className="gap-1 border-brand-secondary/30 text-brand-primary hover:bg-brand-secondary/5 hover:border-brand-secondary/50 transition-all shadow-sm"
+                className="bg-white/40 gap-1 border-brand-secondary/30 text-brand-primary hover:bg-brand-secondary/5 hover:border-brand-secondary/50 transition-all shadow-sm"
                 onClick={() => setInfoModalOpen(true)}
               >
                 <Info className="h-5 w-5 md:mr-2" />
@@ -222,20 +249,29 @@ function App() {
               </Button>
               <Button
                 variant="outline"
-                className="relative border-brand-secondary/30 text-brand-primary hover:bg-brand-secondary/5"
+                className="bg-white/40 relative border-brand-secondary/30 text-brand-primary hover:bg-brand-secondary/5"
                 onClick={() => setCartOpen(true)}
               >
                 <ShoppingCart className="h-5 w-5" />
-                {cart.totalItems > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 bg-brand-primary text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                    {cart.totalItems > 9 ? '9+' : cart.totalItems}
-                  </span>
-                )}
+                <AnimatePresence>
+                  {cart.totalItems > 0 && (
+                    <motion.span
+                      key={cart.totalItems}
+                      initial={{ scale: 0, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      exit={{ scale: 0, opacity: 0 }}
+                      transition={{ type: 'spring', bounce: 0.6, duration: 0.3 }}
+                      className="absolute -top-1.5 -right-1.5 bg-brand-primary text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center"
+                    >
+                      {cart.totalItems > 9 ? '9+' : cart.totalItems}
+                    </motion.span>
+                  )}
+                </AnimatePresence>
               </Button>
             </div>
           </div>
         </div>
-      </header>
+      </motion.header>
 
       {/* Hero banner
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-6"></div>*/}
@@ -243,9 +279,10 @@ function App() {
       {/* Main Content */}
       <main className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-16">
         {loadingProducts && (
-          <div className="flex flex-col justify-center items-center min-h-[400px]">
-            <Loader2 className="h-16 w-16 animate-spin text-brand-secondary/60 mb-4" />
-            <p className="text-brand-secondary font-medium">Cargando productos mágicos...</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <ProductCardSkeleton key={i} />
+            ))}
           </div>
         )}
 
@@ -262,7 +299,12 @@ function App() {
         )}
 
         {!loadingProducts && !errorProducts && allProducts.length === 0 && (
-          <div className="bg-brand-surface/80 backdrop-blur-sm border-2 border-brand-secondary/20 rounded-2xl p-12 text-center shadow-lg">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ type: 'spring', bounce: 0.3 }}
+            className="bg-brand-surface/80 backdrop-blur-sm border-2 border-brand-secondary/20 rounded-2xl p-12 text-center shadow-lg"
+          >
             <div className="inline-flex items-center justify-center w-20 h-20 bg-brand-secondary/10 rounded-full mb-6">
               <ShoppingBag className="h-10 w-10 text-brand-secondary" />
             </div>
@@ -272,37 +314,58 @@ function App() {
             <p className="text-devs-text/70">
               Pronto tendré nuevas creaciones disponibles. ¡Vuelve pronto!
             </p>
-          </div>
+          </motion.div>
         )}
 
         {!loadingProducts && allProducts.length > 0 && (
           <>
             <div className="flex flex-wrap items-center gap-2 mb-8 mt-4">
-              <Button
-                variant={selectedCategory === null ? 'default' : 'outline'}
-                size="sm"
-                className={`rounded-full shadow-sm transition-all duration-300 ${selectedCategory === null ? 'bg-gradient-to-r from-brand-primary to-brand-secondary text-white border-transparent' : 'text-devs-text border-brand-secondary/30 bg-brand-surface hover:bg-brand-accent/20'}`}
+              {/* Pill "Todos" */}
+              <button
                 onClick={() => handleCategoryChange(null)}
+                className={`relative rounded-full px-4 py-1.5 text-sm font-medium transition-colors duration-150 shadow-sm ${
+                  selectedCategory === null
+                    ? 'text-white'
+                    : 'text-devs-text border border-brand-secondary/30 bg-brand-surface hover:bg-brand-accent/20'
+                }`}
               >
-                Todos
-              </Button>
+                {selectedCategory === null && (
+                  <motion.span
+                    layoutId="category-active-bg"
+                    className="absolute inset-0 rounded-full bg-gradient-to-r from-brand-primary to-brand-secondary"
+                    transition={{ type: 'spring', bounce: 0.2, duration: 0.4 }}
+                  />
+                )}
+                <span className="relative z-10">Todos</span>
+              </button>
+
               {uniqueCategories.map((category) => (
-                <Button
+                <button
                   key={category}
-                  variant={selectedCategory === category ? 'default' : 'outline'}
-                  size="sm"
-                  className={`rounded-full shadow-sm transition-all duration-300 ${selectedCategory === category ? 'bg-gradient-to-r from-brand-primary to-brand-secondary text-white border-transparent' : 'text-devs-text border-brand-secondary/30 bg-brand-surface hover:bg-brand-accent/20'}`}
                   onClick={() => handleCategoryChange(category as string)}
+                  className={`relative rounded-full px-4 py-1.5 text-sm font-medium transition-colors duration-150 shadow-sm ${
+                    selectedCategory === category
+                      ? 'text-white'
+                      : 'text-devs-text border border-brand-secondary/30 bg-brand-surface hover:bg-brand-accent/20'
+                  }`}
                 >
-                  {category}
-                </Button>
+                  {selectedCategory === category && (
+                    <motion.span
+                      layoutId="category-active-bg"
+                      className="absolute inset-0 rounded-full bg-gradient-to-r from-brand-primary to-brand-secondary"
+                      transition={{ type: 'spring', bounce: 0.2, duration: 0.4 }}
+                    />
+                  )}
+                  <span className="relative z-10">{category}</span>
+                </button>
               ))}
+
               <select
                 value={sortOrder}
                 onChange={(e) =>
                   setSortOrder(e.target.value as 'default' | 'price-asc' | 'price-desc')
                 }
-                className="ml-auto rounded-full shadow-sm border border-brand-secondary/30 bg-brand-surface text-devs-text text-sm px-3 py-1.5 outline-none focus:border-brand-secondary/50 focus:ring-2 focus:ring-brand-secondary/20 transition-all cursor-pointer"
+                className="ml-auto rounded-full shadow-sm border border-brand-secondary/30 bg-white text-devs-text text-sm px-3 py-1.5 outline-none focus:border-brand-secondary/50 focus:ring-2 focus:ring-brand-secondary/20 transition-all cursor-pointer"
               >
                 <option value="default">Ordenar por</option>
                 <option value="price-asc">Precio: menor a mayor</option>
@@ -311,10 +374,21 @@ function App() {
             </div>
 
             <div className="flex items-center justify-between mb-6">
-              <h2 className="font-mono text-2xl font-bold text-devs-text">
+              <motion.h2
+                key={selectedCategory ?? 'all'}
+                className="font-mono text-2xl font-bold text-devs-text"
+                initial={{ opacity: 0, x: -12 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ type: 'spring', bounce: 0.2, duration: 0.35 }}
+              >
                 {selectedCategory ? `Productos: ${selectedCategory}` : 'Todos los Productos'}
-              </h2>
-              <div className="text-right">
+              </motion.h2>
+              <motion.div
+                className="text-right"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.2, duration: 0.4 }}
+              >
                 <p className="text-sm text-brand-secondary font-medium">
                   {availableCount} producto{availableCount === 1 ? '' : 's'} disponible
                   {availableCount === 1 ? '' : 's'}
@@ -322,11 +396,16 @@ function App() {
                 <p className="text-xs text-devs-text/50">
                   {totalCount} producto{totalCount === 1 ? '' : 's'} en total
                 </p>
-              </div>
+              </motion.div>
             </div>
 
             {filteredProducts.length === 0 ? (
-              <div className="bg-brand-surface/80 backdrop-blur-sm border-2 border-brand-secondary/20 rounded-2xl p-12 text-center shadow-lg">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ type: 'spring', bounce: 0.3 }}
+                className="bg-brand-surface/80 backdrop-blur-sm border-2 border-brand-secondary/20 rounded-2xl p-12 text-center shadow-lg"
+              >
                 <div className="inline-flex items-center justify-center w-20 h-20 bg-brand-secondary/10 rounded-full mb-6">
                   <ShoppingBag className="h-10 w-10 text-brand-secondary" />
                 </div>
@@ -342,26 +421,45 @@ function App() {
                 >
                   Ver Todos los Productos
                 </Button>
-              </div>
+              </motion.div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-                {filteredProducts.map((product) => (
-                  <ProductCard
-                    key={product.id}
-                    product={product}
-                    onImageClick={handleImageClick}
-                    onBuyClick={handleBuyClick}
-                    onCategoryClick={handleCategoryChange}
-                  />
-                ))}
-              </div>
+              <motion.div
+                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8"
+                layout
+              >
+                <AnimatePresence mode="popLayout">
+                  {filteredProducts.map((product) => (
+                    <motion.div
+                      key={product.id}
+                      layout
+                      initial={{ opacity: 0, scale: 0.94, y: 20 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.94, y: -10 }}
+                      transition={{ type: 'spring', bounce: 0.25, duration: 0.45 }}
+                    >
+                      <ProductCard
+                        product={product}
+                        onImageClick={handleImageClick}
+                        onBuyClick={handleBuyClick}
+                        onCategoryClick={handleCategoryChange}
+                      />
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </motion.div>
             )}
           </>
         )}
       </main>
 
       {/* Footer */}
-      <footer className="relative bg-brand-surface/60 backdrop-blur-sm border-t border-brand-secondary/20 mt-12">
+      <motion.footer
+        className="relative bg-brand-surface/60 backdrop-blur-sm border-t border-brand-secondary/20 mt-12"
+        initial={{ opacity: 0, y: 24 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: '-40px' }}
+        transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="text-center">
             <p className="text-sm text-devs-text/70">
@@ -369,7 +467,7 @@ function App() {
             </p>
           </div>
         </div>
-      </footer>
+      </motion.footer>
 
       {/* Modals */}
       <ProductImageModal

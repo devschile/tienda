@@ -71,6 +71,7 @@ exports.handler = async (event, context) => {
         productName: String(item.productName).substring(0, 100).replace(/[<>]/g, ''),
         quantity: qty,
         unitPrice: price,
+        originalPrice: item.originalPrice ? parseInt(item.originalPrice, 10) || price : price,
         subtotal: qty * price,
       };
     });
@@ -110,8 +111,8 @@ exports.handler = async (event, context) => {
     // Insertar items de la orden
     for (const item of sanitizedItems) {
       await sql`
-        INSERT INTO order_items (order_id, product_id, product_name, quantity, unit_price)
-        VALUES (${order.id}, ${item.productId}, ${item.productName}, ${item.quantity}, ${item.unitPrice})
+        INSERT INTO order_items (order_id, product_id, product_name, quantity, unit_price, original_unit_price)
+        VALUES (${order.id}, ${item.productId}, ${item.productName}, ${item.quantity}, ${item.unitPrice}, ${item.originalPrice})
       `;
     }
 
