@@ -38,10 +38,10 @@ const toastVariants = cva(
     variants: {
       variant: {
         default: [
-          'bg-white border-brand-secondary/15',
+          'bg-white/10 border-brand-secondary/15 backdrop-blur-md',
           // Barra de acento izquierda
           'before:absolute before:left-0 before:top-0 before:h-full before:w-1',
-          'before:bg-gradient-to-b before:from-brand-primary before:to-brand-secondary',
+          'before:bg-green-500',
           'before:rounded-l-xl',
         ].join(' '),
         destructive: [
@@ -91,7 +91,7 @@ const ToastClose = React.forwardRef<
     ref={ref}
     className={cn(
       'absolute right-2 top-2 rounded-md p-1',
-      'text-devs-muted/50 opacity-0 transition-opacity',
+      'text-white opacity-0 transition-opacity',
       'hover:text-devs-text focus:opacity-100 focus:outline-none',
       'group-hover:opacity-100',
       'group-[.destructive]:text-red-400 group-[.destructive]:hover:text-red-600',
@@ -112,7 +112,7 @@ const ToastTitle = React.forwardRef<
   <ToastPrimitives.Title
     ref={ref}
     className={cn(
-      'font-mono text-sm font-bold leading-snug text-devs-text',
+      'font-mono text-sm font-semibold leading-snug text-white',
       'group-[.destructive]:text-red-700',
       className,
     )}
@@ -128,7 +128,7 @@ const ToastDescription = React.forwardRef<
   <ToastPrimitives.Description
     ref={ref}
     className={cn(
-      'text-xs text-devs-muted leading-relaxed mt-0.5',
+      'text-xs text-white/60 leading-relaxed mt-0.5',
       'group-[.destructive]:text-red-600',
       className,
     )}

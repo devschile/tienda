@@ -171,7 +171,11 @@ function App() {
           productId: i.product.id,
           productName: i.product.fields.name,
           quantity: i.quantity,
-          unitPrice: i.product.fields.price,
+          // Usa sale_price cuando el producto está en oferta
+          unitPrice:
+            i.product.fields.on_sale && i.product.fields.sale_price != null
+              ? i.product.fields.sale_price
+              : i.product.fields.price,
         })),
         customer,
       );
@@ -235,7 +239,7 @@ function App() {
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
-                className="gap-1 border-brand-secondary/30 text-brand-primary hover:bg-brand-secondary/5 hover:border-brand-secondary/50 transition-all shadow-sm"
+                className="bg-white/40 gap-1 border-brand-secondary/30 text-brand-primary hover:bg-brand-secondary/5 hover:border-brand-secondary/50 transition-all shadow-sm"
                 onClick={() => setInfoModalOpen(true)}
               >
                 <Info className="h-5 w-5 md:mr-2" />
@@ -243,7 +247,7 @@ function App() {
               </Button>
               <Button
                 variant="outline"
-                className="relative border-brand-secondary/30 text-brand-primary hover:bg-brand-secondary/5"
+                className="bg-white/40 relative border-brand-secondary/30 text-brand-primary hover:bg-brand-secondary/5"
                 onClick={() => setCartOpen(true)}
               >
                 <ShoppingCart className="h-5 w-5" />
@@ -377,7 +381,12 @@ function App() {
               >
                 {selectedCategory ? `Productos: ${selectedCategory}` : 'Todos los Productos'}
               </motion.h2>
-              <div className="text-right">
+              <motion.div
+                className="text-right"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.2, duration: 0.4 }}
+              >
                 <p className="text-sm text-brand-secondary font-medium">
                   {availableCount} producto{availableCount === 1 ? '' : 's'} disponible
                   {availableCount === 1 ? '' : 's'}
@@ -385,7 +394,7 @@ function App() {
                 <p className="text-xs text-devs-text/50">
                   {totalCount} producto{totalCount === 1 ? '' : 's'} en total
                 </p>
-              </div>
+              </motion.div>
             </div>
 
             {filteredProducts.length === 0 ? (
@@ -442,7 +451,13 @@ function App() {
       </main>
 
       {/* Footer */}
-      <footer className="relative bg-brand-surface/60 backdrop-blur-sm border-t border-brand-secondary/20 mt-12">
+      <motion.footer
+        className="relative bg-brand-surface/60 backdrop-blur-sm border-t border-brand-secondary/20 mt-12"
+        initial={{ opacity: 0, y: 24 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: '-40px' }}
+        transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="text-center">
             <p className="text-sm text-devs-text/70">
@@ -450,7 +465,7 @@ function App() {
             </p>
           </div>
         </div>
-      </footer>
+      </motion.footer>
 
       {/* Modals */}
       <ProductImageModal

@@ -32,7 +32,7 @@ export function CartDrawer({
 }: CartDrawerProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="fixed right-0 top-0 left-auto h-auto max-h-full w-full max-w-md translate-x-0 translate-y-0 rounded-none rounded-l-2xl p-0 gap-0 flex flex-col border-l border-brand-secondary/10 bg-brand-background data-[state=closed]:translate-x-full data-[state=open]:translate-x-0 transition-transform duration-300">
+      <DialogContent className="fixed right-0 top-20 left-auto h-auto max-h-full w-full max-w-md translate-x-0 translate-y-0 rounded-none rounded-l-2xl p-0 gap-0 flex flex-col border-l border-brand-secondary/10 bg-brand-background data-[state=closed]:translate-x-full data-[state=open]:translate-x-0 transition-transform duration-300">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-brand-secondary/10">
           <DialogTitle className="font-mono text-xl font-bold text-brand-secondary flex items-center gap-2">
@@ -79,12 +79,26 @@ export function CartDrawer({
                       className="w-16 h-16 object-cover rounded-lg flex-shrink-0 bg-brand-background"
                     />
                     <div className="flex-1 min-w-0">
-                      <p className="font-mono font-bold text-sm text-devs-text line-clamp-2 leading-tight mb-1">
-                        {product.fields.name}
+                      <p className="font-mono font-semibold text-sm text-devs-text line-clamp-2 leading-tight mb-1">
+                        <span>{product.fields.name}</span>
                       </p>
-                      <p className="text-sm font-bold text-brand-primary mb-2">
-                        {formatPrice(product.fields.price * quantity)}
-                      </p>
+                      {product.fields.on_sale && product.fields.sale_price ? (
+                        <div className="mb-2">
+                          <p className="flex align-middle justify-between text-sm font-bold text-brand-primary leading-tight">
+                            <span>{formatPrice(product.fields.sale_price * quantity)}</span>
+                            <span className="inline-block mt-0.5 text-[10px] font-bold bg-amber-400 text-amber-900 px-1.5 py-0.5 rounded-full">
+                              ⚡ Oferta
+                            </span>
+                          </p>
+                          <p className="text-xs text-devs-muted line-through leading-tight">
+                            {formatPrice(product.fields.price * quantity)}
+                          </p>
+                        </div>
+                      ) : (
+                        <p className="text-sm font-bold text-brand-primary mb-2">
+                          {formatPrice(product.fields.price * quantity)}
+                        </p>
+                      )}
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => onUpdateQuantity(product.id, quantity - 1)}
@@ -131,9 +145,15 @@ export function CartDrawer({
             >
               <div className="flex items-center justify-between">
                 <span className="text-devs-muted font-medium">Total</span>
-                <span className="font-mono text-2xl font-bold text-brand-primary">
+                <motion.span
+                  key={totalAmount}
+                  initial={{ scale: 1.15, color: '#16a34a' }}
+                  animate={{ scale: 1, color: '#b45b38' }}
+                  transition={{ type: 'spring', bounce: 0.4, duration: 0.4 }}
+                  className="font-mono text-2xl font-bold"
+                >
                   {formatPrice(totalAmount)}
-                </span>
+                </motion.span>
               </div>
               <Button
                 className="w-full h-12 text-base font-bold tracking-wide bg-brand-primary hover:bg-brand-secondary text-white rounded-xl transition-all duration-200 active:scale-[0.98] hover:scale-[1.02] btn-glow"

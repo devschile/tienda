@@ -12,14 +12,14 @@ import {
 function ToastIcon({ variant }: { variant?: string | null }) {
   if (variant === 'destructive') {
     return (
-      <div className="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-red-100 flex items-center justify-center">
-        <XCircle className="h-4 w-4 text-red-500" />
+      <div className="mt-0.5 flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center">
+        <XCircle className="h-4 w-4 text-red-700" />
       </div>
     );
   }
   return (
-    <div className="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-brand-primary/10 flex items-center justify-center">
-      <CheckCircle2 className="h-4 w-4 text-brand-primary" />
+    <div className="mt-0.5 flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center">
+      <CheckCircle2 className="h-4 w-4 text-green-500" />
     </div>
   );
 }

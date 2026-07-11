@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence, useAnimate } from 'motion/react';
 import { Dialog, DialogContent, DialogTitle, DialogHeader } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Loader2, Check } from 'lucide-react';
@@ -60,6 +60,7 @@ export function CheckoutModal({
   onSubmit,
   loading,
 }: CheckoutModalProps) {
+  const [formScope, animateForm] = useAnimate();
   const [form, setForm] = useState<CustomerData>({
     name: '',
     email: '',
@@ -108,6 +109,13 @@ export function CheckoutModal({
       if (!form.city?.trim()) errs.city = 'Comuna requerida';
     }
     setErrors(errs);
+    if (Object.keys(errs).length > 0) {
+      animateForm(
+        formScope.current,
+        { x: [0, -8, 8, -6, 6, -4, 4, 0] },
+        { duration: 0.4, ease: 'easeInOut' },
+      );
+    }
     return Object.keys(errs).length === 0;
   };
 
@@ -140,7 +148,7 @@ export function CheckoutModal({
 
         <hr className="border-brand-secondary/10" />
 
-        <form onSubmit={handleSubmit} className="space-y-5 mt-1">
+        <form ref={formScope} onSubmit={handleSubmit} className="space-y-5 mt-1">
           {/* Nombre completo + Email — 2 columnas en desktop, 1 en mobile */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>

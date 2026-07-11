@@ -1,5 +1,5 @@
 // Componente mejorado para mostrar productos
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import type { ProductRecord } from '@/types/products';
@@ -20,6 +20,7 @@ export function ProductCard({
   onCategoryClick,
 }: ProductCardProps) {
   const [isHovered, setIsHovered] = useState(false);
+  const [added, setAdded] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const { name, description, price, coverImage, available, stock, on_sale, sale_price } =
     product.fields;
@@ -52,7 +53,8 @@ export function ProductCard({
             className="relative w-full aspect-square overflow-hidden cursor-pointer bg-gradient-to-br from-brand-secondary/10 to-brand-primary/10"
             onClick={() => onImageClick(product)}
           >
-            <img
+            <motion.img
+              layoutId={`product-cover-${product.id}`}
               src={thumbnailUrl}
               alt={name}
               className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
@@ -187,16 +189,47 @@ export function ProductCard({
             </motion.p>
           )}
           <Button
-            className={`w-full h-12 text-sm font-bold tracking-wide rounded-xl transition-all duration-200 active:scale-[0.98] ${
+            className={`w-full h-12 text-sm font-bold tracking-wide rounded-xl transition-colors duration-200 active:scale-[0.98] ${
               isSold
                 ? 'bg-devs-text/30 cursor-not-allowed text-white/60'
-                : 'bg-brand-primary hover:bg-brand-secondary text-white btn-glow hover:scale-[1.02]'
+                : added
+                  ? 'bg-emerald-500 text-white btn-glow'
+                  : 'bg-brand-primary hover:bg-brand-secondary text-white btn-glow hover:scale-[1.02]'
             }`}
-            onClick={() => !isSold && onBuyClick(product, quantity)}
+            onClick={() => {
+              if (!isSold) {
+                onBuyClick(product, quantity);
+                setAdded(true);
+                setTimeout(() => setAdded(false), 1200);
+              }
+            }}
             disabled={isSold}
           >
-            <ShoppingCart className="h-4 w-4 mr-2" />
-            {isSold ? 'Agotado' : 'Comprar Ahora'}
+            <AnimatePresence mode="wait" initial={false}>
+              {added ? (
+                <motion.span
+                  key="added"
+                  initial={{ opacity: 0, scale: 0.5 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.5 }}
+                  transition={{ type: 'spring', bounce: 0.5, duration: 0.3 }}
+                  className="flex items-center gap-2"
+                >
+                  ✓ Añadido
+                </motion.span>
+              ) : (
+                <motion.span
+                  key="buy"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="flex items-center gap-2"
+                >
+                  <ShoppingCart className="h-4 w-4" />
+                  {isSold ? 'Agotado' : 'Comprar Ahora'}
+                </motion.span>
+              )}
+            </AnimatePresence>
           </Button>
         </CardFooter>
       </Card>
