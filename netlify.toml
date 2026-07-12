@@ -16,6 +16,13 @@
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "camera=(), microphone=(), geolocation=()"
 
+# Admin — no indexar por buscadores
+[[headers]]
+  for = "/admin*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+    Cache-Control = "no-store"
+
 # Caché larga para assets con hash (JS/CSS/imágenes del bundle de Vite)
 [[headers]]
   for = "/assets/*"
@@ -40,5 +47,11 @@
 
 [[redirects]]
   from = "/*"
-  to = "/index.html"
+  to   = "/index.html"
+  status = 200
+
+# Admin API — enruta /admin-api/* a la función router CRUD
+[[redirects]]
+  from = "/admin-api/*"
+  to   = "/.netlify/functions/admin-api/:splat"
   status = 200

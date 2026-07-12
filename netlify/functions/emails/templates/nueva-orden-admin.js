@@ -89,6 +89,11 @@ function nuevaOrdenAdminHTML({
       <p style="margin:0 0 14px;color:#9ca3af;font-size:11px;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid #374151;padding-bottom:10px;">Productos</p>
       <table width="100%" cellpadding="0" cellspacing="0">
         ${items
+          .filter(
+            (item) =>
+              (item.productId || item.product_id) !== 'shipping' &&
+              (item.productName || item.product_name) !== 'Envío a domicilio',
+          )
           .map((item) => {
             const name = item.product_name || item.productName || '';
             const subtotal = item.subtotal || (item.unit_price || item.unitPrice) * item.quantity;
@@ -101,7 +106,29 @@ function nuevaOrdenAdminHTML({
           })
           .join('')}
       </table>
-      <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:16px;background:#0f172a;border-radius:8px;padding:12px 16px;">
+      ${(() => {
+        const shippingItem = items.find(
+          (i) =>
+            (i.productId || i.product_id) === 'shipping' ||
+            (i.productName || i.product_name) === 'Envío a domicilio',
+        );
+        if (!shippingItem) return '';
+        const shippingCost =
+          shippingItem.subtotal || shippingItem.unit_price || shippingItem.unitPrice || 0;
+        const subtotal = totalAmount - shippingCost;
+        return `
+        <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:8px;">
+          <tr>
+            <td colspan="2" style="padding:7px 0;color:#9ca3af;font-size:12px;">Subtotal productos</td>
+            <td style="padding:7px 0;color:#e5e7eb;font-size:13px;text-align:right;">${formatPrice(subtotal)}</td>
+          </tr>
+          <tr>
+            <td colspan="2" style="padding:5px 0 10px;color:#9ca3af;font-size:12px;">🚚 Envío a domicilio</td>
+            <td style="padding:5px 0 10px;color:#e5e7eb;font-size:13px;text-align:right;">${formatPrice(shippingCost)}</td>
+          </tr>
+        </table>`;
+      })()}
+      <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:8px;background:#0f172a;border-radius:8px;padding:12px 16px;">
         <tr>
           <td style="color:#e5e7eb;font-size:14px;font-weight:700;">Total</td>
           <td style="text-align:right;color:#b45b38;font-size:20px;font-weight:700;">${formatPrice(totalAmount)}</td>

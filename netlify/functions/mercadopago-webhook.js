@@ -156,6 +156,7 @@ exports.handler = async (event) => {
       `;
 
       for (const item of items) {
+        if (item.product_id === 'shipping') continue; // ítem de envío, no es un producto
         const [updated] = await sql`
           UPDATE products
           SET stock = GREATEST(0, stock - ${item.quantity})
@@ -195,7 +196,7 @@ exports.handler = async (event) => {
           FROM orders WHERE id = ${orderId}
         `;
         const orderItems = await sql`
-          SELECT product_name, quantity, unit_price, subtotal, original_unit_price
+          SELECT product_id, product_name, quantity, unit_price, subtotal, original_unit_price
           FROM order_items WHERE order_id = ${orderId}
         `;
 
