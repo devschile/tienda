@@ -17,6 +17,7 @@ export interface CustomerData {
   region?: string;
   zip?: string;
   wantsNewsletter?: boolean;
+  shippingCost?: number; // CLP — 0 o undefined = sin costo de envío
 }
 
 export interface CreatePaymentResult {

@@ -41,7 +41,6 @@ export function useAdminList<T>(resource: string, params: ListParams = {}) {
     } finally {
       setLoading(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resource, params.page, params.pageSize, params.status, params.search]);
 
   useEffect(() => {
@@ -103,5 +102,25 @@ export function useAdminMutation<T>(resource: string) {
     [resource],
   );
 
-  return { update, loading, error };
+  const create = useCallback(
+    async (body: Partial<T>): Promise<T | null> => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await adminFetch<{ data: T }>(resource, {
+          method: 'POST',
+          body: JSON.stringify(body),
+        });
+        return res.data;
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Error al crear');
+        return null;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [resource],
+  );
+
+  return { update, create, loading, error };
 }

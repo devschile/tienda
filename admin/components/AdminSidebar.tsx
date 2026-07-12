@@ -1,10 +1,19 @@
 import { useLocation, NavLink, Link } from 'react-router-dom';
-import { LayoutDashboard, Package, ShoppingBag, LogOut, ChevronRight, Store } from 'lucide-react';
+import {
+  LayoutDashboard,
+  Package,
+  ShoppingBag,
+  Settings,
+  LogOut,
+  ChevronRight,
+  Store,
+} from 'lucide-react';
 
 const NAV = [
   { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, exact: true },
   { to: '/admin/products', label: 'Productos', icon: Package },
   { to: '/admin/orders', label: 'Pedidos', icon: ShoppingBag },
+  { to: '/admin/settings', label: 'Configuración', icon: Settings },
 ];
 
 interface Props {

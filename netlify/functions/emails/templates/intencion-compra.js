@@ -1,4 +1,4 @@
-const { emailHeader, emailFooter, emailWrap, itemsTable, totalRow } = require('../partials');
+const { emailHeader, emailFooter, emailWrap, orderBreakdown } = require('../partials');
 
 function intencionCompraHTML({ customerName, items, totalAmount, checkoutUrl, orderId }) {
   const rows = `
@@ -11,8 +11,7 @@ function intencionCompraHTML({ customerName, items, totalAmount, checkoutUrl, or
         Haz clic en el botón para completar tu pago de forma segura con MercadoPago.
       </p>
 
-      ${itemsTable(items)}
-      ${totalRow(totalAmount)}
+      ${orderBreakdown(items)}
 
       <!-- CTA -->
       <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:28px;">

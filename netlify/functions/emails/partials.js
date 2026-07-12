@@ -121,4 +121,57 @@ function totalRow(amount) {
     </table>`;
 }
 
-module.exports = { emailHeader, emailFooter, emailWrap, itemsTable, totalRow, LOGO_URL };
+/**
+ * Tabla de items con envío separado del total.
+ * Detecta el item de envío por product_id === 'shipping' o productName.
+ * Muestra: productos → subtotal (si hay envío) → fila envío → total.
+ */
+function orderBreakdown(items, totalAmount, nameKey = 'productName') {
+  const fmt = (n) =>
+    new Intl.NumberFormat('es-CL', {
+      style: 'currency',
+      currency: 'CLP',
+      minimumFractionDigits: 0,
+    }).format(n);
+
+  const isShipping = (item) =>
+    (item.productId || item.product_id) === 'shipping' ||
+    (item.productName || item.product_name || '') === 'Envío a domicilio';
+
+  const productItems = items.filter((i) => !isShipping(i));
+  const shippingItem = items.find(isShipping);
+  const shippingCost = shippingItem
+    ? shippingItem.subtotal ||
+      (shippingItem.unit_price || shippingItem.unitPrice || 0) * (shippingItem.quantity || 1)
+    : 0;
+
+  let html = itemsTable(productItems, nameKey);
+
+  if (shippingItem && shippingCost > 0) {
+    const subtotal = totalAmount - shippingCost;
+    html += `
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:6px;">
+      <tr>
+        <td colspan="2" style="padding:8px 0;border-top:1px solid #f0ebe5;color:#7a6b63;font-size:13px;">Subtotal productos</td>
+        <td style="padding:8px 0;border-top:1px solid #f0ebe5;color:#2d1a12;font-size:13px;text-align:right;font-weight:600;white-space:nowrap;">${fmt(subtotal)}</td>
+      </tr>
+      <tr>
+        <td colspan="2" style="padding:6px 0 10px;color:#7a6b63;font-size:13px;">🚚 Envío a domicilio</td>
+        <td style="padding:6px 0 10px;color:#2d1a12;font-size:13px;text-align:right;font-weight:600;white-space:nowrap;">${fmt(shippingCost)}</td>
+      </tr>
+    </table>`;
+  }
+
+  html += totalRow(totalAmount);
+  return html;
+}
+
+module.exports = {
+  emailHeader,
+  emailFooter,
+  emailWrap,
+  itemsTable,
+  totalRow,
+  orderBreakdown,
+  LOGO_URL,
+};

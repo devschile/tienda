@@ -1,13 +1,24 @@
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import type { AdminAuth } from '../hooks/useAdminAuth';
+import { useAdminTitle } from '../hooks/useAdminTitle';
 import { AdminSidebar } from './AdminSidebar';
 import { User } from 'lucide-react';
+
+const PAGE_TITLES: Record<string, string> = {
+  '/admin': 'Dashboard',
+  '/admin/products': 'Productos',
+  '/admin/orders': 'Pedidos',
+  '/admin/settings': 'Configuración',
+};
 
 interface Props {
   auth: AdminAuth;
 }
 
 export function AdminLayout({ auth }: Props) {
+  const { pathname } = useLocation();
+  useAdminTitle(PAGE_TITLES[pathname]);
+
   return (
     <div className="fixed inset-0 flex font-sans overflow-hidden">
       <AdminSidebar onLogout={auth.logout} />

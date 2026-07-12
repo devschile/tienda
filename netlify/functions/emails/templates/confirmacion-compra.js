@@ -1,4 +1,4 @@
-const { emailHeader, emailFooter, emailWrap, itemsTable, totalRow } = require('../partials');
+const { emailHeader, emailFooter, emailWrap, orderBreakdown } = require('../partials');
 
 const STATUS_CONFIG = {
   approved: {
@@ -55,8 +55,7 @@ function confirmacionCompraHTML({ customerName, status, items, totalAmount, orde
     <tr><td style="background:#ffffff;padding:32px;">
       <p style="margin:0 0 28px;color:#2d1a12;font-size:16px;">Hola <strong>${customerName}</strong>,</p>
 
-      ${itemsTable(items, 'product_name')}
-      ${totalRow(totalAmount)}
+      ${orderBreakdown(items, totalAmount, 'product_name')}
 
       ${retryBtn}
 

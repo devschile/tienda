@@ -1,8 +1,9 @@
-import { X, Loader2, MapPin, Mail, Package, Save } from 'lucide-react';
+import { X, Loader2, MapPin, Mail, Package, Save, Truck } from 'lucide-react';
 import { useAdminOne, useAdminMutation } from '../../hooks/useAdminData';
 import { useState, useEffect } from 'react';
 
 interface OrderItem {
+  product_id: string;
   product_name: string;
   quantity: number;
   unit_price: number;
@@ -225,54 +226,100 @@ export function OrderDetailPanel({ orderId, onClose, onSaved }: Props) {
                 </div>
               </section>
 
-              {/* Productos */}
+              {/* Productos + Envío */}
               <section>
-                <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">
-                  Productos ({order.items?.length ?? 0})
-                </h3>
-                <div className="space-y-2">
-                  {(order.items ?? []).map((item, i) => {
-                    const hasDiscount =
-                      item.original_unit_price && item.original_unit_price > item.unit_price;
-                    return (
-                      <div
-                        key={i}
-                        className="flex items-start gap-3 py-2.5 border-b border-slate-100 last:border-0"
-                      >
-                        <div className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center shrink-0 mt-0.5">
-                          <Package className="h-3.5 w-3.5 text-slate-400" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-slate-700 line-clamp-1">
-                            {item.product_name}
-                          </p>
-                          <p className="text-xs text-slate-400">×{item.quantity}</p>
-                        </div>
-                        <div className="text-right shrink-0">
+                {(() => {
+                  const all = order.items ?? [];
+                  const isShipping = (i: OrderItem) => i.product_id === 'shipping';
+                  const productItems = all.filter((i) => !isShipping(i));
+                  const shippingItem = all.find(isShipping);
+                  const shippingCost = shippingItem?.subtotal ?? 0;
+                  const subtotal = order.total_amount - shippingCost;
+
+                  return (
+                    <>
+                      <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">
+                        Productos ({productItems.length})
+                      </h3>
+                      <div className="space-y-2">
+                        {productItems.map((item, i) => {
+                          const hasDiscount =
+                            item.original_unit_price && item.original_unit_price > item.unit_price;
+                          return (
+                            <div
+                              key={i}
+                              className="flex items-start gap-3 py-2.5 border-b border-slate-100 last:border-0"
+                            >
+                              <div className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center shrink-0 mt-0.5">
+                                <Package className="h-3.5 w-3.5 text-slate-400" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-slate-700 line-clamp-1">
+                                  {item.product_name}
+                                </p>
+                                <p className="text-xs text-slate-400">×{item.quantity}</p>
+                              </div>
+                              <div className="text-right shrink-0">
+                                <p className="text-sm font-semibold text-slate-700">
+                                  {formatCLP(item.subtotal)}
+                                </p>
+                                {hasDiscount && (
+                                  <p className="text-xs text-slate-400 line-through">
+                                    {formatCLP(
+                                      (item.original_unit_price ?? item.unit_price) * item.quantity,
+                                    )}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Fila de envío (si existe) */}
+                      {shippingItem && (
+                        <div className="flex items-center gap-3 py-2.5 border-b border-slate-100">
+                          <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+                            <Truck className="h-3.5 w-3.5 text-blue-500" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-slate-700">Envío a domicilio</p>
+                          </div>
                           <p className="text-sm font-semibold text-slate-700">
-                            {formatCLP(item.subtotal)}
+                            {formatCLP(shippingCost)}
                           </p>
-                          {hasDiscount && (
-                            <p className="text-xs text-slate-400 line-through">
-                              {formatCLP(
-                                (item.original_unit_price ?? item.unit_price) * item.quantity,
-                              )}
-                            </p>
-                          )}
+                        </div>
+                      )}
+
+                      {/* Breakdown total */}
+                      <div className="mt-4 rounded-xl overflow-hidden border border-slate-100">
+                        {shippingItem && (
+                          <div className="flex items-center justify-between px-4 py-2.5 bg-slate-50 border-b border-slate-100">
+                            <span className="text-xs text-slate-500">Subtotal productos</span>
+                            <span className="text-sm font-medium text-slate-600">
+                              {formatCLP(subtotal)}
+                            </span>
+                          </div>
+                        )}
+                        {shippingItem && (
+                          <div className="flex items-center justify-between px-4 py-2.5 bg-slate-50 border-b border-slate-100">
+                            <span className="text-xs text-slate-500">Envío</span>
+                            <span className="text-sm font-medium text-slate-600">
+                              {formatCLP(shippingCost)}
+                            </span>
+                          </div>
+                        )}
+                        <div className="flex items-center justify-between px-4 py-3 bg-white">
+                          <span className="text-sm font-semibold text-slate-700">Total</span>
+                          <span className="text-xl font-bold text-slate-800">
+                            {formatCLP(order.total_amount)}
+                          </span>
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
+                    </>
+                  );
+                })()}
               </section>
-
-              {/* Total */}
-              <div className="flex items-center justify-between bg-slate-50 rounded-xl px-4 py-3">
-                <span className="text-sm font-semibold text-slate-700">Total</span>
-                <span className="text-xl font-bold text-slate-800">
-                  {formatCLP(order.total_amount)}
-                </span>
-              </div>
 
               {order.mp_payment_id && (
                 <p className="text-xs text-slate-400 font-mono">MP: {order.mp_payment_id}</p>

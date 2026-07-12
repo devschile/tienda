@@ -45,7 +45,27 @@ exports.handler = async (event) => {
     return { statusCode: 500, headers, body: JSON.stringify({ error: 'Servidor no configurado' }) };
   }
 
-  if (email !== adminEmail || password !== adminPassword) {
+  // Timing-safe comparison — prevents timing-oracle attacks
+  const toBuffer = (s) => Buffer.from(String(s ?? ''));
+  let emailBufA = toBuffer(email),
+    emailBufB = toBuffer(adminEmail);
+  let passBufA = toBuffer(password),
+    passBufB = toBuffer(adminPassword);
+  // Pad to same length so timingSafeEqual doesn't throw (length mismatch itself
+  // reveals info, but we return the same error either way after the full check)
+  const maxEmail = Math.max(emailBufA.length, emailBufB.length);
+  const maxPass = Math.max(passBufA.length, passBufB.length);
+  emailBufA = Buffer.concat([emailBufA, Buffer.alloc(maxEmail - emailBufA.length)]);
+  emailBufB = Buffer.concat([emailBufB, Buffer.alloc(maxEmail - emailBufB.length)]);
+  passBufA = Buffer.concat([passBufA, Buffer.alloc(maxPass - passBufA.length)]);
+  passBufB = Buffer.concat([passBufB, Buffer.alloc(maxPass - passBufB.length)]);
+
+  const emailOk = crypto.timingSafeEqual(emailBufA, emailBufB);
+  const passOk = crypto.timingSafeEqual(passBufA, passBufB);
+
+  if (!emailOk || !passOk) {
+    // Artificial delay — slows brute-force attempts without revealing timing info
+    await new Promise((r) => setTimeout(r, 500));
     return {
       statusCode: 401,
       headers,

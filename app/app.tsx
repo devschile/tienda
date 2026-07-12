@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Info, ShoppingBag, ShoppingCart } from 'lucide-react';
+import { Info, ShoppingBag, ShoppingCart, Wrench } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { ProductCard } from '@/components/ProductCard';
@@ -17,6 +17,7 @@ import { useCart } from '@/hooks/useCart';
 import { CartDrawer } from '@/components/CartDrawer';
 import { CheckoutModal } from '@/components/CheckoutModal';
 import { DevTools } from '@/components/DevTools';
+import { useStoreSettings } from '@/hooks/useStoreSettings';
 
 function ProductCardSkeleton() {
   return (
@@ -35,6 +36,14 @@ function ProductCardSkeleton() {
 
 function App() {
   const { toast } = useToast();
+  const {
+    settings,
+    loading: settingsLoading,
+    isOpen,
+    shippingEnabled,
+    shippingCost,
+    freeShippingThreshold,
+  } = useStoreSettings();
   const [selectedProduct, setSelectedProduct] = useState<ProductRecord | null>(null);
   const [imageModalOpen, setImageModalOpen] = useState(false);
   const [infoModalOpen, setInfoModalOpen] = useState(false);
@@ -166,21 +175,29 @@ function App() {
     if (checkoutLoading) return;
     try {
       setCheckoutLoading(true);
-      const data = await createPayment(
-        cart.items.map((i) => ({
-          productId: i.product.id,
-          productName: i.product.fields.name,
-          quantity: i.quantity,
-          // precio efectivo: sale_price cuando está en oferta
-          unitPrice:
-            i.product.fields.on_sale && i.product.fields.sale_price != null
-              ? i.product.fields.sale_price
-              : i.product.fields.price,
-          // precio original siempre (para mostrar descuento en emails)
-          originalPrice: i.product.fields.price,
-        })),
-        customer,
-      );
+      const items = cart.items.map((i) => ({
+        productId: i.product.id,
+        productName: i.product.fields.name,
+        quantity: i.quantity,
+        unitPrice:
+          i.product.fields.on_sale && i.product.fields.sale_price != null
+            ? i.product.fields.sale_price
+            : i.product.fields.price,
+        originalPrice: i.product.fields.price,
+      }));
+
+      // Agregar envio como ítem si aplica
+      if (customer.shippingCost && customer.shippingCost > 0) {
+        items.push({
+          productId: 'shipping',
+          productName: 'Envío a domicilio',
+          quantity: 1,
+          unitPrice: customer.shippingCost,
+          originalPrice: customer.shippingCost,
+        });
+      }
+
+      const data = await createPayment(items, customer);
       if (!data.success || !data.checkout_url) {
         throw new Error(data.error || 'No se pudo obtener la URL de pago');
       }
@@ -217,6 +234,27 @@ function App() {
   const totalCount = filteredProducts.length;
   const availableCount = availableProducts.length;
 
+  // Maintenance page
+  if (!settingsLoading && !isOpen) {
+    return (
+      <div className="min-h-screen bg-brand-background flex flex-col items-center justify-center gap-6 px-4">
+        <div className="border-2 border-brand-primary/40 p-3 rounded-2xl">
+          <img width={64} src={logo} alt="logo" />
+        </div>
+        <div className="text-center space-y-2 max-w-md">
+          <h1 className="font-mono text-2xl font-bold text-brand-secondary">
+            {settings.store_name}
+          </h1>
+          <p className="text-devs-muted">{settings.maintenance_message}</p>
+        </div>
+        <div className="flex items-center gap-2 text-xs text-devs-muted/60">
+          <Wrench className="h-3.5 w-3.5" />
+          En mantenimiento
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen">
       {/* Header */}
@@ -234,7 +272,7 @@ function App() {
               </div>
               <div>
                 <h1 className="font-mono text-2xl sm:text-3xl font-bold leading-tight">
-                  Tienda devsChile™
+                  {settings.store_name}
                 </h1>
               </div>
             </div>
@@ -508,6 +546,9 @@ function App() {
         totalAmount={cart.totalAmount}
         onSubmit={handleCheckout}
         loading={checkoutLoading}
+        shippingEnabled={shippingEnabled}
+        shippingCost={shippingCost}
+        freeShippingThreshold={freeShippingThreshold}
       />
 
       <Toaster />

@@ -6,6 +6,7 @@
 
 const { neon } = require('@neondatabase/serverless');
 const crypto = require('crypto');
+const { UTApi } = require('uploadthing/server');
 
 // ── JWT verify (inline) ────────────────────────────────────────────────────────
 function verifyJWT(token, secret) {
@@ -25,7 +26,11 @@ function verifyJWT(token, secret) {
 // ── Helpers ────────────────────────────────────────────────────────────────────
 const json = (statusCode, data) => ({
   statusCode,
-  headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+  headers: {
+    'Content-Type': 'application/json',
+    'Cache-Control': 'no-store',
+    'X-Content-Type-Options': 'nosniff',
+  },
   body: JSON.stringify(data),
 });
 
@@ -90,6 +95,43 @@ const handlers = {
       return json(200, { data: rows, total, page, pageSize });
     },
 
+    async POST({ body, sql }) {
+      const {
+        name,
+        description,
+        long_description,
+        category,
+        price,
+        sale_price,
+        visible,
+        available,
+        stock,
+        on_sale,
+      } = body;
+      if (!name || price === undefined || price === null)
+        return json(400, { error: 'Nombre y precio son requeridos' });
+
+      const [created] = await sql`
+        INSERT INTO products
+          (name, description, long_description, category, price, sale_price,
+           visible, available, stock, on_sale)
+        VALUES (
+          ${name},
+          ${description ?? ''},
+          ${long_description ?? null},
+          ${category ?? ''},
+          ${price},
+          ${sale_price ?? null},
+          ${visible ?? true},
+          ${available ?? true},
+          ${stock ?? 0},
+          ${on_sale ?? false}
+        )
+        RETURNING *
+      `;
+      return json(201, { data: created });
+    },
+
     async PUT({ id, body, sql }) {
       if (!id) return json(400, { error: 'ID requerido' });
       const {
@@ -135,7 +177,7 @@ const handlers = {
         `;
         if (!order) return json(404, { error: 'Orden no encontrada' });
         const items = await sql`
-          SELECT product_name, quantity, unit_price, original_unit_price, subtotal
+          SELECT product_id, product_name, quantity, unit_price, original_unit_price, subtotal
           FROM order_items WHERE order_id = ${id} ORDER BY created_at
         `;
         return json(200, { data: { ...order, items } });
@@ -184,6 +226,45 @@ const handlers = {
     },
   },
 
+  // ── settings ─────────────────────────────────────────────────────────────
+  settings: {
+    async GET({ qs, sql }) {
+      const rows = await sql`SELECT key, value FROM settings ORDER BY key`;
+      const data = Object.fromEntries(rows.map((r) => [r.key, r.value]));
+
+      // Estado de integraciones (solo booleanos, sin exponer secrets)
+      if (qs.integrations === '1') {
+        data._integrations = JSON.stringify({
+          mercadopago: {
+            configured: !!process.env.MERCADOPAGO_ACCESS_TOKEN,
+            mode: process.env.NODE_ENV === 'production' ? 'production' : 'sandbox',
+          },
+          email: {
+            provider: process.env.EMAIL_PROVIDER || 'resend',
+            configured: !!(process.env.RESEND_API_KEY || process.env.MAILGUN_API_KEY),
+          },
+          database: { configured: !!process.env.NEON_DATABASE_URL },
+        });
+      }
+
+      return json(200, { data });
+    },
+
+    async PUT({ body, sql }) {
+      const entries = Object.entries(body).filter(([k]) => !k.startsWith('_'));
+      if (!entries.length) return json(400, { error: 'Sin cambios' });
+
+      for (const [key, value] of entries) {
+        await sql`
+          INSERT INTO settings (key, value)
+          VALUES (${key}, ${String(value ?? '')})
+          ON CONFLICT (key) DO UPDATE SET value = ${String(value ?? '')}
+        `;
+      }
+      return json(200, { data: Object.fromEntries(entries) });
+    },
+  },
+
   // ── dashboard ─────────────────────────────────────────────────────
   dashboard: {
     async GET({ qs, sql }) {
@@ -223,6 +304,102 @@ const handlers = {
           period,
         },
       });
+    },
+  },
+
+  // ── images — galería por producto ──────────────────────────────────────────
+  images: {
+    async GET({ id, qs, sql }) {
+      if (id) {
+        // GET /admin-api/images/:id — detalle de una imagen (poco usado)
+        const [img] = await sql`SELECT * FROM product_images WHERE id = ${id}`;
+        return img ? json(200, { data: img }) : json(404, { error: 'Imagen no encontrada' });
+      }
+      const productId = qs.productId;
+      if (!productId) return json(400, { error: 'productId requerido' });
+      const rows = await sql`
+        SELECT id, url, filename, is_cover, position, size, type
+        FROM product_images
+        WHERE product_id = ${productId}
+        ORDER BY is_cover DESC, position ASC
+      `;
+      return json(200, { data: rows });
+    },
+
+    async PUT({ id, body, sql }) {
+      // PUT /admin-api/images/:id  { is_cover: true } — cambiar portada
+      if (!id) return json(400, { error: 'ID requerido' });
+      if (body.is_cover !== true) return json(400, { error: 'Solo is_cover=true es válido' });
+      const [img] = await sql`
+        UPDATE product_images SET is_cover = true WHERE id = ${id} RETURNING *
+      `;
+      return img ? json(200, { data: img }) : json(404, { error: 'Imagen no encontrada' });
+    },
+
+    async DELETE({ id, sql }) {
+      // DELETE /admin-api/images/:id
+      if (!id) return json(400, { error: 'ID requerido' });
+      const [img] = await sql`
+        DELETE FROM product_images WHERE id = ${id}
+        RETURNING url, filename, is_cover
+      `;
+      if (!img) return json(404, { error: 'Imagen no encontrada' });
+
+      // Intentar borrar de UploadThing (best-effort, no falla si hay error)
+      try {
+        const key = img.url.split('/f/').pop();
+        if (key && img.url.includes('/f/')) {
+          const utapi = new UTApi();
+          await utapi.deleteFiles([key]);
+        }
+      } catch (e) {
+        console.warn('admin-api [DELETE images]: no se pudo borrar de UploadThing:', e.message);
+      }
+
+      return json(200, { data: img });
+    },
+  },
+
+  // ── upload — sube imagen a UploadThing e inserta en product_images ──────────
+  upload: {
+    async POST({ body, sql }) {
+      const { filename, contentType, base64, productId, setAsCover = false } = body;
+
+      if (!filename || !contentType || !base64 || !productId)
+        return json(400, { error: 'filename, contentType, base64 y productId son requeridos' });
+
+      // Convertir base64 → File (Node 20+)
+      const buffer = Buffer.from(base64, 'base64');
+      const file = new File([buffer], filename, { type: contentType });
+
+      const utapi = new UTApi();
+      const { data, error } = await utapi.uploadFiles(file);
+
+      if (error || !data) {
+        console.error('admin-api [POST upload]:', error);
+        return json(500, { error: error?.message ?? 'Error al subir imagen' });
+      }
+
+      // Calcular posición (siguiente disponible)
+      const [{ next_pos }] = await sql`
+        SELECT COALESCE(MAX(position), -1) + 1 AS next_pos
+        FROM product_images WHERE product_id = ${productId}
+      `;
+
+      const imageId = `img_${crypto.randomBytes(5).toString('hex')}`;
+      const [image] = await sql`
+        INSERT INTO product_images
+          (id, product_id, url, filename, size, type, variant, position, is_cover)
+        VALUES (
+          ${imageId}, ${productId},
+          ${data.ufsUrl ?? data.url},
+          ${filename}, ${buffer.length}, ${contentType},
+          'large', ${next_pos}, ${setAsCover}
+        )
+        RETURNING *
+      `;
+
+      return json(201, { data: image });
     },
   },
 };

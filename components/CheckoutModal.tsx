@@ -12,6 +12,9 @@ interface CheckoutModalProps {
   totalAmount: number;
   onSubmit: (customer: CustomerData) => Promise<void>;
   loading?: boolean;
+  shippingEnabled?: boolean;
+  shippingCost?: number;
+  freeShippingThreshold?: number;
 }
 
 const formatPrice = (n: number) =>
@@ -59,6 +62,9 @@ export function CheckoutModal({
   totalAmount,
   onSubmit,
   loading,
+  shippingEnabled = true,
+  shippingCost = 0,
+  freeShippingThreshold = 0,
 }: CheckoutModalProps) {
   const [formScope, animateForm] = useAnimate();
   const [form, setForm] = useState<CustomerData>({
@@ -72,6 +78,16 @@ export function CheckoutModal({
     wantsNewsletter: true,
   });
   const [errors, setErrors] = useState<Partial<Record<keyof CustomerData, string>>>({});
+
+  // Costo de envío efectivo: 0 si supera el umbral de envío gratis
+  const effectiveShipping =
+    form.wantsDelivery && shippingEnabled && shippingCost > 0
+      ? freeShippingThreshold > 0 && totalAmount >= freeShippingThreshold
+        ? 0
+        : shippingCost
+      : 0;
+
+  const grandTotal = totalAmount + effectiveShipping;
 
   const set =
     (field: keyof CustomerData) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -122,7 +138,7 @@ export function CheckoutModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
-    await onSubmit(form);
+    await onSubmit({ ...form, shippingCost: effectiveShipping });
   };
 
   const inputBase =
@@ -141,9 +157,36 @@ export function CheckoutModal({
           <DialogTitle className="font-mono text-xl font-bold text-brand-secondary">
             Datos de compra
           </DialogTitle>
-          <p className="text-sm text-devs-muted">
-            Total: <span className="font-bold text-brand-primary">{formatPrice(totalAmount)}</span>
-          </p>
+          <div className="space-y-0.5">
+            {effectiveShipping > 0 ? (
+              <>
+                <p className="text-sm text-devs-muted">
+                  Productos:{' '}
+                  <span className="font-semibold text-devs-text">{formatPrice(totalAmount)}</span>
+                </p>
+                <p className="text-sm text-devs-muted">
+                  Envío:{' '}
+                  <span className="font-semibold text-devs-text">
+                    {formatPrice(effectiveShipping)}
+                  </span>
+                </p>
+                <p className="text-sm font-bold text-brand-primary">
+                  Total: {formatPrice(grandTotal)}
+                </p>
+              </>
+            ) : (
+              <p className="text-sm text-devs-muted">
+                Total:{' '}
+                <span className="font-bold text-brand-primary">{formatPrice(grandTotal)}</span>
+                {form.wantsDelivery &&
+                  shippingEnabled &&
+                  freeShippingThreshold > 0 &&
+                  totalAmount >= freeShippingThreshold && (
+                    <span className="ml-2 text-green-600 font-medium text-xs">✓ Envío gratis</span>
+                  )}
+              </p>
+            )}
+          </div>
         </DialogHeader>
 
         <hr className="border-brand-secondary/10" />
@@ -196,118 +239,128 @@ export function CheckoutModal({
               </div>
             </motion.div>
 
-            {/* Checkbox: ¿Envío a domicilio? */}
-            <motion.div
-              className="rounded-xl border border-brand-secondary/10 bg-brand-surface/50 p-4 space-y-4"
-              variants={{
-                hidden: { opacity: 0, y: 14 },
-                visible: { opacity: 1, y: 0, transition: { type: 'spring', bounce: 0.25 } },
-              }}
-            >
-              <BrandCheckbox
-                checked={!!form.wantsDelivery}
-                onChange={toggle('wantsDelivery')}
-                label="¿Envío a domicilio?"
-                sublabel="Agrega tu dirección para coordinar la entrega"
-              />
+            {/* Checkbox: ¿Envío a domicilio? — solo si está habilitado en ajustes */}
+            {shippingEnabled && (
+              <motion.div
+                className="rounded-xl border border-brand-secondary/10 bg-brand-surface/50 p-4 space-y-4"
+                variants={{
+                  hidden: { opacity: 0, y: 14 },
+                  visible: { opacity: 1, y: 0, transition: { type: 'spring', bounce: 0.25 } },
+                }}
+              >
+                <BrandCheckbox
+                  checked={!!form.wantsDelivery}
+                  onChange={toggle('wantsDelivery')}
+                  label="¿Envío a domicilio?"
+                  sublabel={
+                    shippingCost > 0
+                      ? freeShippingThreshold > 0
+                        ? `Costo: ${formatPrice(shippingCost)} \u2014 gratis sobre ${formatPrice(freeShippingThreshold)}`
+                        : `Costo de envío: ${formatPrice(shippingCost)}`
+                      : 'Agrega tu dirección para coordinar la entrega'
+                  }
+                />
 
-              {/* Campos de envío — visibles solo si wantsDelivery */}
-              <AnimatePresence initial={false}>
-                {form.wantsDelivery && (
-                  <motion.div
-                    key="delivery-fields"
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ type: 'spring', bounce: 0, duration: 0.35 }}
-                    style={{ overflow: 'hidden' }}
-                    className="space-y-4 pt-1"
-                  >
-                    {/* Dirección */}
-                    <div>
-                      <label className="block text-sm font-medium text-devs-text mb-1.5">
-                        Dirección <span className="text-brand-primary">*</span>
-                      </label>
-                      <input
-                        className={inputClass('address')}
-                        value={form.address ?? ''}
-                        onChange={set('address')}
-                        placeholder="Av. Providencia 1234, Depto 5B"
-                        autoComplete="street-address"
-                      />
-                      {errors.address && (
-                        <p className="text-xs text-red-500 mt-1">{errors.address}</p>
-                      )}
-                    </div>
-
-                    {/* Región / Comuna — side by side en desktop, stacked en mobile */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Campos de envío — visibles solo si wantsDelivery */}
+                <AnimatePresence initial={false}>
+                  {form.wantsDelivery && (
+                    <motion.div
+                      key="delivery-fields"
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ type: 'spring', bounce: 0, duration: 0.35 }}
+                      style={{ overflow: 'hidden' }}
+                      className="space-y-4 pt-1"
+                    >
+                      {/* Dirección */}
                       <div>
                         <label className="block text-sm font-medium text-devs-text mb-1.5">
-                          Región <span className="text-brand-primary">*</span>
+                          Dirección <span className="text-brand-primary">*</span>
                         </label>
-                        <select
-                          className={inputClass('region')}
-                          value={form.region ?? ''}
-                          onChange={set('region')}
-                        >
-                          <option value="">Selecciona región</option>
-                          {REGIONES_COMUNAS.map((r) => (
-                            <option key={r.abbreviation} value={r.name}>
-                              {r.romanNumber} — {r.name}
-                            </option>
-                          ))}
-                        </select>
-                        {errors.region && (
-                          <p className="text-xs text-red-500 mt-1">{errors.region}</p>
+                        <input
+                          className={inputClass('address')}
+                          value={form.address ?? ''}
+                          onChange={set('address')}
+                          placeholder="Av. Providencia 1234, Depto 5B"
+                          autoComplete="street-address"
+                        />
+                        {errors.address && (
+                          <p className="text-xs text-red-500 mt-1">{errors.address}</p>
                         )}
                       </div>
 
-                      <div>
-                        <label className="block text-sm font-medium text-devs-text mb-1.5">
-                          Comuna <span className="text-brand-primary">*</span>
-                        </label>
-                        {comunas.length === 0 ? (
-                          <select className={disabledSelectClass} disabled>
-                            <option>Selecciona comuna</option>
-                          </select>
-                        ) : (
+                      {/* Región / Comuna — side by side en desktop, stacked en mobile */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-devs-text mb-1.5">
+                            Región <span className="text-brand-primary">*</span>
+                          </label>
                           <select
-                            className={inputClass('city')}
-                            value={form.city ?? ''}
-                            onChange={set('city')}
+                            className={inputClass('region')}
+                            value={form.region ?? ''}
+                            onChange={set('region')}
                           >
-                            <option value="">Selecciona comuna</option>
-                            {comunas.map((c) => (
-                              <option key={c} value={c}>
-                                {c}
+                            <option value="">Selecciona región</option>
+                            {REGIONES_COMUNAS.map((r) => (
+                              <option key={r.abbreviation} value={r.name}>
+                                {r.romanNumber} — {r.name}
                               </option>
                             ))}
                           </select>
-                        )}
-                        {errors.city && <p className="text-xs text-red-500 mt-1">{errors.city}</p>}
-                      </div>
-                    </div>
+                          {errors.region && (
+                            <p className="text-xs text-red-500 mt-1">{errors.region}</p>
+                          )}
+                        </div>
 
-                    {/* Código postal */}
-                    <div>
-                      <label className="block text-sm font-medium text-devs-text mb-1.5">
-                        Código postal{' '}
-                        <span className="text-devs-muted font-normal text-xs">(opcional)</span>
-                      </label>
-                      <input
-                        className={inputClass('zip')}
-                        value={form.zip ?? ''}
-                        onChange={set('zip')}
-                        placeholder="7500000"
-                        maxLength={7}
-                        autoComplete="postal-code"
-                      />
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.div>
+                        <div>
+                          <label className="block text-sm font-medium text-devs-text mb-1.5">
+                            Comuna <span className="text-brand-primary">*</span>
+                          </label>
+                          {comunas.length === 0 ? (
+                            <select className={disabledSelectClass} disabled>
+                              <option>Selecciona comuna</option>
+                            </select>
+                          ) : (
+                            <select
+                              className={inputClass('city')}
+                              value={form.city ?? ''}
+                              onChange={set('city')}
+                            >
+                              <option value="">Selecciona comuna</option>
+                              {comunas.map((c) => (
+                                <option key={c} value={c}>
+                                  {c}
+                                </option>
+                              ))}
+                            </select>
+                          )}
+                          {errors.city && (
+                            <p className="text-xs text-red-500 mt-1">{errors.city}</p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Código postal */}
+                      <div>
+                        <label className="block text-sm font-medium text-devs-text mb-1.5">
+                          Código postal{' '}
+                          <span className="text-devs-muted font-normal text-xs">(opcional)</span>
+                        </label>
+                        <input
+                          className={inputClass('zip')}
+                          value={form.zip ?? ''}
+                          onChange={set('zip')}
+                          placeholder="7500000"
+                          maxLength={7}
+                          autoComplete="postal-code"
+                        />
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            )}
 
             {/* Checkbox: newsletter */}
             <motion.div

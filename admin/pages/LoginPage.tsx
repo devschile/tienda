@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Store, Loader2, AlertCircle } from 'lucide-react';
 import type { AdminAuth } from '../hooks/useAdminAuth';
+import { useAdminTitle } from '../hooks/useAdminTitle';
 
 interface Props {
   auth: AdminAuth;
@@ -9,6 +10,7 @@ interface Props {
 export function LoginPage({ auth }: Props) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  useAdminTitle('Iniciar sesión');
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
