@@ -45,13 +45,15 @@
   [headers.values]
     Cache-Control = "no-cache"
 
-[[redirects]]
-  from = "/*"
-  to   = "/index.html"
-  status = 200
-
 # Admin API — enruta /admin-api/* a la función router CRUD
+# DEBE ir antes del catch-all /* para que Netlify no sirva index.html
 [[redirects]]
   from = "/admin-api/*"
   to   = "/.netlify/functions/admin-api/:splat"
+  status = 200
+
+# SPA catch-all — siempre al final
+[[redirects]]
+  from = "/*"
+  to   = "/index.html"
   status = 200
