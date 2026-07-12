@@ -147,7 +147,7 @@ export function ProductListPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50">
-                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide w-12" />
+                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide w-18" />
                 <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">
                   Producto
                 </th>
@@ -173,7 +173,7 @@ export function ProductListPage() {
               {products.map((p) => (
                 <tr key={p.id} className="hover:bg-slate-50 transition-colors">
                   {/* Imagen */}
-                  <td className="px-4 py-3">
+                  <td className="p-3">
                     {p.cover_url ? (
                       <img
                         src={p.cover_url}

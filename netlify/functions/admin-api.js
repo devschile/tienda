@@ -178,13 +178,26 @@ const handlers = {
     },
   },
 
-  // ── dashboard ─────────────────────────────────────────────────────────────
+  // ── dashboard ─────────────────────────────────────────────────────
   dashboard: {
-    async GET({ sql }) {
-      const [today] = await sql`
-        SELECT COUNT(*)::int AS orders_today,
-               COALESCE(SUM(total_amount), 0)::int AS revenue_today
-        FROM orders WHERE created_at >= CURRENT_DATE AND status = 'approved'
+    async GET({ qs, sql }) {
+      // period: today (default) | 7d | 30d | 6m | all
+      const period = qs.period || 'today';
+
+      const dateFilter =
+        {
+          today: sql`created_at >= CURRENT_DATE`,
+          '7d': sql`created_at >= NOW() - INTERVAL '7 days'`,
+          '30d': sql`created_at >= NOW() - INTERVAL '30 days'`,
+          '6m': sql`created_at >= NOW() - INTERVAL '6 months'`,
+          all: sql`true`,
+        }[period] ?? sql`created_at >= CURRENT_DATE`;
+
+      const [stats] = await sql`
+        SELECT COUNT(*)::int                               AS orders_count,
+               COALESCE(SUM(total_amount), 0)::int         AS revenue,
+               COUNT(*) FILTER (WHERE status = 'approved')::int AS approved_count
+        FROM orders WHERE ${dateFilter}
       `;
       const [pending] =
         await sql`SELECT COUNT(*)::int AS count FROM orders WHERE status = 'pending'`;
@@ -195,11 +208,13 @@ const handlers = {
 
       return json(200, {
         data: {
-          orders_today: today.orders_today,
-          revenue_today: today.revenue_today,
+          orders_count: stats.orders_count,
+          approved_count: stats.approved_count,
+          revenue: stats.revenue,
           pending: pending.count,
           low_stock: lowStock.count,
           products: products.count,
+          period,
         },
       });
     },
