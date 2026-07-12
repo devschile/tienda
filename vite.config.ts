@@ -14,11 +14,17 @@ export default defineConfig({
     port: 3000,
     open: true,
     proxy: {
-      // Redirige las llamadas a Netlify Functions al servidor local de funciones.
-      // Requiere correr 'npm run dev:functions' en otra terminal.
+      // Netlify Functions (tienda: pagos, productos, webhook)
       '/.netlify/functions': {
         target: 'http://localhost:9999',
         changeOrigin: true,
+      },
+      // Admin API — reescribe /admin-api/* a /.netlify/functions/admin-api/*
+      // En produccion el redirect de netlify.toml hace lo mismo
+      '/admin-api': {
+        target: 'http://localhost:9999',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/admin-api/, '/.netlify/functions/admin-api'),
       },
     },
   },

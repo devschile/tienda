@@ -30,8 +30,10 @@ const json = (statusCode, data) => ({
 });
 
 const parsePath = (rawPath) => {
-  // rawPath: /admin-api/products  o  /admin-api/products/rec1
+  // En prod (redirect netlify.toml): /admin-api/products
+  // En dev  (proxy Vite):           /.netlify/functions/admin-api/products
   const parts = rawPath
+    .replace(/^\/\.netlify\/functions\/admin-api\/?/, '')
     .replace(/^\/admin-api\/?/, '')
     .split('/')
     .filter(Boolean);

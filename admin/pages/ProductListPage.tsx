@@ -56,6 +56,7 @@ export function ProductListPage() {
     total = 0,
     pageSize = 15,
     loading,
+    error,
     refetch,
   } = useAdminList<Product>('products', params);
 
@@ -128,6 +129,14 @@ export function ProductListPage() {
           <div className="flex items-center justify-center py-16 gap-2 text-slate-400">
             <div className="w-4 h-4 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
             <span className="text-sm">Cargando…</span>
+          </div>
+        ) : error ? (
+          <div className="px-6 py-12 text-center">
+            <p className="text-sm text-red-500 font-medium">Error: {error}</p>
+            <p className="text-xs text-slate-400 mt-1">
+              ¿Está corriendo{' '}
+              <code className="bg-slate-100 px-1 rounded">npm run dev:functions</code>?
+            </p>
           </div>
         ) : products.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 gap-3 text-slate-400">
