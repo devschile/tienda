@@ -217,7 +217,7 @@ export function CheckoutModal({
                   className={inputClass('name')}
                   value={form.name}
                   onChange={set('name')}
-                  placeholder="Jorge Epuñan"
+                  placeholder="Zé Pequeño da Silva"
                   autoComplete="name"
                 />
                 {errors.name && <p className="text-xs text-red-500 mt-1">{errors.name}</p>}
@@ -232,7 +232,7 @@ export function CheckoutModal({
                   className={inputClass('email')}
                   value={form.email}
                   onChange={set('email')}
-                  placeholder="jorge@devschile.cl"
+                  placeholder="littlejoseph@gmail.cl"
                   autoComplete="email"
                 />
                 {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email}</p>}
@@ -282,7 +282,7 @@ export function CheckoutModal({
                           className={inputClass('address')}
                           value={form.address ?? ''}
                           onChange={set('address')}
-                          placeholder="Av. Providencia 1234, Depto 5B"
+                          placeholder="Calle Patagonia 110 casa 6 - Villa Huemul"
                           autoComplete="street-address"
                         />
                         {errors.address && (
@@ -351,7 +351,7 @@ export function CheckoutModal({
                           className={inputClass('zip')}
                           value={form.zip ?? ''}
                           onChange={set('zip')}
-                          placeholder="7500000"
+                          placeholder="7500001"
                           maxLength={7}
                           autoComplete="postal-code"
                         />
