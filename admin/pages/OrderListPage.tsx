@@ -1,6 +1,7 @@
-import { useState } from 'react';
-import { ShoppingBag } from 'lucide-react';
+import { useState, useCallback } from 'react';
+import { ShoppingBag, Download } from 'lucide-react';
 import { useAdminList } from '../hooks/useAdminData';
+import { adminFetch } from '../utils/adminFetch';
 import { Pagination } from '../components/ui/Pagination';
 import { StatusBadge, STATUS_CONFIG } from '../components/orders/OrderDetailPanel';
 import { OrderDetailPanel } from '../components/orders/OrderDetailPanel';
@@ -15,6 +16,63 @@ interface Order {
   items_count: number;
   created_at: string;
 }
+
+interface OrderExport extends Order {
+  customer_email: string;
+  shipping_city: string | null;
+  shipping_region: string | null;
+  notes: string | null;
+  mp_payment_id: string | null;
+  items_count: number;
+}
+
+const exportToCSV = async (status: string) => {
+  const qs = new URLSearchParams({ pageSize: '1000' });
+  if (status) qs.set('status', status);
+  const res = await adminFetch<{ data: OrderExport[] }>(`orders?${qs}`);
+  const rows = res.data;
+
+  const headers = [
+    '#Orden',
+    'Cliente',
+    'Email',
+    'Total CLP',
+    'Items',
+    'Estado',
+    'Fecha',
+    'Ciudad',
+    'Región',
+    'Notas',
+    'MP Payment ID',
+  ];
+  const escape = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const lines = [
+    headers.join(','),
+    ...rows.map((o) =>
+      [
+        escape(o.id),
+        escape(o.customer_name),
+        escape(o.customer_email),
+        o.total_amount,
+        o.items_count,
+        escape(o.status),
+        escape(new Date(o.created_at).toLocaleString('es-CL', { hour12: false })),
+        escape(o.shipping_city),
+        escape(o.shipping_region),
+        escape(o.notes),
+        escape(o.mp_payment_id),
+      ].join(','),
+    ),
+  ];
+
+  const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `pedidos-${status || 'todos'}-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+};
 
 const formatCLP = (n: number) =>
   new Intl.NumberFormat('es-CL', {
@@ -47,6 +105,16 @@ export function OrderListPage() {
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState('');
   const [detailId, setDetailId] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
+
+  const handleExport = useCallback(async () => {
+    setExporting(true);
+    try {
+      await exportToCSV(status);
+    } finally {
+      setExporting(false);
+    }
+  }, [status]);
 
   const {
     data: orders = [],
@@ -65,9 +133,19 @@ export function OrderListPage() {
   return (
     <div className="space-y-4 max-w-6xl">
       {/* Cabecera */}
-      <div>
-        <h1 className="text-xl font-semibold text-slate-800">Pedidos</h1>
-        <p className="text-sm text-slate-500 mt-0.5">{total} pedidos</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-semibold text-slate-800">Pedidos</h1>
+          <p className="text-sm text-slate-500 mt-0.5">{total} pedidos</p>
+        </div>
+        <button
+          onClick={handleExport}
+          disabled={exporting}
+          className="flex items-center gap-2 px-3 py-2 text-sm font-medium border border-slate-200 rounded-lg hover:bg-slate-50 text-slate-600 transition-colors disabled:opacity-50"
+        >
+          <Download className="h-4 w-4" />
+          {exporting ? 'Exportando…' : 'Exportar CSV'}
+        </button>
       </div>
 
       {/* Tabs de estado */}

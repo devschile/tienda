@@ -1,7 +1,11 @@
 import { useEffect, useState } from 'react';
-import { TrendingUp, ShoppingBag, Package, Clock, AlertTriangle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { TrendingUp, ShoppingBag, Package, Clock, AlertTriangle, ArrowRight } from 'lucide-react';
 import { adminFetch } from '../utils/adminFetch';
+import { useAdminList } from '../hooks/useAdminData';
+import { StatusBadge } from '../components/orders/OrderDetailPanel';
 
+// ── Tipos ─────────────────────────────────────────────────────────────────────
 interface DashboardData {
   orders_count: number;
   approved_count: number;
@@ -10,6 +14,19 @@ interface DashboardData {
   low_stock: number;
   products: number;
   period: string;
+}
+interface RecentOrder {
+  id: string;
+  status: string;
+  total_amount: number;
+  customer_name: string;
+  created_at: string;
+}
+interface LowStockProduct {
+  id: string;
+  name: string;
+  stock: number;
+  cover_url: string | null;
 }
 
 type Period = 'today' | '7d' | '30d' | '6m' | 'all';
@@ -29,11 +46,29 @@ const formatCLP = (n: number) =>
     minimumFractionDigits: 0,
   }).format(n);
 
+const formatDate = (s: string) =>
+  new Date(s).toLocaleString('es-CL', {
+    day: '2-digit',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+
+// ── Componente ────────────────────────────────────────────────────────────────
 export function DashboardPage() {
+  const navigate = useNavigate();
   const [period, setPeriod] = useState<Period>('today');
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Últimos 5 pedidos y productos con stock bajo
+  const { data: recentOrders = [] } = useAdminList<RecentOrder>('orders', { pageSize: 5, page: 1 });
+  const { data: lowStockItems = [] } = useAdminList<LowStockProduct>('products', {
+    pageSize: 5,
+    low_stock: 'true',
+  });
 
   useEffect(() => {
     setLoading(true);
@@ -44,7 +79,7 @@ export function DashboardPage() {
       .finally(() => setLoading(false));
   }, [period]);
 
-  const val = (v: number | undefined) => (loading ? '…' : v !== undefined ? String(v) : '—');
+  const val = (v?: number) => (loading ? '…' : v !== undefined ? String(v) : '—');
 
   const stats = [
     {
@@ -82,14 +117,13 @@ export function DashboardPage() {
   ];
 
   return (
-    <div className="space-y-5 max-w-5xl">
+    <div className="space-y-6 max-w-5xl">
       {/* Header + filtros de periodo */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold text-slate-800">Dashboard</h1>
           <p className="text-sm text-slate-500 mt-0.5">Resumen de la tienda</p>
         </div>
-
         <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
           {PERIODS.map(({ key, label }) => (
             <button
@@ -134,19 +168,110 @@ export function DashboardPage() {
         ))}
       </div>
 
-      {/* Stock bajo */}
+      {/* Alert stock bajo */}
       {!loading && data && data.low_stock > 0 && (
         <div className="flex items-center gap-2 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-700">
           <AlertTriangle className="h-4 w-4 shrink-0" />
           <span>
-            <strong>{data.low_stock}</strong> producto{data.low_stock > 1 ? 's' : ''} con menos de 5
-            unidades en stock.{' '}
-            <a href="/admin/products?filter=low_stock" className="underline font-medium">
+            <strong>{data.low_stock}</strong> producto{data.low_stock > 1 ? 's' : ''} con stock
+            bajo.{' '}
+            <button
+              onClick={() => navigate('/admin/products?filter=low_stock')}
+              className="underline font-medium"
+            >
               Ver productos
-            </a>
+            </button>
           </span>
         </div>
       )}
+
+      {/* Tablas inferiores */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        {/* Últimos pedidos */}
+        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+            <h2 className="text-sm font-semibold text-slate-700">Últimos pedidos</h2>
+            <button
+              onClick={() => navigate('/admin/orders')}
+              className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-600 transition-colors"
+            >
+              Ver todos <ArrowRight className="h-3 w-3" />
+            </button>
+          </div>
+          {recentOrders.length === 0 ? (
+            <p className="text-xs text-slate-400 text-center py-8">Sin pedidos</p>
+          ) : (
+            <div className="divide-y divide-slate-100">
+              {recentOrders.map((o) => (
+                <div
+                  key={o.id}
+                  className="flex items-center justify-between px-5 py-3 hover:bg-slate-50 transition-colors cursor-pointer"
+                  onClick={() => navigate('/admin/orders')}
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-slate-700 truncate">{o.customer_name}</p>
+                    <p className="text-xs text-slate-400 mt-0.5">{formatDate(o.created_at)}</p>
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0 ml-3">
+                    <StatusBadge status={o.status} />
+                    <span className="text-sm font-semibold text-slate-700">
+                      {formatCLP(o.total_amount)}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Stock bajo */}
+        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+            <h2 className="text-sm font-semibold text-slate-700">
+              Stock bajo <span className="text-slate-400">(menos de 5)</span>
+            </h2>
+            <button
+              onClick={() => navigate('/admin/products')}
+              className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-600 transition-colors"
+            >
+              Ver todos <ArrowRight className="h-3 w-3" />
+            </button>
+          </div>
+          {lowStockItems.length === 0 ? (
+            <p className="text-xs text-slate-400 text-center py-8">
+              ✓ Sin productos con stock bajo
+            </p>
+          ) : (
+            <div className="divide-y divide-slate-100">
+              {lowStockItems.map((p) => (
+                <div
+                  key={p.id}
+                  className="flex items-center gap-3 px-5 py-3 hover:bg-slate-50 transition-colors cursor-pointer"
+                  onClick={() => navigate('/admin/products')}
+                >
+                  {p.cover_url ? (
+                    <img
+                      src={p.cover_url}
+                      alt=""
+                      className="w-8 h-8 rounded-lg object-cover bg-slate-100 shrink-0"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-lg bg-slate-100 shrink-0" />
+                  )}
+                  <p className="flex-1 text-sm font-medium text-slate-700 truncate">{p.name}</p>
+                  <span
+                    className={`text-xs font-bold px-2 py-0.5 rounded-full shrink-0 ${
+                      p.stock === 0 ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'
+                    }`}
+                  >
+                    {p.stock === 0 ? 'Agotado' : `${p.stock} uds`}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

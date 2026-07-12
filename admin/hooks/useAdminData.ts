@@ -8,6 +8,9 @@ export interface ListParams {
   pageSize?: number;
   status?: string;
   search?: string;
+  on_sale?: string;
+  visible?: string;
+  low_stock?: string;
 }
 
 export interface ListResult<T> {
@@ -18,19 +21,19 @@ export interface ListResult<T> {
 }
 
 export function useAdminList<T>(resource: string, params: ListParams = {}) {
-  const [result, setResult]   = useState<ListResult<T> | null>(null);
+  const [result, setResult] = useState<ListResult<T> | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const qs = new URLSearchParams();
-      if (params.page)     qs.set('page',     String(params.page));
+      if (params.page) qs.set('page', String(params.page));
       if (params.pageSize) qs.set('pageSize', String(params.pageSize));
-      if (params.status)   qs.set('status',   params.status);
-      if (params.search)   qs.set('search',   params.search);
+      if (params.status) qs.set('status', params.status);
+      if (params.search) qs.set('search', params.search);
       const data = await adminFetch<ListResult<T>>(`${resource}?${qs}`);
       setResult(data);
     } catch (e) {
@@ -38,19 +41,21 @@ export function useAdminList<T>(resource: string, params: ListParams = {}) {
     } finally {
       setLoading(false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resource, params.page, params.pageSize, params.status, params.search]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   return { ...result, loading, error, refetch: fetchData };
 }
 
 // ── useAdminOne — detalle de un recurso ───────────────────────────────────────
 export function useAdminOne<T>(resource: string, id: string | null) {
-  const [data, setData]       = useState<T | null>(null);
+  const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     if (!id) return;
@@ -66,7 +71,9 @@ export function useAdminOne<T>(resource: string, id: string | null) {
     }
   }, [resource, id]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   return { data, loading, error, refetch: fetchData };
 }
@@ -74,24 +81,27 @@ export function useAdminOne<T>(resource: string, id: string | null) {
 // ── useAdminMutation — update de un recurso ────────────────────────────────────
 export function useAdminMutation<T>(resource: string) {
   const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const update = useCallback(async (id: string, body: Partial<T>): Promise<T | null> => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await adminFetch<{ data: T }>(`${resource}/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(body),
-      });
-      return res.data;
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Error al guardar');
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  }, [resource]);
+  const update = useCallback(
+    async (id: string, body: Partial<T>): Promise<T | null> => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await adminFetch<{ data: T }>(`${resource}/${id}`, {
+          method: 'PUT',
+          body: JSON.stringify(body),
+        });
+        return res.data;
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Error al guardar');
+        return null;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [resource],
+  );
 
   return { update, loading, error };
 }
