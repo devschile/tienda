@@ -1,6 +1,8 @@
 import { useState, useCallback } from 'react';
-import { Search, Filter, Package } from 'lucide-react';
+import { Search, Filter, Package, Download } from 'lucide-react';
 import { useAdminList, useAdminMutation } from '../hooks/useAdminData';
+import { useRowSelection } from '../hooks/useRowSelection';
+import { SelectCheckbox } from '../components/ui/SelectCheckbox';
 import { Toggle } from '../components/ui/Toggle';
 import { Pagination } from '../components/ui/Pagination';
 import { ProductEditPanel } from '../components/products/ProductEditPanel';
@@ -35,13 +37,50 @@ const FILTERS: { key: FilterKey; label: string }[] = [
   { key: 'hidden', label: '🙈 Ocultos' },
 ];
 
+const exportProductsToCSV = (rows: Product[], label: string) => {
+  const esc = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const headers = [
+    'ID',
+    'Nombre',
+    'Categoría',
+    'Precio',
+    'Precio oferta',
+    'Stock',
+    'Visible',
+    'Disponible',
+    'En oferta',
+  ];
+  const lines = [
+    headers.join(','),
+    ...rows.map((p) =>
+      [
+        esc(p.id),
+        esc(p.name),
+        esc(p.category),
+        p.price,
+        p.sale_price ?? '',
+        p.stock,
+        p.visible,
+        p.available,
+        p.on_sale,
+      ].join(','),
+    ),
+  ];
+  const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `productos-${label}-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
 export function ProductListPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<FilterKey>('all');
   const [editId, setEditId] = useState<string | null>(null);
 
-  // Construir params según filtro activo
   const params = {
     page,
     pageSize: 15,
@@ -61,16 +100,23 @@ export function ProductListPage() {
   } = useAdminList<Product>('products', params);
 
   const { update } = useAdminMutation<Product>('products');
+  const sel = useRowSelection(products);
 
   const handleFilterChange = (key: FilterKey) => {
     setFilter(key);
     setPage(1);
+    sel.clear();
   };
-
   const handleSearchChange = (v: string) => {
     setSearch(v);
     setPage(1);
+    sel.clear();
   };
+
+  const handleExport = useCallback(() => {
+    const rows = sel.count > 0 ? products.filter((p) => sel.selected.has(p.id)) : products;
+    exportProductsToCSV(rows, sel.count > 0 ? `${sel.count}-seleccionados` : filter);
+  }, [sel, products, filter]);
 
   // Toggle inline sin abrir el formulario
   const toggle = useCallback(
@@ -89,6 +135,13 @@ export function ProductListPage() {
           <h1 className="text-xl font-semibold text-slate-800">Productos</h1>
           <p className="text-sm text-slate-500 mt-0.5">{total} productos</p>
         </div>
+        <button
+          onClick={handleExport}
+          className="flex items-center gap-2 px-3 py-2 text-sm font-medium border border-slate-200 rounded-lg hover:bg-slate-50 text-slate-600 transition-colors"
+        >
+          <Download className="h-4 w-4" />
+          {sel.count > 0 ? `Exportar ${sel.count} seleccionados` : 'Exportar CSV'}
+        </button>
       </div>
 
       {/* Filtros */}
@@ -147,6 +200,13 @@ export function ProductListPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50">
+                <th className="px-4 py-3 w-10">
+                  <SelectCheckbox
+                    checked={sel.allSelected}
+                    indeterminate={sel.someSelected}
+                    onChange={sel.toggleAll}
+                  />
+                </th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide w-18" />
                 <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">
                   Producto
@@ -171,7 +231,16 @@ export function ProductListPage() {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {products.map((p) => (
-                <tr key={p.id} className="hover:bg-slate-50 transition-colors">
+                <tr
+                  key={p.id}
+                  className={`transition-colors ${sel.selected.has(p.id) ? 'bg-slate-50' : 'hover:bg-slate-50'}`}
+                >
+                  <td className="px-4 py-3">
+                    <SelectCheckbox
+                      checked={sel.selected.has(p.id)}
+                      onChange={() => sel.toggle(p.id)}
+                    />
+                  </td>
                   {/* Imagen */}
                   <td className="p-3">
                     {p.cover_url ? (

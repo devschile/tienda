@@ -1,11 +1,13 @@
 import { useState, useCallback } from 'react';
 import { ShoppingBag, Download } from 'lucide-react';
 import { useAdminList } from '../hooks/useAdminData';
-import { adminFetch } from '../utils/adminFetch';
+import { useRowSelection } from '../hooks/useRowSelection';
+import { SelectCheckbox } from '../components/ui/SelectCheckbox';
 import { Pagination } from '../components/ui/Pagination';
 import { StatusBadge, STATUS_CONFIG } from '../components/orders/OrderDetailPanel';
 import { OrderDetailPanel } from '../components/orders/OrderDetailPanel';
 
+// ── Tipos ─────────────────────────────────────────────────────────────────────
 interface Order {
   id: string;
   status: string;
@@ -13,67 +15,14 @@ interface Order {
   customer_name: string;
   customer_email: string;
   shipping_city: string | null;
+  shipping_region: string | null;
   items_count: number;
+  notes: string | null;
+  mp_payment_id: string | null;
   created_at: string;
 }
 
-interface OrderExport extends Order {
-  customer_email: string;
-  shipping_city: string | null;
-  shipping_region: string | null;
-  notes: string | null;
-  mp_payment_id: string | null;
-  items_count: number;
-}
-
-const exportToCSV = async (status: string) => {
-  const qs = new URLSearchParams({ pageSize: '1000' });
-  if (status) qs.set('status', status);
-  const res = await adminFetch<{ data: OrderExport[] }>(`orders?${qs}`);
-  const rows = res.data;
-
-  const headers = [
-    '#Orden',
-    'Cliente',
-    'Email',
-    'Total CLP',
-    'Items',
-    'Estado',
-    'Fecha',
-    'Ciudad',
-    'Región',
-    'Notas',
-    'MP Payment ID',
-  ];
-  const escape = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
-  const lines = [
-    headers.join(','),
-    ...rows.map((o) =>
-      [
-        escape(o.id),
-        escape(o.customer_name),
-        escape(o.customer_email),
-        o.total_amount,
-        o.items_count,
-        escape(o.status),
-        escape(new Date(o.created_at).toLocaleString('es-CL', { hour12: false })),
-        escape(o.shipping_city),
-        escape(o.shipping_region),
-        escape(o.notes),
-        escape(o.mp_payment_id),
-      ].join(','),
-    ),
-  ];
-
-  const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `pedidos-${status || 'todos'}-${new Date().toISOString().slice(0, 10)}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
-};
-
+// ── Helpers ───────────────────────────────────────────────────────────────────
 const formatCLP = (n: number) =>
   new Intl.NumberFormat('es-CL', {
     style: 'currency',
@@ -91,6 +40,49 @@ const formatDate = (s: string) =>
     hour12: false,
   });
 
+const exportToCSV = (rows: Order[], label: string) => {
+  const esc = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const hdrs = [
+    '#Orden',
+    'Cliente',
+    'Email',
+    'Total CLP',
+    'Items',
+    'Estado',
+    'Fecha',
+    'Ciudad',
+    'Región',
+    'Notas',
+    'MP Payment ID',
+  ];
+  const lines = [
+    hdrs.join(','),
+    ...rows.map((o) =>
+      [
+        esc(o.id),
+        esc(o.customer_name),
+        esc(o.customer_email),
+        o.total_amount,
+        o.items_count,
+        esc(o.status),
+        esc(new Date(o.created_at).toLocaleString('es-CL', { hour12: false })),
+        esc(o.shipping_city),
+        esc(o.shipping_region),
+        esc(o.notes),
+        esc(o.mp_payment_id),
+      ].join(','),
+    ),
+  ];
+  const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `pedidos-${label}-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
+// ── Constantes ────────────────────────────────────────────────────────────────
 const STATUS_TABS = [
   { key: '', label: 'Todos' },
   { key: 'pending', label: 'Pendientes' },
@@ -101,20 +93,11 @@ const STATUS_TABS = [
   { key: 'cancelled', label: 'Cancelados' },
 ];
 
+// ── Componente ────────────────────────────────────────────────────────────────
 export function OrderListPage() {
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState('');
   const [detailId, setDetailId] = useState<string | null>(null);
-  const [exporting, setExporting] = useState(false);
-
-  const handleExport = useCallback(async () => {
-    setExporting(true);
-    try {
-      await exportToCSV(status);
-    } finally {
-      setExporting(false);
-    }
-  }, [status]);
 
   const {
     data: orders = [],
@@ -125,10 +108,23 @@ export function OrderListPage() {
     refetch,
   } = useAdminList<Order>('orders', { page, pageSize: 15, status: status || undefined });
 
+  const sel = useRowSelection(orders);
+
   const handleTabChange = (s: string) => {
     setStatus(s);
     setPage(1);
+    sel.clear();
   };
+  const handlePageChange = (p: number) => {
+    setPage(p);
+    sel.clear();
+  };
+
+  const handleExport = useCallback(() => {
+    const rows = sel.count > 0 ? orders.filter((o) => sel.selected.has(o.id)) : orders;
+    const label = sel.count > 0 ? `${sel.count}-seleccionados` : status || 'todos';
+    exportToCSV(rows, label);
+  }, [sel, orders, status]);
 
   return (
     <div className="space-y-4 max-w-6xl">
@@ -140,11 +136,10 @@ export function OrderListPage() {
         </div>
         <button
           onClick={handleExport}
-          disabled={exporting}
-          className="flex items-center gap-2 px-3 py-2 text-sm font-medium border border-slate-200 rounded-lg hover:bg-slate-50 text-slate-600 transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 px-3 py-2 text-sm font-medium border border-slate-200 rounded-lg hover:bg-slate-50 text-slate-600 transition-colors"
         >
           <Download className="h-4 w-4" />
-          {exporting ? 'Exportando…' : 'Exportar CSV'}
+          {sel.count > 0 ? `Exportar ${sel.count} seleccionados` : 'Exportar CSV'}
         </button>
       </div>
 
@@ -189,6 +184,13 @@ export function OrderListPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50">
+                <th className="px-4 py-3 w-10">
+                  <SelectCheckbox
+                    checked={sel.allSelected}
+                    indeterminate={sel.someSelected}
+                    onChange={sel.toggleAll}
+                  />
+                </th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">
                   # Orden
                 </th>
@@ -212,7 +214,16 @@ export function OrderListPage() {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {orders.map((o) => (
-                <tr key={o.id} className="hover:bg-slate-50 transition-colors">
+                <tr
+                  key={o.id}
+                  className={`transition-colors ${sel.selected.has(o.id) ? 'bg-slate-50' : 'hover:bg-slate-50'}`}
+                >
+                  <td className="px-4 py-3">
+                    <SelectCheckbox
+                      checked={sel.selected.has(o.id)}
+                      onChange={() => sel.toggle(o.id)}
+                    />
+                  </td>
                   <td className="px-4 py-3">
                     <span className="font-mono text-xs text-slate-500">
                       {o.id.substring(0, 8)}…
@@ -252,7 +263,7 @@ export function OrderListPage() {
 
         {!loading && orders.length > 0 && (
           <div className="px-4 pb-4">
-            <Pagination page={page} pageSize={pageSize} total={total} onChange={setPage} />
+            <Pagination page={page} pageSize={pageSize} total={total} onChange={handlePageChange} />
           </div>
         )}
       </div>
