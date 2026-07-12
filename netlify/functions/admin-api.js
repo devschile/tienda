@@ -111,11 +111,15 @@ const handlers = {
       if (!name || price === undefined || price === null)
         return json(400, { error: 'Nombre y precio son requeridos' });
 
+      // Generar ID único en formato legible (mismo estilo que los existentes)
+      const id = `prod_${crypto.randomBytes(5).toString('hex')}`;
+
       const [created] = await sql`
         INSERT INTO products
-          (name, description, long_description, category, price, sale_price,
+          (id, name, description, long_description, category, price, sale_price,
            visible, available, stock, on_sale)
         VALUES (
+          ${id},
           ${name},
           ${description ?? ''},
           ${long_description ?? null},
