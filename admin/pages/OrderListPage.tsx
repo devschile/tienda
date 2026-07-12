@@ -24,7 +24,14 @@ const formatCLP = (n: number) =>
   }).format(n);
 
 const formatDate = (s: string) =>
-  new Date(s).toLocaleDateString('es-CL', { day: '2-digit', month: 'short', year: 'numeric' });
+  new Date(s).toLocaleString('es-CL', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
 
 const STATUS_TABS = [
   { key: '', label: 'Todos' },

@@ -167,12 +167,18 @@ const handlers = {
 
     async PUT({ id, body, sql }) {
       if (!id) return json(400, { error: 'ID requerido' });
-      const { status } = body;
-      if (!status) return json(400, { error: 'status requerido' });
+      const { status, notes } = body;
+
+      // Solo status, solo notes, o ambos
+      if (!status && notes === undefined) return json(400, { error: 'status o notes requerido' });
 
       const [updated] = await sql`
-        UPDATE orders SET status = ${status}::order_status
-        WHERE id = ${id} RETURNING id, status, updated_at
+        UPDATE orders
+        SET
+          status = ${status ? sql`${status}::order_status` : sql`status`},
+          notes  = ${notes !== undefined ? notes || null : sql`notes`}
+        WHERE id = ${id}
+        RETURNING id, status, notes, updated_at
       `;
       return updated ? json(200, { data: updated }) : json(404, { error: 'Orden no encontrada' });
     },
