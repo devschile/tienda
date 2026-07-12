@@ -64,7 +64,13 @@ exports.handler = async (event) => {
   const passOk = crypto.timingSafeEqual(passBufA, passBufB);
 
   if (!emailOk || !passOk) {
-    // Artificial delay — slows brute-force attempts without revealing timing info
+    // Log seguro: muestra longitudes y dominio del email, sin exponer valores
+    console.warn(
+      `Auth fallido — ` +
+        `email: enviado=${email?.length}c esperado=${adminEmail?.length}c dominio=@${adminEmail?.split('@')[1]} — ` +
+        `pass: enviada=${password?.length}c esperada=${adminPassword?.length}c`,
+    );
+    // Artificial delay — slows brute-force attempts
     await new Promise((r) => setTimeout(r, 500));
     return {
       statusCode: 401,
