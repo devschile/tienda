@@ -18,6 +18,7 @@ import { CartDrawer } from '@/components/CartDrawer';
 import { CheckoutModal } from '@/components/CheckoutModal';
 import { DevTools } from '@/components/DevTools';
 import { useStoreSettings } from '@/hooks/useStoreSettings';
+import { version } from '../package.json';
 
 function ProductCardSkeleton() {
   return (
@@ -499,10 +500,11 @@ function App() {
         transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="text-center">
+          <div className="text-center space-y-1">
             <p className="text-sm text-devs-text/70">
               © {new Date().getFullYear()} Tienda devsChile™. Todos los derechos reservados.
             </p>
+            <p className="text-xs text-devs-muted/50 font-mono">v{version}</p>
           </div>
         </div>
       </motion.footer>
