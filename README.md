@@ -39,23 +39,22 @@ cp .env.example .env                     # completar con credenciales reales
 NEON_DATABASE_URL=postgresql://user:password@host/dbname?sslmode=require
 
 # MercadoPago
-VITE_MERCADOPAGO_PUBLIC_KEY=APP_USR-...   # frontend (seguro exponerse)
+VITE_MERCADOPAGO_PUBLIC_KEY=APP_USR-...    # frontend (seguro exponerse)
 MERCADOPAGO_ACCESS_TOKEN=APP_USR-...       # backend solo
 MERCADOPAGO_WEBHOOK_SECRET=whsec_...       # Panel MP → Tu app → Webhooks
 
 # Email (cambiar solo EMAIL_PROVIDER para alternar)
 EMAIL_PROVIDER=resend                      # resend | mailgun
 RESEND_API_KEY=re_...
-FROM_EMAIL=tienda@devschile.cl
-ADMIN_EMAIL=huemul@devschile.cl
+FROM_EMAIL=
 MAILGUN_API_KEY=key-...                    # solo producción
-MAILGUN_DOMAIN=mg.tienda.devschile.cl      # solo producción
+MAILGUN_DOMAIN=mg.devschile.cl             # solo producción
 
 # UploadThing — imágenes de productos
 UPLOADTHING_TOKEN=tu_token_aqui            # dashboard.uploadthing.com → API Keys
 
 # Admin panel
-ADMIN_EMAIL=admin@devschile.cl
+ADMIN_EMAIL=
 ADMIN_PASSWORD=contraseña-segura
 ADMIN_JWT_SECRET=string-aleatorio-64-chars  # openssl rand -base64 48
 
