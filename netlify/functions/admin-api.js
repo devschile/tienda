@@ -238,10 +238,15 @@ const handlers = {
 
       // Estado de integraciones (solo booleanos, sin exponer secrets)
       if (qs.integrations === '1') {
+        const mpToken = process.env.MERCADOPAGO_ACCESS_TOKEN || '';
         data._integrations = JSON.stringify({
           mercadopago: {
-            configured: !!process.env.MERCADOPAGO_ACCESS_TOKEN,
-            mode: process.env.NODE_ENV === 'production' ? 'production' : 'sandbox',
+            configured: !!mpToken,
+            mode: mpToken.startsWith('TEST-')
+              ? 'sandbox'
+              : mpToken.startsWith('APP_USR-')
+                ? 'production'
+                : 'unknown',
           },
           email: {
             provider: process.env.EMAIL_PROVIDER || 'resend',
