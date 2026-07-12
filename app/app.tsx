@@ -268,7 +268,7 @@ function App() {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <div className="border-2 border-brand-primary/40 p-2 rounded-xl">
-                <img style={{ minWidth: 40 }} width={50} src={logo} />
+                <img style={{ minWidth: 40 }} width={40} src={logo} />
               </div>
               <div>
                 <h1 className="font-mono text-2xl sm:text-3xl font-bold leading-tight">

@@ -166,7 +166,7 @@ export function InfoModal({ open, onOpenChange }: InfoModalProps) {
           >
             <div className="aspect-square w-full bg-gradient-to-br from-brand-secondary/20 to-brand-primary/20 rounded-xl overflow-hidden shadow-lg">
               <img
-                src="/assets/images/default.svg"
+                src="/public/devschile.jpg"
                 alt="Tienda devsChile™"
                 className="w-full h-full object-cover"
               />
