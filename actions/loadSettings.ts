@@ -13,7 +13,7 @@ export interface StoreSettings {
 }
 
 export const SETTINGS_DEFAULTS: StoreSettings = {
-  store_name: 'Tienda devsChile™',
+  store_name: 'Tienda devsChile',
   store_tagline: 'Productos exclusivos de la comunidad',
   contact_email: 'huemul@devschile.cl',
   store_open: 'true',

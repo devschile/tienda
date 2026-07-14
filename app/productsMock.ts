@@ -9,7 +9,7 @@ const img = (id: string, url: string, filename: string, isCover: boolean) => ({
 
 const LONG_DESC_DESTAPABOTELLAS = `# ¿Por qué elegirlo?
 
-El destapabotellas con imán del Huemul es el accesorio perfecto para cualquier amante de la cerveza artesanal y la comunidad devsChile™.
+El destapabotellas con imán del Huemul es el accesorio perfecto para cualquier amante de la cerveza artesanal y la comunidad devsChile.
 
 ## Características
 
@@ -20,7 +20,7 @@ El destapabotellas con imán del Huemul es el accesorio perfecto para cualquier 
 
 ## Sobre el diseño
 
-Cada pieza fue diseñada por miembros de devsChile™. El Huemul grabado representa **la identidad chilena en el mundo del software**: robusto, elegante y único.`;
+Cada pieza fue diseñada por miembros de devsChile. El Huemul grabado representa **la identidad chilena en el mundo del software**: robusto, elegante y único.`;
 
 const LONG_DESC_OPACO = `## La elegancia también abre botellas.
 
@@ -37,7 +37,7 @@ No pretende ser extravagante. Pretende convertirse en ese objeto que todos toman
 - Cuerpo metálico de alta resistencia.
 - Destapador de acero integrado.
 - Imán posterior de gran adherencia para refrigeradores y superficies metálicas.
-- Diseño exclusivo del Huemul oficial de devsChile™.
+- Diseño exclusivo del Huemul oficial de devsChile.
 - Estética **minimalista** inspirada en el mundo del desarrollo de software.
 - Compacto, resistente y pensado para durar años.
 
@@ -65,7 +65,7 @@ Porque el buen diseño nunca pasa de moda. Porque un accesorio bien construido t
 - No mejora el rendimiento de tu código... aunque sí el de tu estilo.
 - **La versión mate está pensada para quienes creen que el verdadero lujo no necesita llamar la atención.**`;
 
-const LONG_DESC_BRILLANTE = `El Destapador Oficial devsChile™ no promete convertirte en Senior ni arreglar el bug de producción que aparece solo frente al cliente. Pero sí logra algo casi igual de importante: **abrir botellas con estilo**.
+const LONG_DESC_BRILLANTE = `El Destapador Oficial devsChile no promete convertirte en Senior ni arreglar el bug de producción que aparece solo frente al cliente. Pero sí logra algo casi igual de importante: **abrir botellas con estilo**.
 
 Su cubierta brillante refleja las luces de hackatones, LAN Parties, conferencias y asados tecnológicos, haciendo que el Huemul destaque incluso entre RGB y teclados mecánicos.
 
@@ -75,7 +75,7 @@ Su cubierta brillante refleja las luces de hackatones, LAN Parties, conferencias
 - Cuerpo metálico de alta resistencia.
 - Destapador de acero integrado.
 - Imán trasero para refrigerador, gabinete metálico o superficie ferromagnética.
-- Diseño exclusivo del Huemul oficial de devsChile™.
+- Diseño exclusivo del Huemul oficial de devsChile.
 - Compacto y liviano — cabe en bolsillo, mochila o bolso de notebook.
 
 ## Especificaciones
@@ -87,7 +87,7 @@ Su cubierta brillante refleja las luces de hackatones, LAN Parties, conferencias
 
 ## ¿Por qué comprarlo?
 
-Porque un llavero cualquiera no genera conversación... un destapador de devsChile™ sí. Porque cada botella abierta puede transformarse en una buena historia. Porque probablemente termine pegado en tu refrigerador recordándote ese meetup donde conociste a tu próximo socio, trabajo o amigo.
+Porque un llavero cualquiera no genera conversación... un destapador de devsChile sí. Porque cada botella abierta puede transformarse en una buena historia. Porque probablemente termine pegado en tu refrigerador recordándote ese meetup donde conociste a tu próximo socio, trabajo o amigo.
 
 Y porque seamos honestos: **todos sabemos que el código compila mejor después de una bebida bien merecida.** *(No existen estudios científicos que respalden esta afirmación. Tampoco que la contradigan.)*
 
@@ -112,22 +112,22 @@ export const productsMock = [
       id: 'rec1',
       name: 'Set de stickers',
       price: 5000,
-      description: 'Stickers oficiales de devsChile™',
+      description: 'Stickers oficiales de devsChile',
       category: 'Stickers',
       coverImage: img(
         'img1',
-        'https://placehold.co/600x600?text=Stickers+devsChile™',
+        'https://placehold.co/600x600?text=Stickers+devsChile',
         'osito.jpg',
         true,
       ),
       images: [
-        img('img1', 'https://placehold.co/600x600?text=Stickers+devsChile™', 'osito.jpg', true),
+        img('img1', 'https://placehold.co/600x600?text=Stickers+devsChile', 'osito.jpg', true),
       ],
       thumbnailImages: [
         img('img1', 'https://placehold.co/300x300?text=Stickers', 'osito_thumb.jpg', true),
       ],
       largeImages: [
-        img('img1', 'https://placehold.co/600x600?text=Stickers+devsChile™', 'osito.jpg', false),
+        img('img1', 'https://placehold.co/600x600?text=Stickers+devsChile', 'osito.jpg', false),
       ],
       visible: true,
       available: true,
@@ -197,7 +197,7 @@ export const productsMock = [
     id: 'opaco-001',
     fields: {
       id: 'opaco-001',
-      name: 'Destapador Oficial devsChile™ – Edición Signature Mate (Opaco)',
+      name: 'Destapador Oficial devsChile – Edición Signature Mate (Opaco)',
       price: 4200,
       description:
         'La Edición Signature Mate combina un acabado opaco premium con un diseño minimalista. Pensado para quienes valoran la calidad, el detalle y la discreción.',
@@ -275,10 +275,10 @@ export const productsMock = [
     id: 'brillante-001',
     fields: {
       id: 'brillante-001',
-      name: 'Destapador Oficial devsChile™ – Edición Huemul Legendario (Brillante)',
+      name: 'Destapador Oficial devsChile – Edición Huemul Legendario (Brillante)',
       price: 4200,
       description:
-        'Destapador magnético metálico con acabado brillante, ilustración del icónico Huemul de devsChile™ y fuerza suficiente para sobrevivir hackatones, meetups y juntas #llanto.',
+        'Destapador magnético metálico con acabado brillante, ilustración del icónico Huemul de devsChile y fuerza suficiente para sobrevivir hackatones, meetups y juntas #llanto.',
       category: 'Accesorios',
       coverImage: img(
         'brillante-main',

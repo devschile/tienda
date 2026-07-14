@@ -76,11 +76,11 @@ function confirmacionCompraHTML({ customerName, status, items, totalAmount, orde
 
 function confirmacionCompraSubject(status) {
   const subjects = {
-    approved: '¡Tu pedido en Tienda devsChile™ está confirmado! 🎉',
-    pending_transfer: 'Tu pago está siendo procesado ⏳ — Tienda devsChile™',
-    rejected: 'Tu pago no pudo completarse — Tienda devsChile™',
+    approved: '¡Tu pedido en Tienda devsChile está confirmado! 🎉',
+    pending_transfer: 'Tu pago está siendo procesado ⏳ — Tienda devsChile',
+    rejected: 'Tu pago no pudo completarse — Tienda devsChile',
   };
-  return subjects[status] || 'Actualización de tu pedido — Tienda devsChile™';
+  return subjects[status] || 'Actualización de tu pedido — Tienda devsChile';
 }
 
 module.exports = { confirmacionCompraHTML, confirmacionCompraSubject };

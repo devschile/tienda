@@ -3,7 +3,7 @@
 const { neon } = require('@neondatabase/serverless');
 
 const DEFAULTS = {
-  store_name: 'Tienda devsChile™',
+  store_name: 'Tienda devsChile',
   store_tagline: 'Productos exclusivos de la comunidad',
   contact_email: 'huemul@devschile.cl',
   store_open: 'true',

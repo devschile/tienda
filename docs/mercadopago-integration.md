@@ -1,4 +1,4 @@
-# Integración MercadoPago — Tienda devsChile™
+# Integración MercadoPago — Tienda devsChile
 
 > Documento técnico para el equipo de desarrollo.
 > Cubre configuración de credenciales, webhooks, entornos y pruebas end-to-end.
@@ -83,7 +83,7 @@ sequenceDiagram
 2. Iniciar sesión con la cuenta de MercadoPago del negocio (no una cuenta personal de prueba).
 3. Hacer clic en **"Crear aplicación"**.
 4. Completar el formulario:
-   - **Nombre de la aplicación:** `Tienda devsChile™`
+   - **Nombre de la aplicación:** `Tienda devsChile`
    - **¿Para qué usarás MercadoPago?** → `Pagos online`
    - **Integración:** `Checkout Pro`
    - **¿Usarás el modo binario?** → No (recomendado para manejar pagos `in_process`)
@@ -187,7 +187,7 @@ fue aprobado incluso si el usuario cierra el navegador antes de volver al sitio.
 ### Paso a paso en el panel de MP
 
 1. Ir a **https://www.mercadopago.cl/developers/panel**
-2. Seleccionar la aplicación **Tienda devsChile™**
+2. Seleccionar la aplicación **Tienda devsChile**
 3. En el menú lateral, ir a **Webhooks** (también puede aparecer como **Notificaciones IPN**)
 4. Hacer clic en **"Agregar URL"** o **"Configurar notificaciones"**
 
@@ -352,7 +352,7 @@ Para verificar:
 
 ### MercadoPago
 
-- [ ] Aplicación creada con nombre **"Tienda devsChile™"** en el panel de MP
+- [ ] Aplicación creada con nombre **"Tienda devsChile"** en el panel de MP
 - [ ] Credenciales de TEST copiadas en `.env` local y en Netlify (scopes: Deploy previews + Branch deploys)
 - [ ] Credenciales de PRODUCCIÓN copiadas en Netlify (scope: Production únicamente)
 - [ ] Webhook registrado para `tienda.devschile.cl` con eventos `payment.*`
@@ -551,4 +551,4 @@ Verificar que el entorno activo tiene el token correcto para el contexto en que 
 
 ---
 
-*Última actualización: julio 2026 — devsChile™*
+*Última actualización: julio 2026 — devsChile*

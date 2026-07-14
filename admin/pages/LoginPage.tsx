@@ -26,7 +26,7 @@ export function LoginPage({ auth }: Props) {
             <Store className="h-6 w-6 text-slate-300" />
           </div>
           <h1 className="text-xl font-semibold text-white">Panel Admin</h1>
-          <p className="text-sm text-slate-500 mt-1">Tienda devsChile™</p>
+          <p className="text-sm text-slate-500 mt-1">Tienda devsChile</p>
         </div>
 
         {/* Form */}

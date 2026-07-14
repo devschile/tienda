@@ -32,7 +32,7 @@ export function AdminSidebar({ onLogout }: Props) {
             <Store className="h-4 w-4 text-slate-300" />
           </div>
           <div>
-            <p className="text-white font-semibold text-sm leading-none">devsChile™</p>
+            <p className="text-white font-semibold text-sm leading-none">devsChile</p>
             <p className="text-slate-500 text-xs mt-0.5">Panel Admin</p>
           </div>
         </div>

@@ -10,8 +10,8 @@ export default function TerminosPage() {
       {/* Header */}
       <header className="border-b border-brand-secondary/10 py-4 px-6 bg-white/80 backdrop-blur-sm sticky top-0 z-10">
         <a href="/" className="flex items-center gap-2 w-fit">
-          <img src={logo} alt="devsChile™" className="h-8 w-8 object-contain" />
-          <span className="font-mono font-bold text-brand-secondary">Tienda devsChile™</span>
+          <img src={logo} alt="devsChile" className="h-8 w-8 object-contain" />
+          <span className="font-mono font-bold text-brand-secondary">Tienda devsChile</span>
         </a>
       </header>
 
@@ -27,9 +27,8 @@ export default function TerminosPage() {
               1. Identificación
             </h2>
             <p className="text-devs-muted leading-relaxed">
-              La Tienda devsChile™ ({SITE_URL}) es operada por la comunidad devsChile™, una
-              comunidad de desarrolladores de software de Chile. Para consultas puedes contactarnos
-              a{' '}
+              La Tienda devsChile ({SITE_URL}) es operada por la comunidad devsChile, una comunidad
+              de desarrolladores de software de Chile. Para consultas puedes contactarnos a{' '}
               <a href={`mailto:${CONTACT_EMAIL}`} className="text-brand-primary hover:underline">
                 {CONTACT_EMAIL}
               </a>
@@ -42,7 +41,7 @@ export default function TerminosPage() {
               2. Productos y precios
             </h2>
             <p className="text-devs-muted leading-relaxed">
-              Todos los productos son diseñados y comercializados por la comunidad devsChile™. Los
+              Todos los productos son diseñados y comercializados por la comunidad devsChile. Los
               precios están expresados en Pesos Chilenos (CLP) e incluyen IVA cuando corresponde.
               Nos reservamos el derecho de modificar precios sin previo aviso. El precio vigente al
               momento de confirmar la compra es el que aplica a la transacción.
@@ -68,7 +67,7 @@ export default function TerminosPage() {
             <p className="text-devs-muted leading-relaxed">
               Los pagos se procesan a través de MercadoPago, plataforma certificada PCI DSS.
               Aceptamos tarjetas de crédito y débito, transferencias bancarias y otros medios
-              disponibles en MercadoPago para Chile. devsChile™ no almacena datos de tarjetas.
+              disponibles en MercadoPago para Chile. devsChile no almacena datos de tarjetas.
             </p>
           </section>
 
@@ -121,7 +120,7 @@ export default function TerminosPage() {
             </h2>
             <p className="text-devs-muted leading-relaxed">
               Todos los diseños, imágenes y marca de los productos son propiedad de la comunidad
-              devsChile™. Queda prohibida su reproducción o uso comercial sin autorización expresa.
+              devsChile. Queda prohibida su reproducción o uso comercial sin autorización expresa.
             </p>
           </section>
 
@@ -148,7 +147,7 @@ export default function TerminosPage() {
 
       <footer className="py-6 text-center border-t border-brand-secondary/10 mt-4">
         <p className="text-xs text-devs-muted">
-          © {new Date().getFullYear()} Tienda devsChile™ · {SITE_URL}
+          © {new Date().getFullYear()} Tienda devsChile · {SITE_URL}
         </p>
       </footer>
     </div>
