@@ -1,6 +1,6 @@
-# Tienda devsChile™
+# Tienda devsChile
 
-E-commerce oficial de la comunidad devsChile™. Venta de productos exclusivos con pago integrado vía MercadoPago, panel de administración, gestión de imágenes y configuración dinámica desde base de datos.
+E-commerce oficial de la comunidad devsChile. Venta de productos exclusivos con pago integrado vía MercadoPago, panel de administración, gestión de imágenes y configuración dinámica desde base de datos.
 
 **Producción:** [tienda.devschile.cl](https://tienda.devschile.cl) · **Admin:** [tienda.devschile.cl/admin](https://tienda.devschile.cl/admin)
 
@@ -360,4 +360,4 @@ Para consultas de la tienda: [huemul@devschile.cl](mailto:huemul@devschile.cl)
 
 ## 📄 Licencia
 
-Proyecto privado — © 2026 Tienda devsChile™. Todos los derechos reservados.
+Proyecto privado — © 2026 Tienda devsChile. Todos los derechos reservados.

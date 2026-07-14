@@ -25,7 +25,7 @@ CREATE TRIGGER trg_settings_updated_at
 
 -- Valores por defecto (se insertan solo si la tabla está vacía)
 INSERT INTO settings (key, value) VALUES
-  ('store_name',                'Tienda devsChile™'),
+  ('store_name',                'Tienda devsChile'),
   ('store_tagline',             'Productos exclusivos de la comunidad'),
   ('contact_email',             'huemul@devschile.cl'),
   ('store_open',                'true'),

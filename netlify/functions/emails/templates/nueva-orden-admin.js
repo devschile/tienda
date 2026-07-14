@@ -50,9 +50,9 @@ function nuevaOrdenAdminHTML({
       <table width="100%" cellpadding="0" cellspacing="0">
         <tr>
           <td>
-            <img src="${LOGO_URL}" alt="devsChile™" width="36" height="36"
+            <img src="${LOGO_URL}" alt="devsChile" width="36" height="36"
                  style="background:#f5f5f5;display:inline-block;vertical-align:middle;border-radius:50%;border:2px solid rgba(212,163,115,0.4);margin-right:10px;">
-            <span style="color:#d4a373;font-size:11px;text-transform:uppercase;letter-spacing:2px;vertical-align:middle;">Admin · Tienda devsChile™</span>
+            <span style="color:#d4a373;font-size:11px;text-transform:uppercase;letter-spacing:2px;vertical-align:middle;">Admin · Tienda devsChile</span>
           </td>
         </tr>
         <tr><td style="padding-top:12px;">
@@ -138,7 +138,7 @@ function nuevaOrdenAdminHTML({
 
     <!-- Footer -->
     <tr><td style="background:#111827;border-radius:0 0 16px 16px;padding:16px 32px;text-align:center;">
-      <p style="margin:0;color:#4b5563;font-size:11px;">Tienda devsChile™ — Panel Admin</p>
+      <p style="margin:0;color:#4b5563;font-size:11px;">Tienda devsChile — Panel Admin</p>
     </td></tr>`;
 
   return emailWrap(rows);

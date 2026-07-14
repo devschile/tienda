@@ -1,5 +1,5 @@
 -- 01_create_products_schema.sql
--- Esquema base de productos para Tienda devsChile™ (NeonDB / Postgres)
+-- Esquema base de productos para Tienda devsChile (NeonDB / Postgres)
 -- Basado en los tipos de app/types/products.ts y app/productsMock.ts
 
 create table if not exists products (

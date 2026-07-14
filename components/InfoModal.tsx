@@ -73,7 +73,7 @@ export function InfoModal({ open, onOpenChange }: InfoModalProps) {
         <DialogHeader>
           <motion.div initial="hidden" animate="visible" variants={fadeUp}>
             <DialogTitle className="font-mono text-2xl md:text-3xl font-bold bg-gradient-to-r from-brand-primary to-brand-secondary bg-clip-text text-transparent">
-              Sobre la Tienda devsChile™
+              Sobre la Tienda devsChile
             </DialogTitle>
           </motion.div>
         </DialogHeader>
@@ -90,7 +90,7 @@ export function InfoModal({ open, onOpenChange }: InfoModalProps) {
           >
             <img
               src="/assets/images/default.svg"
-              alt="Tienda devsChile™"
+              alt="Tienda devsChile"
               className="w-full h-full object-cover"
             />
           </motion.div>
@@ -116,7 +116,7 @@ export function InfoModal({ open, onOpenChange }: InfoModalProps) {
             className="text-devs-text p-6 rounded-xl shadow-lg"
           >
             <p className="text-center font-bold text-lg">
-              ¡Gracias por apoyar a la comunidad devsChile™! 🦌
+              ¡Gracias por apoyar a la comunidad devsChile! 🦌
             </p>
           </motion.div>
         </div>
@@ -152,7 +152,7 @@ export function InfoModal({ open, onOpenChange }: InfoModalProps) {
               className="text-devs-text p-6 rounded-xl mt-6"
             >
               <p className="text-center font-bold text-lg">
-                ¡Gracias por apoyar a la comunidad devsChile™! 🦌
+                ¡Gracias por apoyar a la comunidad devsChile! 🦌
               </p>
             </motion.div>
           </div>
@@ -167,7 +167,7 @@ export function InfoModal({ open, onOpenChange }: InfoModalProps) {
             <div className="aspect-square w-full bg-gradient-to-br from-brand-secondary/20 to-brand-primary/20 rounded-xl overflow-hidden shadow-lg">
               <img
                 src="/devschile.jpg"
-                alt="Tienda devsChile™"
+                alt="Tienda devsChile"
                 className="w-full h-full object-cover"
               />
             </div>

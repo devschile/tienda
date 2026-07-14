@@ -403,7 +403,7 @@ export function SettingsPage() {
               className={input}
               value={general.store_name ?? ''}
               onChange={(e) => setGeneral((p) => ({ ...p, store_name: e.target.value }))}
-              placeholder="Tienda devsChile™"
+              placeholder="Tienda devsChile"
             />
           </Field>
           <Field label="Tagline" hint="Aparece debajo del nombre en la cabecera">

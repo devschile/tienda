@@ -284,7 +284,7 @@ function App() {
                 onClick={() => setInfoModalOpen(true)}
               >
                 <Info className="h-5 w-5 md:mr-2" />
-                <span className="hidden sm:inline">Sobre devsChile™</span>
+                <span className="hidden sm:inline">Sobre devsChile</span>
               </Button>
               <Button
                 variant="outline"
@@ -502,7 +502,7 @@ function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="text-center space-y-1">
             <p className="text-sm text-devs-text/70">
-              © {new Date().getFullYear()} Tienda devsChile™. Todos los derechos reservados.{' '}
+              © {new Date().getFullYear()} Tienda devsChile. Todos los derechos reservados.{' '}
               <span className="text-devs-muted/50 font-mono">v{version}</span>
             </p>
           </div>
