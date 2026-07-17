@@ -123,6 +123,7 @@ exports.handler = async (event, context) => {
 
       from products p
       left join product_images pi on pi.product_id = p.id
+      where p.archived = false
       group by p.id
       order by p.created_time asc
     `;
