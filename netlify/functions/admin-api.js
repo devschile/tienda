@@ -69,14 +69,15 @@ const handlers = {
       const onSale = qs.on_sale === 'true' ? true : qs.on_sale === 'false' ? false : null;
       const visibleF = qs.visible === 'true' ? true : qs.visible === 'false' ? false : null;
       const lowStock = qs.low_stock === 'true';
+      const archived = qs.archived === 'true';
 
       const rows = await sql`
         SELECT p.id, p.name, p.category, p.price, p.sale_price,
-               p.visible, p.available, p.stock, p.on_sale, p.created_time,
+               p.visible, p.available, p.stock, p.on_sale, p.archived, p.created_time,
                (SELECT pi.url FROM product_images pi
                 WHERE pi.product_id = p.id AND pi.is_cover = true LIMIT 1) AS cover_url
         FROM products p
-        WHERE true
+        WHERE p.archived = ${archived}
           ${search !== null ? sql`AND p.name ILIKE ${search}` : sql``}
           ${onSale !== null ? sql`AND p.on_sale = ${onSale}` : sql``}
           ${visibleF !== null ? sql`AND p.visible = ${visibleF}` : sql``}
@@ -86,7 +87,7 @@ const handlers = {
       `;
       const [{ total }] = await sql`
         SELECT COUNT(*)::int AS total FROM products p
-        WHERE true
+        WHERE p.archived = ${archived}
           ${search !== null ? sql`AND p.name ILIKE ${search}` : sql``}
           ${onSale !== null ? sql`AND p.on_sale = ${onSale}` : sql``}
           ${visibleF !== null ? sql`AND p.visible = ${visibleF}` : sql``}
@@ -149,6 +150,7 @@ const handlers = {
         available,
         stock,
         on_sale,
+        archived,
       } = body;
 
       const [updated] = await sql`
@@ -162,7 +164,8 @@ const handlers = {
           visible          = COALESCE(${visible ?? null}, visible),
           available        = COALESCE(${available ?? null}, available),
           stock            = COALESCE(${stock ?? null}, stock),
-          on_sale          = COALESCE(${on_sale ?? null}, on_sale)
+          on_sale          = COALESCE(${on_sale ?? null}, on_sale),
+          archived         = COALESCE(${archived ?? null}, archived)
         WHERE id = ${id}
         RETURNING *
       `;
@@ -191,40 +194,45 @@ const handlers = {
       const pageSize = Math.min(50, parseInt(qs.pageSize || '20', 10));
       const offset = (page - 1) * pageSize;
       const status = qs.status || null;
+      const archived = qs.archived === 'true';
 
       const rows = await sql`
         SELECT o.id, o.status, o.total_amount, o.customer_name, o.customer_email,
                o.shipping_city, o.shipping_region, o.mp_payment_id,
-               o.created_at, o.updated_at,
+               o.archived, o.created_at, o.updated_at,
                COUNT(oi.id)::int AS items_count
         FROM orders o
         LEFT JOIN order_items oi ON oi.order_id = o.id
-        WHERE ${status ? sql`o.status = ${status}::order_status` : sql`true`}
+        WHERE o.archived = ${archived}
+          ${status ? sql`AND o.status = ${status}::order_status` : sql``}
         GROUP BY o.id
         ORDER BY o.created_at DESC
         LIMIT ${pageSize} OFFSET ${offset}
       `;
       const [{ total }] = await sql`
         SELECT COUNT(*)::int AS total FROM orders
-        WHERE ${status ? sql`status = ${status}::order_status` : sql`true`}
+        WHERE archived = ${archived}
+          ${status ? sql`AND status = ${status}::order_status` : sql``}
       `;
       return json(200, { data: rows, total, page, pageSize });
     },
 
     async PUT({ id, body, sql }) {
       if (!id) return json(400, { error: 'ID requerido' });
-      const { status, notes } = body;
+      const { status, notes, archived } = body;
 
-      // Solo status, solo notes, o ambos
-      if (!status && notes === undefined) return json(400, { error: 'status o notes requerido' });
+      // Solo status, solo notes, solo archived, o combinación
+      if (!status && notes === undefined && archived === undefined)
+        return json(400, { error: 'status, notes o archived requerido' });
 
       const [updated] = await sql`
         UPDATE orders
         SET
-          status = ${status ? sql`${status}::order_status` : sql`status`},
-          notes  = ${notes !== undefined ? notes || null : sql`notes`}
+          status   = ${status ? sql`${status}::order_status` : sql`status`},
+          notes    = ${notes !== undefined ? notes || null : sql`notes`},
+          archived = COALESCE(${archived ?? null}, archived)
         WHERE id = ${id}
-        RETURNING id, status, notes, updated_at
+        RETURNING id, status, notes, archived, updated_at
       `;
       return updated ? json(200, { data: updated }) : json(404, { error: 'Orden no encontrada' });
     },
@@ -293,14 +301,18 @@ const handlers = {
         SELECT COUNT(*)::int                               AS orders_count,
                COALESCE(SUM(total_amount), 0)::int         AS revenue,
                COUNT(*) FILTER (WHERE status = 'approved')::int AS approved_count
-        FROM orders WHERE ${dateFilter}
+        FROM orders WHERE archived = false AND ${dateFilter}
       `;
-      const [pending] =
-        await sql`SELECT COUNT(*)::int AS count FROM orders WHERE status = 'pending'`;
-      const [lowStock] =
-        await sql`SELECT COUNT(*)::int AS count FROM products WHERE stock < 5 AND visible = true`;
-      const [products] =
-        await sql`SELECT COUNT(*)::int AS count FROM products WHERE visible = true`;
+      const [pending] = await sql`
+        SELECT COUNT(*)::int AS count FROM orders WHERE status = 'pending' AND archived = false
+      `;
+      const [lowStock] = await sql`
+        SELECT COUNT(*)::int AS count FROM products
+        WHERE stock < 5 AND visible = true AND archived = false
+      `;
+      const [products] = await sql`
+        SELECT COUNT(*)::int AS count FROM products WHERE visible = true AND archived = false
+      `;
 
       return json(200, {
         data: {

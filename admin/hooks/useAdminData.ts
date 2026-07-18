@@ -11,6 +11,7 @@ export interface ListParams {
   on_sale?: string;
   visible?: string;
   low_stock?: string;
+  archived?: string;
 }
 
 export interface ListResult<T> {
@@ -30,10 +31,11 @@ export function useAdminList<T>(resource: string, params: ListParams = {}) {
     setError(null);
     try {
       const qs = new URLSearchParams();
-      if (params.page) qs.set('page', String(params.page));
-      if (params.pageSize) qs.set('pageSize', String(params.pageSize));
-      if (params.status) qs.set('status', params.status);
-      if (params.search) qs.set('search', params.search);
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          qs.set(key, String(value));
+        }
+      });
       const data = await adminFetch<ListResult<T>>(`${resource}?${qs}`);
       setResult(data);
     } catch (e) {
@@ -41,7 +43,8 @@ export function useAdminList<T>(resource: string, params: ListParams = {}) {
     } finally {
       setLoading(false);
     }
-  }, [resource, params.page, params.pageSize, params.status, params.search]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resource, JSON.stringify(params)]);
 
   useEffect(() => {
     fetchData();

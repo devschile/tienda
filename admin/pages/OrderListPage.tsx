@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ShoppingBag, Download, AlertTriangle } from 'lucide-react';
-import { useAdminList } from '../hooks/useAdminData';
+import { ShoppingBag, Download, AlertTriangle, Archive, ArchiveRestore } from 'lucide-react';
+import { useAdminList, useAdminMutation } from '../hooks/useAdminData';
 import { useRowSelection } from '../hooks/useRowSelection';
 import { SelectCheckbox } from '../components/ui/SelectCheckbox';
 import { Pagination } from '../components/ui/Pagination';
@@ -21,6 +21,7 @@ interface Order {
   items_count: number;
   notes: string | null;
   mp_payment_id: string | null;
+  archived: boolean;
   created_at: string;
 }
 
@@ -95,11 +96,15 @@ const STATUS_TABS = [
   { key: 'cancelled', label: 'Cancelados' },
 ];
 
+const ARCHIVED_TAB = { key: 'archived', label: '📦 Archivados' };
+
 // ── Componente ────────────────────────────────────────────────────────────────
 export function OrderListPage() {
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState('');
   const [detailId, setDetailId] = useState<string | null>(null);
+
+  const showingArchived = status === 'archived';
 
   const {
     data: orders = [],
@@ -108,9 +113,24 @@ export function OrderListPage() {
     loading,
     error,
     refetch,
-  } = useAdminList<Order>('orders', { page, pageSize: 15, status: status || undefined });
+  } = useAdminList<Order>('orders', {
+    page,
+    pageSize: 15,
+    status: showingArchived ? undefined : status || undefined,
+    archived: showingArchived ? 'true' : undefined,
+  });
 
+  const { update } = useAdminMutation<Order>('orders');
   const sel = useRowSelection(orders);
+
+  const toggleArchived = useCallback(
+    async (id: string, archived: boolean) => {
+      await update(id, { archived });
+      sel.clear();
+      refetch();
+    },
+    [update, refetch, sel],
+  );
 
   const handleTabChange = (s: string) => {
     setStatus(s);
@@ -147,8 +167,8 @@ export function OrderListPage() {
 
       {/* Tabs de estado */}
       <div className="flex flex-wrap gap-1 border-b border-slate-200">
-        {STATUS_TABS.map(({ key, label }) => {
-          const cfg = key ? STATUS_CONFIG[key] : null;
+        {[...STATUS_TABS, ARCHIVED_TAB].map(({ key, label }) => {
+          const cfg = key && key !== 'archived' ? STATUS_CONFIG[key] : null;
           return (
             <button
               key={key}
@@ -310,12 +330,25 @@ export function OrderListPage() {
                       {formatDate(o.created_at)}
                     </td>
                     <td className="pr-4 py-3 text-right">
-                      <button
-                        onClick={() => setDetailId(o.id)}
-                        className="px-2.5 py-1 text-xs font-medium text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-100 transition-colors"
-                      >
-                        Ver
-                      </button>
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => toggleArchived(o.id, !o.archived)}
+                          title={o.archived ? 'Desarchivar' : 'Archivar'}
+                          className="p-1.5 text-slate-400 border border-slate-200 rounded-lg hover:bg-slate-100 hover:text-slate-600 transition-colors"
+                        >
+                          {o.archived ? (
+                            <ArchiveRestore className="h-3.5 w-3.5" />
+                          ) : (
+                            <Archive className="h-3.5 w-3.5" />
+                          )}
+                        </button>
+                        <button
+                          onClick={() => setDetailId(o.id)}
+                          className="px-2.5 py-1 text-xs font-medium text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-100 transition-colors"
+                        >
+                          Ver
+                        </button>
+                      </div>
                     </td>
                   </motion.tr>
                 ))}

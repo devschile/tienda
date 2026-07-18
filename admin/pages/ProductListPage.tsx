@@ -1,6 +1,15 @@
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, Filter, Package, Download, Plus, AlertTriangle } from 'lucide-react';
+import {
+  Search,
+  Filter,
+  Package,
+  Download,
+  Plus,
+  AlertTriangle,
+  Archive,
+  ArchiveRestore,
+} from 'lucide-react';
 import { useAdminList, useAdminMutation } from '../hooks/useAdminData';
 import { useRowSelection } from '../hooks/useRowSelection';
 import { SelectCheckbox } from '../components/ui/SelectCheckbox';
@@ -19,6 +28,7 @@ interface Product {
   available: boolean;
   stock: number;
   on_sale: boolean;
+  archived: boolean;
   cover_url: string | null;
   created_time: string;
 }
@@ -30,13 +40,14 @@ const formatCLP = (n: number) =>
     minimumFractionDigits: 0,
   }).format(n);
 
-type FilterKey = 'all' | 'on_sale' | 'low_stock' | 'hidden';
+type FilterKey = 'all' | 'on_sale' | 'low_stock' | 'hidden' | 'archived';
 
 const FILTERS: { key: FilterKey; label: string }[] = [
   { key: 'all', label: 'Todos' },
   { key: 'on_sale', label: '⚡ En oferta' },
   { key: 'low_stock', label: '⚠️ Stock bajo' },
   { key: 'hidden', label: '🙈 Ocultos' },
+  { key: 'archived', label: '📦 Archivados' },
 ];
 
 const exportProductsToCSV = (rows: Product[], label: string) => {
@@ -91,6 +102,7 @@ export function ProductListPage() {
     on_sale: filter === 'on_sale' ? 'true' : undefined,
     low_stock: filter === 'low_stock' ? 'true' : undefined,
     visible: filter === 'hidden' ? 'false' : undefined,
+    archived: filter === 'archived' ? 'true' : undefined,
   };
 
   const {
@@ -128,6 +140,15 @@ export function ProductListPage() {
       refetch();
     },
     [update, refetch],
+  );
+
+  const toggleArchived = useCallback(
+    async (id: string, archived: boolean) => {
+      await update(id, { archived });
+      sel.clear();
+      refetch();
+    },
+    [update, refetch, sel],
   );
 
   return (
@@ -375,12 +396,25 @@ export function ProductListPage() {
                       />
                     </td>
                     <td className="pr-4 py-3 text-right">
-                      <button
-                        onClick={() => setEditId(p.id)}
-                        className="px-2.5 py-1 text-xs font-medium text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-100 transition-colors"
-                      >
-                        Editar
-                      </button>
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => toggleArchived(p.id, !p.archived)}
+                          title={p.archived ? 'Desarchivar' : 'Archivar'}
+                          className="p-1.5 text-slate-400 border border-slate-200 rounded-lg hover:bg-slate-100 hover:text-slate-600 transition-colors"
+                        >
+                          {p.archived ? (
+                            <ArchiveRestore className="h-3.5 w-3.5" />
+                          ) : (
+                            <Archive className="h-3.5 w-3.5" />
+                          )}
+                        </button>
+                        <button
+                          onClick={() => setEditId(p.id)}
+                          className="px-2.5 py-1 text-xs font-medium text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-100 transition-colors"
+                        >
+                          Editar
+                        </button>
+                      </div>
                     </td>
                   </motion.tr>
                 ))}
