@@ -1,19 +1,11 @@
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import {
-  Search,
-  Filter,
-  Package,
-  Download,
-  Plus,
-  AlertTriangle,
-  Archive,
-  ArchiveRestore,
-} from 'lucide-react';
+import { Search, Filter, Package, Plus, AlertTriangle, Archive, ArchiveRestore } from 'lucide-react';
 import { useAdminList, useAdminMutation } from '../hooks/useAdminData';
 import { useRowSelection } from '../hooks/useRowSelection';
 import { SelectCheckbox } from '../components/ui/SelectCheckbox';
 import { Toggle } from '../components/ui/Toggle';
+import { ExportCSVButton, BulkArchiveButtons } from '../components/ui/BulkActionButtons';
 import { Pagination } from '../components/ui/Pagination';
 import { ProductEditPanel } from '../components/products/ProductEditPanel';
 import { ProductSkeletonRow } from '../components/ui/TableSkeleton';
@@ -151,6 +143,16 @@ export function ProductListPage() {
     [update, refetch, sel],
   );
 
+  const handleBulkArchive = useCallback(
+    async (archived: boolean) => {
+      if (sel.count === 0) return;
+      await Promise.all(Array.from(sel.selected).map((id) => update(id, { archived })));
+      sel.clear();
+      refetch();
+    },
+    [sel, update, refetch],
+  );
+
   return (
     <div className="max-w-6xl">
       {/* Cabecera */}
@@ -167,13 +169,12 @@ export function ProductListPage() {
             <Plus className="h-4 w-4" />
             Nuevo producto
           </button>
-          <button
-            onClick={handleExport}
-            className="flex items-center gap-2 px-3 py-2 text-sm font-medium border border-slate-200 rounded-lg hover:bg-slate-50 text-slate-600 transition-colors"
-          >
-            <Download className="h-4 w-4" />
-            {sel.count > 0 ? `Exportar ${sel.count} seleccionados` : 'Exportar CSV'}
-          </button>
+          <ExportCSVButton onExport={handleExport} selectedCount={sel.count} />
+          <BulkArchiveButtons
+            selectedCount={sel.count}
+            onArchive={() => handleBulkArchive(true)}
+            onUnarchive={() => handleBulkArchive(false)}
+          />
         </div>
       </div>
 

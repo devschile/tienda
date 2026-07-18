@@ -1,9 +1,10 @@
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ShoppingBag, Download, AlertTriangle, Archive, ArchiveRestore } from 'lucide-react';
+import { ShoppingBag, AlertTriangle, Archive, ArchiveRestore } from 'lucide-react';
 import { useAdminList, useAdminMutation } from '../hooks/useAdminData';
 import { useRowSelection } from '../hooks/useRowSelection';
 import { SelectCheckbox } from '../components/ui/SelectCheckbox';
+import { ExportCSVButton, BulkArchiveButtons } from '../components/ui/BulkActionButtons';
 import { Pagination } from '../components/ui/Pagination';
 import { StatusBadge, STATUS_CONFIG } from '../components/orders/OrderDetailPanel';
 import { OrderDetailPanel } from '../components/orders/OrderDetailPanel';
@@ -132,6 +133,16 @@ export function OrderListPage() {
     [update, refetch, sel],
   );
 
+  const handleBulkArchive = useCallback(
+    async (archived: boolean) => {
+      if (sel.count === 0) return;
+      await Promise.all(Array.from(sel.selected).map((id) => update(id, { archived })));
+      sel.clear();
+      refetch();
+    },
+    [sel, update, refetch],
+  );
+
   const handleTabChange = (s: string) => {
     setStatus(s);
     setPage(1);
@@ -156,13 +167,14 @@ export function OrderListPage() {
           <h1 className="text-xl font-semibold text-slate-800">Pedidos</h1>
           <p className="text-sm text-slate-500 mt-0.5">{total} pedidos</p>
         </div>
-        <button
-          onClick={handleExport}
-          className="flex items-center gap-2 px-3 py-2 text-sm font-medium border border-slate-200 rounded-lg hover:bg-slate-50 text-slate-600 transition-colors"
-        >
-          <Download className="h-4 w-4" />
-          {sel.count > 0 ? `Exportar ${sel.count} seleccionados` : 'Exportar CSV'}
-        </button>
+        <div className="flex items-center gap-2">
+          <ExportCSVButton onExport={handleExport} selectedCount={sel.count} />
+          <BulkArchiveButtons
+            selectedCount={sel.count}
+            onArchive={() => handleBulkArchive(true)}
+            onUnarchive={() => handleBulkArchive(false)}
+          />
+        </div>
       </div>
 
       {/* Tabs de estado */}
