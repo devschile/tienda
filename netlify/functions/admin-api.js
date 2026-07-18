@@ -299,7 +299,7 @@ const handlers = {
 
       const [stats] = await sql`
         SELECT COUNT(*)::int                               AS orders_count,
-               COALESCE(SUM(total_amount), 0)::int         AS revenue,
+               COALESCE(SUM(total_amount) FILTER (WHERE status = 'approved'), 0)::int AS revenue,
                COUNT(*) FILTER (WHERE status = 'approved')::int AS approved_count
         FROM orders WHERE archived = false AND ${dateFilter}
       `;
