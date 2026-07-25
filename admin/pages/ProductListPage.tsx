@@ -1,6 +1,14 @@
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, Filter, Package, Plus, AlertTriangle, Archive, ArchiveRestore } from 'lucide-react';
+import {
+  Search,
+  Filter,
+  Package,
+  Plus,
+  AlertTriangle,
+  Archive,
+  ArchiveRestore,
+} from 'lucide-react';
 import { useAdminList, useAdminMutation } from '../hooks/useAdminData';
 import { useRowSelection } from '../hooks/useRowSelection';
 import { SelectCheckbox } from '../components/ui/SelectCheckbox';
@@ -172,8 +180,8 @@ export function ProductListPage() {
           <ExportCSVButton onExport={handleExport} selectedCount={sel.count} />
           <BulkArchiveButtons
             selectedCount={sel.count}
-            onArchive={() => handleBulkArchive(true)}
-            onUnarchive={() => handleBulkArchive(false)}
+            isArchived={filter === 'archived'}
+            onToggleArchive={() => handleBulkArchive(filter !== 'archived')}
           />
         </div>
       </div>
@@ -347,7 +355,12 @@ export function ProductListPage() {
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      <p className="font-medium text-slate-800 line-clamp-1">{p.name}</p>
+                      <p
+                        className="font-medium text-slate-800 line-clamp-1"
+                        onClick={() => setEditId(p.id)}
+                      >
+                        {p.name}
+                      </p>
                       <p className="text-xs text-slate-400 mt-0.5">{p.category}</p>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
