@@ -91,7 +91,7 @@ const STATUS_TABS = [
   { key: '', label: 'Todos' },
   { key: 'pending', label: 'Pendientes' },
   { key: 'approved', label: 'Aprobados' },
-  { key: 'pending_transfer', label: 'Transferencias' },
+  // { key: 'pending_transfer', label: 'Transferencias' },
   { key: 'rejected', label: 'Rechazados' },
   { key: 'refunded', label: 'Reembolsados' },
   { key: 'cancelled', label: 'Cancelados' },
@@ -171,8 +171,8 @@ export function OrderListPage() {
           <ExportCSVButton onExport={handleExport} selectedCount={sel.count} />
           <BulkArchiveButtons
             selectedCount={sel.count}
-            onArchive={() => handleBulkArchive(true)}
-            onUnarchive={() => handleBulkArchive(false)}
+            isArchived={status === 'archived'}
+            onToggleArchive={() => handleBulkArchive(status !== 'archived')}
           />
         </div>
       </div>
