@@ -3,6 +3,11 @@
   # Instala deps de la raíz Y de las Netlify Functions antes del build
   command = "npm install && npm install --prefix netlify/functions && npx vite build"
 
+[build.environment]
+  # PostHog Analytics (browser) - VITE_ vars are inlined at build time
+  VITE_POSTHOG_KEY = "phc_pMbrDFcoVoYS9kqBRmgLEzdTjuNXYqV4sypn7YsnFuY4"
+  VITE_POSTHOG_HOST = "https://us.i.posthog.com"
+
 [functions]
   directory = "netlify/functions"
 

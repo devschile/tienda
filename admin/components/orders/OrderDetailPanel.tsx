@@ -1,6 +1,7 @@
 import { X, Loader2, MapPin, Mail, Package, Save, Truck } from 'lucide-react';
 import { useAdminOne, useAdminMutation } from '../../hooks/useAdminData';
 import { useState, useEffect } from 'react';
+import posthog from '../../../lib/posthog';
 
 interface OrderItem {
   product_id: string;
@@ -97,15 +98,26 @@ export function OrderDetailPanel({ orderId, onClose, onSaved }: Props) {
 
   const saveNotes = async () => {
     if (!orderId) return;
-    await update(orderId, { notes: notes || null });
+    const result = await update(orderId, { notes: notes || null });
+    if (!result) return;
+
+    posthog.capture('admin_order_notes_saved', {
+      has_notes: Boolean(notes.trim()),
+    });
     setNotesSaved(true);
     setTimeout(() => setNotesSaved(false), 2000);
   };
 
   const handleStatusChange = async (newStatus: string) => {
-    if (!orderId) return;
+    if (!orderId || !order) return;
     setConfirm(null);
-    await update(orderId, { status: newStatus });
+    const result = await update(orderId, { status: newStatus });
+    if (!result) return;
+
+    posthog.capture('admin_order_status_updated', {
+      previous_status: order.status,
+      status: newStatus,
+    });
     onSaved();
   };
 

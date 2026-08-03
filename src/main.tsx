@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import './index.css';
+import '@/lib/posthog';
 
 const App = lazy(() => import('../app/app'));
 const SuccessPage = lazy(() => import('./pages/SuccessPage'));
