@@ -1,11 +1,18 @@
 // Hook de autenticación admin — JWT en localStorage, sin dependencias externas
 import { useState, useCallback, useEffect } from 'react';
+import posthog from '../../lib/posthog';
 
 const TOKEN_KEY = 'admin_token';
 
-function decodePayload(token: string) {
+type AdminIdentity = {
+  sub?: string;
+  name?: string;
+  exp?: number;
+};
+
+function decodePayload(token: string): AdminIdentity | null {
   try {
-    return JSON.parse(atob(token.split('.')[1]));
+    return JSON.parse(atob(token.split('.')[1])) as AdminIdentity;
   } catch {
     return null;
   }
@@ -18,6 +25,14 @@ function isTokenValid(token: string | null): boolean {
   return payload.exp > Math.floor(Date.now() / 1000);
 }
 
+function identifyAdmin(identity: AdminIdentity) {
+  if (!identity.sub) return;
+
+  posthog.identify(identity.sub, {
+    ...(identity.name ? { name: identity.name } : {}),
+  });
+}
+
 export function useAdminAuth() {
   const [token, setToken] = useState<string | null>(() => localStorage.getItem(TOKEN_KEY));
   const [loading, setLoading] = useState(false);
@@ -25,13 +40,18 @@ export function useAdminAuth() {
 
   const isAuthenticated = isTokenValid(token);
 
-  // Limpia token expirado al montar
   useEffect(() => {
     const stored = localStorage.getItem(TOKEN_KEY);
-    if (stored && !isTokenValid(stored)) {
+    if (!stored) return;
+
+    if (!isTokenValid(stored)) {
       localStorage.removeItem(TOKEN_KEY);
       setToken(null);
+      return;
     }
+
+    const identity = decodePayload(stored);
+    if (identity) identifyAdmin(identity);
   }, []);
 
   const login = useCallback(async (email: string, password: string): Promise<boolean> => {
@@ -45,8 +65,14 @@ export function useAdminAuth() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error al iniciar sesión');
+
+      const identity = decodePayload(data.token);
+      if (!identity?.sub) throw new Error('Respuesta de autenticación inválida');
+
       localStorage.setItem(TOKEN_KEY, data.token);
       setToken(data.token);
+      identifyAdmin(identity);
+      posthog.capture('admin_login_succeeded');
       return true;
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error desconocido');
@@ -57,6 +83,7 @@ export function useAdminAuth() {
   }, []);
 
   const logout = useCallback(() => {
+    posthog.reset();
     localStorage.removeItem(TOKEN_KEY);
     setToken(null);
   }, []);

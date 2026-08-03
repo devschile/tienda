@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { ProductRecord } from '@/types/products';
+import posthog from '@/lib/posthog';
 
 export interface CartItem {
   product: ProductRecord;
@@ -38,21 +39,46 @@ export function useCart() {
   }, []);
 
   const removeItem = useCallback((productId: string) => {
-    setItems((prev) => prev.filter((i) => i.product.id !== productId));
+    setItems((prev) => {
+      const item = prev.find((i) => i.product.id === productId);
+      if (item) {
+        posthog.capture('cart_item_removed', {
+          product_id: productId,
+          category: item.product.fields.category || 'uncategorized',
+          quantity: item.quantity,
+        });
+      }
+      return prev.filter((i) => i.product.id !== productId);
+    });
   }, []);
 
   const updateQuantity = useCallback((productId: string, quantity: number) => {
-    if (quantity <= 0) {
-      setItems((prev) => prev.filter((i) => i.product.id !== productId));
-      return;
-    }
-    setItems((prev) =>
-      prev.map((i) => {
-        if (i.product.id !== productId) return i;
-        const max = i.product.fields.stock;
-        return { ...i, quantity: Math.min(quantity, max) };
-      }),
-    );
+    setItems((prev) => {
+      const item = prev.find((i) => i.product.id === productId);
+      if (!item) return prev;
+
+      if (quantity <= 0) {
+        posthog.capture('cart_item_removed', {
+          product_id: productId,
+          category: item.product.fields.category || 'uncategorized',
+          quantity: item.quantity,
+        });
+        return prev.filter((i) => i.product.id !== productId);
+      }
+
+      const nextQuantity = Math.min(quantity, item.product.fields.stock);
+      if (nextQuantity !== item.quantity) {
+        posthog.capture('cart_quantity_updated', {
+          product_id: productId,
+          category: item.product.fields.category || 'uncategorized',
+          previous_quantity: item.quantity,
+          quantity: nextQuantity,
+        });
+      }
+      return prev.map((cartItem) =>
+        cartItem.product.id === productId ? { ...cartItem, quantity: nextQuantity } : cartItem,
+      );
+    });
   }, []);
 
   const clearCart = useCallback(() => setItems([]), []);

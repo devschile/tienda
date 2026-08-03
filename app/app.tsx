@@ -19,6 +19,7 @@ import { CheckoutModal } from '@/components/CheckoutModal';
 import { DevTools } from '@/components/DevTools';
 import { useStoreSettings } from '@/hooks/useStoreSettings';
 import { version } from '../package.json';
+import posthog from '@/lib/posthog';
 
 function ProductCardSkeleton() {
   return (
@@ -81,6 +82,9 @@ function App() {
   }, [productsData]);
 
   const handleCategoryChange = (category: string | null) => {
+    posthog.capture('category_selected', {
+      category: category ?? 'all_products',
+    });
     setSelectedCategory(category);
     const url = new URL(window.location.href);
     if (category) {
@@ -155,6 +159,11 @@ function App() {
   }, []);
 
   const handleImageClick = (product: ProductRecord) => {
+    posthog.capture('product_viewed', {
+      product_id: product.id,
+      category: product.fields.category || 'uncategorized',
+      on_sale: product.fields.on_sale,
+    });
     setSelectedProduct(product);
     setImageModalOpen(true);
 
@@ -164,6 +173,16 @@ function App() {
   };
 
   const handleBuyClick = (product: ProductRecord, quantity: number) => {
+    posthog.capture('product_added_to_cart', {
+      product_id: product.id,
+      category: product.fields.category || 'uncategorized',
+      quantity,
+      unit_price:
+        product.fields.on_sale && product.fields.sale_price != null
+          ? product.fields.sale_price
+          : product.fields.price,
+      on_sale: product.fields.on_sale,
+    });
     cart.addItem(product, quantity);
     setCartOpen(true);
     toast({
@@ -202,6 +221,13 @@ function App() {
       if (!data.success || !data.checkout_url) {
         throw new Error(data.error || 'No se pudo obtener la URL de pago');
       }
+      posthog.capture('checkout_submitted', {
+        item_count: cart.totalItems,
+        cart_total: cart.totalAmount,
+        delivery_selected: Boolean(customer.wantsDelivery),
+        shipping_cost: customer.shippingCost ?? 0,
+        newsletter_opt_in: Boolean(customer.wantsNewsletter),
+      });
       cart.clearCart();
       window.location.href = data.checkout_url;
     } catch (error) {
@@ -401,9 +427,16 @@ function App() {
 
               <select
                 value={sortOrder}
-                onChange={(e) =>
-                  setSortOrder(e.target.value as 'default' | 'price-asc' | 'price-desc')
-                }
+                onChange={(e) => {
+                  const selectedSortOrder = e.target.value as
+                    | 'default'
+                    | 'price-asc'
+                    | 'price-desc';
+                  posthog.capture('catalog_sort_selected', {
+                    sort_order: selectedSortOrder,
+                  });
+                  setSortOrder(selectedSortOrder);
+                }}
                 className="ml-auto rounded-full shadow-sm border border-brand-secondary/30 bg-white text-devs-text text-sm px-3 py-1.5 outline-none focus:border-brand-secondary/50 focus:ring-2 focus:ring-brand-secondary/20 transition-all cursor-pointer"
               >
                 <option value="default">Ordenar por</option>

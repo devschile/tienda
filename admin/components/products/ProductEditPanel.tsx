@@ -4,6 +4,7 @@ import { X, Eye, EyeOff, Loader2, Check } from 'lucide-react';
 import { useAdminOne, useAdminMutation } from '../../hooks/useAdminData';
 import { Toggle } from '../ui/Toggle';
 import { ImageManager } from './ImageManager';
+import posthog from '../../../lib/posthog';
 
 interface Product {
   id: string;
@@ -93,6 +94,13 @@ export function ProductEditPanel({ productId, creating = false, onClose, onSaved
     const result = creating ? await create(form) : productId ? await update(productId, form) : null;
 
     if (result) {
+      posthog.capture(creating ? 'admin_product_created' : 'admin_product_updated', {
+        product_id: result.id,
+        category: result.category || 'uncategorized',
+        available: result.available,
+        visible: result.visible,
+        on_sale: result.on_sale,
+      });
       setSaved(true);
       setTimeout(() => {
         setSaved(false);

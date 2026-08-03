@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Button } from '@/components/ui/button';
 import { Minus, Plus, Trash2, ShoppingCart, X } from 'lucide-react';
 import type { CartItem } from '@/hooks/useCart';
+import posthog from '@/lib/posthog';
 
 interface CartDrawerProps {
   open: boolean;
@@ -200,7 +201,13 @@ export function CartDrawer({
                         </div>
                         <Button
                           className="w-full h-12 text-base font-bold tracking-wide btn-buy btn-glow"
-                          onClick={onCheckout}
+                          onClick={() => {
+                            posthog.capture('checkout_started', {
+                              item_count: items.reduce((total, item) => total + item.quantity, 0),
+                              cart_total: totalAmount,
+                            });
+                            onCheckout();
+                          }}
                         >
                           <span className="text-xl mr-1">💳</span> Pagar Ahora
                         </Button>
