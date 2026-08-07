@@ -8,11 +8,18 @@ exports.handler = async (event, context) => {
     : ['https://tienda.devschile.cl', 'https://devschile-tienda.netlify.app'];
 
   const origin = event.headers.origin || event.headers.Origin || '';
-  const isAllowedOrigin = allowedOrigins.includes(origin) || allowedOrigins.includes('*');
+  // Clientes no-browser (ej. la CLI de compra) nunca mandan Origin — un navegador real
+  // sí lo manda siempre en requests cross-origin, así que su ausencia + este header
+  // explícito identifica honestamente a un cliente first-party no-browser. Esto no
+  // debilita la protección real: el chequeo de Origin nunca defendió de un cliente
+  // no-browser (cualquiera puede spoofearlo con curl), solo de un browser real.
+  const isCliClient = (event.headers['x-tienda-client'] || event.headers['X-Tienda-Client']) === 'cli';
+  const isAllowedOrigin =
+    allowedOrigins.includes(origin) || allowedOrigins.includes('*') || (!origin && isCliClient);
 
   const headers = {
     'Access-Control-Allow-Origin': isAllowedOrigin ? origin : 'null',
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Headers': 'Content-Type, X-Tienda-Client',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Content-Type': 'application/json',
     'X-Content-Type-Options': 'nosniff',
@@ -93,7 +100,7 @@ exports.handler = async (event, context) => {
         status, total_amount,
         customer_name, customer_email,
         shipping_address, shipping_city, shipping_region, shipping_zip,
-        wants_newsletter
+        wants_newsletter, channel
       )
       VALUES (
         'pending', ${totalAmount},
@@ -103,7 +110,8 @@ exports.handler = async (event, context) => {
         ${customer.city ? String(customer.city).substring(0, 100) : null},
         ${customer.region ? String(customer.region).substring(0, 100) : null},
         ${customer.zip ? String(customer.zip).substring(0, 20) : null},
-        ${customer.wantsNewsletter === true}
+        ${customer.wantsNewsletter === true},
+        ${isCliClient ? 'cli' : 'web'}
       )
       RETURNING id
     `;
@@ -118,6 +126,13 @@ exports.handler = async (event, context) => {
 
     // ── 2. Crear preferencia en MercadoPago v2 ─────────────────────────────
     const client = new MercadoPagoConfig({ accessToken });
+
+    // auto_return exige que back_urls.success sea una URL pública HTTPS — con
+    // siteUrl=localhost (desarrollo local) MP rechaza la preferencia entera con
+    // un error engañoso ("auto_return invalid. back_url.success must be defined").
+    // Igual que el "Link de pago" de MP (que no fuerza redirect automático),
+    // solo pedimos auto_return cuando de verdad podemos volver a un sitio público.
+    const isPublicSiteUrl = /^https:\/\//.test(siteUrl);
 
     const preferenceBody = {
       items: sanitizedItems.map((item) => ({
@@ -139,11 +154,11 @@ exports.handler = async (event, context) => {
         installments: 1,
       },
       back_urls: {
-        success: `${siteUrl}/success?order_id=${order.id}`,
-        failure: `${siteUrl}/failure?order_id=${order.id}`,
-        pending: `${siteUrl}/pending?order_id=${order.id}`,
+        success: `${siteUrl}/success?order_id=${order.id}${isCliClient ? '&cli=1' : ''}`,
+        failure: `${siteUrl}/failure?order_id=${order.id}${isCliClient ? '&cli=1' : ''}`,
+        pending: `${siteUrl}/pending?order_id=${order.id}${isCliClient ? '&cli=1' : ''}`,
       },
-      auto_return: 'approved',
+      ...(isPublicSiteUrl ? { auto_return: 'approved' } : {}),
       external_reference: order.id, // clave para identificar la orden en el webhook
       notification_url: `${siteUrl}/.netlify/functions/mercadopago-webhook`,
     };

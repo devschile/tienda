@@ -85,6 +85,7 @@ export function OrderConfirmation({ urlStatus }: OrderConfirmationProps) {
 
   const params = new URLSearchParams(window.location.search);
   const orderId = params.get('order_id');
+  const isCli = params.get('cli') === '1';
 
   useEffect(() => {
     if (!orderId) {
@@ -125,7 +126,18 @@ export function OrderConfirmation({ urlStatus }: OrderConfirmationProps) {
         </a>
       </header>
 
-      <main className="flex-1 flex items-center justify-center p-6">
+      <main className="flex-1 flex flex-col items-center justify-center p-6">
+        {isCli && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="w-full max-w-md mb-4 rounded-xl border border-brand-secondary/20 bg-brand-surface px-4 py-3 text-center"
+          >
+            <p className="text-sm font-mono text-brand-secondary">
+              💻 Ya puedes volver a tu terminal — tu compra se confirma sola ahí.
+            </p>
+          </motion.div>
+        )}
         <motion.div
           className="w-full max-w-md bg-white rounded-2xl shadow-lg border border-brand-secondary/10 overflow-hidden"
           initial={{ opacity: 0, y: 40, scale: 0.95 }}

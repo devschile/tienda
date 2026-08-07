@@ -1,4 +1,4 @@
-import { X, Loader2, MapPin, Mail, Package, Save, Truck } from 'lucide-react';
+import { X, Loader2, MapPin, Mail, Package, Save, Truck, Terminal } from 'lucide-react';
 import { useAdminOne, useAdminMutation } from '../../hooks/useAdminData';
 import { useState, useEffect } from 'react';
 import posthog from '../../../lib/posthog';
@@ -24,6 +24,7 @@ interface Order {
   shipping_zip: string | null;
   mp_payment_id: string | null;
   wants_newsletter: boolean;
+  channel: string;
   notes: string | null;
   created_at: string;
   updated_at: string;
@@ -67,6 +68,19 @@ const NEXT_STATUSES: Record<string, string[]> = {
   refunded: [],
   cancelled: [],
 };
+
+export function ChannelBadge({ channel }: { channel?: string | null }) {
+  if (channel !== 'cli') return null;
+  return (
+    <span
+      title="Comprado por CLI"
+      className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-slate-800 text-white"
+    >
+      <Terminal className="h-3 w-3" />
+      CLI
+    </span>
+  );
+}
 
 export function StatusBadge({ status }: { status: string }) {
   const cfg = STATUS_CONFIG[status] ?? {
@@ -158,7 +172,10 @@ export function OrderDetailPanel({ orderId, onClose, onSaved }: Props) {
             {/* Estado + cambio */}
             <div className="px-6 py-4 bg-slate-50 border-b border-slate-100">
               <div className="flex items-center justify-between mb-3">
-                <StatusBadge status={order.status} />
+                <div className="flex items-center gap-2">
+                  <StatusBadge status={order.status} />
+                  <ChannelBadge channel={order.channel} />
+                </div>
                 <span className="text-xs text-slate-400">{formatDate(order.created_at)}</span>
               </div>
               {nextStatuses.length > 0 && (
