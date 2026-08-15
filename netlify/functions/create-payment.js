@@ -57,24 +57,102 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Validar y sanitizar items
-    const sanitizedItems = items.map((item) => {
-      const qty = parseInt(item.quantity, 10);
-      const price = parseInt(item.unitPrice, 10);
-      if (!item.productName || isNaN(qty) || qty <= 0 || isNaN(price) || price <= 0) {
-        throw new Error(`Item inválido: ${JSON.stringify(item)}`);
+    const sql = neon(databaseUrl);
+
+    // ── Validar cantidades y separar el ítem de envío (no es un producto real) ─
+    // El envío se deriva de customer.wantsDelivery, no de que el cliente incluya
+    // (u omita) un ítem 'shipping' en el array — si no, alcanzaría con no mandar
+    // ese ítem para pedir despacho gratis.
+    const shippingRequested = customer.wantsDelivery === true;
+    const productItemsRequested = items.filter((item) => item.productId !== 'shipping');
+
+    const requestedQuantities = new Map();
+    for (const item of productItemsRequested) {
+      const productId = String(item.productId || '')
+        .substring(0, 50)
+        .replace(/[<>]/g, '');
+      // Entero estricto — parseInt('1.5') truncaría en vez de rechazar.
+      const qty = item.quantity;
+      if (!productId || typeof qty !== 'number' || !Number.isInteger(qty) || qty <= 0) {
+        return { statusCode: 400, headers, body: JSON.stringify({ error: 'Item inválido' }) };
       }
-      return {
-        productId: String(item.productId || '')
-          .substring(0, 50)
-          .replace(/[<>]/g, ''),
-        productName: String(item.productName).substring(0, 100).replace(/[<>]/g, ''),
+      // Acumula si el mismo producto aparece más de una vez, en vez de
+      // quedarse solo con la última cantidad enviada.
+      requestedQuantities.set(productId, (requestedQuantities.get(productId) ?? 0) + qty);
+    }
+    if (requestedQuantities.size === 0) {
+      return { statusCode: 400, headers, body: JSON.stringify({ error: 'items requeridos' }) };
+    }
+
+    // ── Precio, nombre, disponibilidad y stock SIEMPRE desde la base de datos —
+    // nunca se confía en lo que manda el cliente (evita manipulación de precio) ─
+    const productIds = [...requestedQuantities.keys()];
+    const dbProducts = await sql`
+      SELECT id, name, price, sale_price, on_sale, available, stock
+      FROM products
+      WHERE id = ANY(${productIds}) AND archived = false
+    `;
+    const productsById = new Map(dbProducts.map((p) => [p.id, p]));
+
+    const sanitizedItems = [];
+    for (const [productId, qty] of requestedQuantities) {
+      const product = productsById.get(productId);
+      if (!product) {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ error: `Producto no encontrado: ${productId}` }),
+        };
+      }
+      if (!product.available || product.stock < qty) {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ error: `Sin stock suficiente: ${product.name}` }),
+        };
+      }
+      const originalPrice = Number(product.price);
+      const unitPrice = product.on_sale && product.sale_price != null ? Number(product.sale_price) : originalPrice;
+      sanitizedItems.push({
+        productId: product.id,
+        productName: product.name,
         quantity: qty,
-        unitPrice: price,
-        originalPrice: item.originalPrice ? parseInt(item.originalPrice, 10) || price : price,
-        subtotal: qty * price,
-      };
-    });
+        unitPrice,
+        originalPrice,
+        subtotal: qty * unitPrice,
+      });
+    }
+
+    // ── Envío: costo siempre derivado de settings, nunca del cliente ──────────
+    if (shippingRequested) {
+      const settingsRows = await sql`
+        SELECT key, value FROM settings
+        WHERE key IN ('shipping_enabled', 'shipping_cost', 'free_shipping_threshold')
+      `;
+      const settings = Object.fromEntries(settingsRows.map((r) => [r.key, r.value]));
+      const shippingEnabled = settings.shipping_enabled === 'true';
+      const shippingCost = parseInt(settings.shipping_cost, 10) || 0;
+      const freeShippingThreshold = parseInt(settings.free_shipping_threshold, 10) || 0;
+      const productsSubtotal = sanitizedItems.reduce((sum, i) => sum + i.subtotal, 0);
+
+      const effectiveShipping =
+        shippingEnabled && shippingCost > 0
+          ? freeShippingThreshold > 0 && productsSubtotal >= freeShippingThreshold
+            ? 0
+            : shippingCost
+          : 0;
+
+      if (effectiveShipping > 0) {
+        sanitizedItems.push({
+          productId: 'shipping',
+          productName: 'Envío a domicilio',
+          quantity: 1,
+          unitPrice: effectiveShipping,
+          originalPrice: effectiveShipping,
+          subtotal: effectiveShipping,
+        });
+      }
+    }
 
     const totalAmount = sanitizedItems.reduce((sum, i) => sum + i.subtotal, 0);
     if (totalAmount <= 0 || totalAmount > 5000000) {
@@ -86,7 +164,6 @@ exports.handler = async (event, context) => {
     const siteUrl = process.env.URL || process.env.SITE_URL || 'https://tienda.devschile.cl';
 
     // ── 1. Persistir la orden como PENDING en Neon ─────────────────────────
-    const sql = neon(databaseUrl);
 
     const [order] = await sql`
       INSERT INTO orders (
