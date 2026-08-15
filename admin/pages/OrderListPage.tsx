@@ -6,7 +6,7 @@ import { useRowSelection } from '../hooks/useRowSelection';
 import { SelectCheckbox } from '../components/ui/SelectCheckbox';
 import { ExportCSVButton, BulkArchiveButtons } from '../components/ui/BulkActionButtons';
 import { Pagination } from '../components/ui/Pagination';
-import { StatusBadge, STATUS_CONFIG } from '../components/orders/OrderDetailPanel';
+import { StatusBadge, ChannelBadge, STATUS_CONFIG } from '../components/orders/OrderDetailPanel';
 import { OrderDetailPanel } from '../components/orders/OrderDetailPanel';
 import { OrderSkeletonRow } from '../components/ui/TableSkeleton';
 
@@ -22,6 +22,7 @@ interface Order {
   items_count: number;
   notes: string | null;
   mp_payment_id: string | null;
+  channel: 'web' | 'cli';
   archived: boolean;
   created_at: string;
 }
@@ -336,7 +337,10 @@ export function OrderListPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <StatusBadge status={o.status} />
+                      <div className="flex items-center gap-1.5">
+                        <StatusBadge status={o.status} />
+                        <ChannelBadge channel={o.channel} />
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">
                       {formatDate(o.created_at)}

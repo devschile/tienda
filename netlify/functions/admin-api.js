@@ -198,7 +198,7 @@ const handlers = {
 
       const rows = await sql`
         SELECT o.id, o.status, o.total_amount, o.customer_name, o.customer_email,
-               o.shipping_city, o.shipping_region, o.mp_payment_id,
+               o.shipping_city, o.shipping_region, o.mp_payment_id, o.channel,
                o.archived, o.created_at, o.updated_at,
                COUNT(oi.id)::int AS items_count
         FROM orders o
