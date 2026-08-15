@@ -9,6 +9,10 @@ if (apiKey && apiHost) {
     api_host: apiHost,
   });
 
+  // Este proyecto de PostHog es compartido con otros sitios de devsChile (ej. pegas).
+  // Se etiqueta cada evento con site='tienda' para poder filtrar sin depender de $host.
+  initializedPosthog.register({ site: 'tienda' });
+
   initializedPosthog.startExceptionAutocapture({
     capture_unhandled_errors: true,
     capture_unhandled_rejections: true,
