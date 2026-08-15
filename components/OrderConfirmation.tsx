@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import { Loader2, CheckCircle2, XCircle, Clock, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import getOrder, { type Order, type OrderStatus } from '@/actions/getOrder';
 import { CoinConfetti } from '@/components/CoinConfetti';
 import logo from '@/images/devschile2026.png';
+import posthog from '@/lib/posthog';
 
 interface OrderConfirmationProps {
   urlStatus: 'success' | 'failure' | 'pending';
@@ -112,6 +113,21 @@ export function OrderConfirmation({ urlStatus }: OrderConfirmationProps) {
   // Determinar status a mostrar: orden real si cargó, si no el de la URL
   const displayStatus: OrderStatus = order?.status ?? URL_STATUS_MAP[urlStatus] ?? 'pending';
   const config = STATUS_CONFIG[displayStatus];
+
+  // Cierre del embudo de compra: hasta acá solo trackeábamos hasta checkout_submitted,
+  // sin saber si el pago terminó aprobado, rechazado o abandonado.
+  const trackedRef = useRef(false);
+  useEffect(() => {
+    if (loading || trackedRef.current) return;
+    trackedRef.current = true;
+    posthog.capture('order_confirmation_viewed', {
+      url_status: urlStatus,
+      status: displayStatus,
+      order_id: orderId ?? null,
+      total_amount: order?.total_amount ?? null,
+      found_order: Boolean(order),
+    });
+  }, [loading, urlStatus, displayStatus, orderId, order]);
 
   return (
     <div className="min-h-screen bg-brand-background flex flex-col">
