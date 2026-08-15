@@ -24,7 +24,7 @@ interface Order {
   shipping_zip: string | null;
   mp_payment_id: string | null;
   wants_newsletter: boolean;
-  channel: string;
+  channel: 'web' | 'cli';
   notes: string | null;
   created_at: string;
   updated_at: string;

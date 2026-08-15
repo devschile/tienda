@@ -22,7 +22,7 @@ interface Order {
   items_count: number;
   notes: string | null;
   mp_payment_id: string | null;
-  channel: string;
+  channel: 'web' | 'cli';
   archived: boolean;
   created_at: string;
 }

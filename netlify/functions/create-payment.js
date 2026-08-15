@@ -18,7 +18,10 @@ exports.handler = async (event, context) => {
     allowedOrigins.includes(origin) || allowedOrigins.includes('*') || (!origin && isCliClient);
 
   const headers = {
-    'Access-Control-Allow-Origin': isAllowedOrigin ? origin : 'null',
+    // origin puede venir vacío cuando es CLI o cuando ALLOWED_ORIGINS incluye '*'
+    // sin Origin en el request — un string vacío no es un valor válido para este
+    // header, así que en ese caso se refleja '*' en su lugar.
+    'Access-Control-Allow-Origin': isAllowedOrigin ? origin || '*' : 'null',
     'Access-Control-Allow-Headers': 'Content-Type, X-Tienda-Client',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Content-Type': 'application/json',
@@ -132,7 +135,8 @@ exports.handler = async (event, context) => {
     // un error engañoso ("auto_return invalid. back_url.success must be defined").
     // Igual que el "Link de pago" de MP (que no fuerza redirect automático),
     // solo pedimos auto_return cuando de verdad podemos volver a un sitio público.
-    const isPublicSiteUrl = /^https:\/\//.test(siteUrl);
+    const isPublicSiteUrl =
+      /^https:\/\//.test(siteUrl) && !/^https:\/\/(localhost|127\.0\.0\.1|\[?::1\]?)(:|\/|$)/.test(siteUrl);
 
     const preferenceBody = {
       items: sanitizedItems.map((item) => ({
