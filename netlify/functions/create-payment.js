@@ -60,16 +60,25 @@ exports.handler = async (event, context) => {
     const sql = neon(databaseUrl);
 
     // ── Validar cantidades y separar el ítem de envío (no es un producto real) ─
-    const shippingRequested = items.find((item) => item.productId === 'shipping');
+    // El envío se deriva de customer.wantsDelivery, no de que el cliente incluya
+    // (u omita) un ítem 'shipping' en el array — si no, alcanzaría con no mandar
+    // ese ítem para pedir despacho gratis.
+    const shippingRequested = customer.wantsDelivery === true;
     const productItemsRequested = items.filter((item) => item.productId !== 'shipping');
 
     const requestedQuantities = new Map();
     for (const item of productItemsRequested) {
-      const qty = parseInt(item.quantity, 10);
-      if (!item.productId || isNaN(qty) || qty <= 0) {
+      const productId = String(item.productId || '')
+        .substring(0, 50)
+        .replace(/[<>]/g, '');
+      // Entero estricto — parseInt('1.5') truncaría en vez de rechazar.
+      const qty = item.quantity;
+      if (!productId || typeof qty !== 'number' || !Number.isInteger(qty) || qty <= 0) {
         return { statusCode: 400, headers, body: JSON.stringify({ error: 'Item inválido' }) };
       }
-      requestedQuantities.set(String(item.productId), qty);
+      // Acumula si el mismo producto aparece más de una vez, en vez de
+      // quedarse solo con la última cantidad enviada.
+      requestedQuantities.set(productId, (requestedQuantities.get(productId) ?? 0) + qty);
     }
     if (requestedQuantities.size === 0) {
       return { statusCode: 400, headers, body: JSON.stringify({ error: 'items requeridos' }) };
