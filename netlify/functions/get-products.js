@@ -125,7 +125,7 @@ exports.handler = async (event, context) => {
       left join product_images pi on pi.product_id = p.id
       where p.archived = false
       group by p.id
-      order by p.created_time asc
+      order by p.created_time desc
     `;
 
     const records = rows.map((row) => ({
