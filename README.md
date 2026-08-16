@@ -1,5 +1,7 @@
 # Tienda devsChile
 
+![Huemul devsChile](https://utfs.io/f/ZkRB8SdTOr1pVr4K8lG0bLlkFfDeNAs3GhUqpWQTYazn8jSH)
+
 E-commerce oficial de la comunidad devsChile. Venta de productos exclusivos con pago integrado vía MercadoPago, panel de administración, gestión de imágenes y configuración dinámica desde base de datos.
 
 **Producción:** [tienda.devschile.cl](https://tienda.devschile.cl) · **Admin:** [tienda.devschile.cl/admin](https://tienda.devschile.cl/admin)
