@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { ProductRecord } from '@/types/products';
-import { ChevronLeft, ChevronRight, ShoppingCart } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ShoppingCart, Layers } from 'lucide-react';
 import { MarkdownText } from '@/components/MarkdownText';
 
 interface ProductImageModalProps {
@@ -13,6 +13,8 @@ interface ProductImageModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onBuyClick?: (product: ProductRecord, quantity: number) => void;
+  /** Solo para tipo 'bundle' — abre el constructor de packs. */
+  onBuildBundle?: (product: ProductRecord) => void;
 }
 
 const formatPrice = (n: number) =>
@@ -27,6 +29,7 @@ export function ProductImageModal({
   open,
   onOpenChange,
   onBuyClick,
+  onBuildBundle,
 }: ProductImageModalProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [direction, setDirection] = useState<'next' | 'prev'>('next');
@@ -62,8 +65,9 @@ export function ProductImageModal({
 
   if (!product) return null;
 
-  const { on_sale, long_description, price, sale_price, available } = product.fields;
+  const { on_sale, long_description, price, sale_price, available, product_type } = product.fields;
   const isSold = !available;
+  const isBundle = product_type === 'bundle';
 
   const images = product.fields.images?.length
     ? product.fields.images
@@ -84,7 +88,12 @@ export function ProductImageModal({
   };
 
   const handleBuy = () => {
-    if (isSold || !onBuyClick) return;
+    if (isSold) return;
+    if (isBundle) {
+      onBuildBundle?.(product);
+      return;
+    }
+    if (!onBuyClick) return;
     onBuyClick(product, 1);
     setAdded(true);
     setTimeout(() => setAdded(false), 1400);
@@ -126,6 +135,10 @@ export function ProductImageModal({
             >
               {isSold ? (
                 'Agotado'
+              ) : isBundle ? (
+                <>
+                  <Layers className="h-4 w-4" /> Arma tu pack
+                </>
               ) : (
                 <>
                   <ShoppingCart className="h-4 w-4" /> ¡Lo quiero!
@@ -139,37 +152,42 @@ export function ProductImageModal({
   };
 
   // Sección de precio + botón (reutilizada en header y footer mobile)
-  const PriceRow = ({ size = 'md' }: { size?: 'sm' | 'md' }) => (
-    <div className="flex items-center justify-between gap-3 flex-wrap">
-      <div>
-        {on_sale && sale_price ? (
-          <div className="space-y-0.5">
-            <div className="flex items-end gap-2 flex-wrap">
-              <span
-                className={`font-bold text-brand-primary ${size === 'sm' ? 'text-2xl' : 'text-3xl'}`}
-              >
-                {formatPrice(sale_price)}
-              </span>
-              <span className="text-sm text-devs-muted line-through pb-0.5">
-                {formatPrice(price)}
+  const PriceRow = ({ size = 'md' }: { size?: 'sm' | 'md' }) => {
+    const displayPrice = isBundle ? (product.fields.bundle_unit_price ?? price) : price;
+    return (
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div>
+          {on_sale && sale_price && !isBundle ? (
+            <div className="space-y-0.5">
+              <div className="flex items-end gap-2 flex-wrap">
+                <span
+                  className={`font-bold text-brand-primary ${size === 'sm' ? 'text-2xl' : 'text-3xl'}`}
+                >
+                  {formatPrice(sale_price)}
+                </span>
+                <span className="text-sm text-devs-muted line-through pb-0.5">
+                  {formatPrice(price)}
+                </span>
+              </div>
+              <span className="inline-flex items-center gap-1 text-xs font-bold bg-amber-400 text-amber-900 px-2 py-0.5 rounded-full">
+                💰 Ahorras {formatPrice(price - sale_price)} (
+                {Math.round((1 - sale_price / price) * 100)}% off)
               </span>
             </div>
-            <span className="inline-flex items-center gap-1 text-xs font-bold bg-amber-400 text-amber-900 px-2 py-0.5 rounded-full">
-              💰 Ahorras {formatPrice(price - sale_price)} (
-              {Math.round((1 - sale_price / price) * 100)}% off)
+          ) : (
+            <span
+              className={`font-bold bg-gradient-to-r from-brand-primary to-brand-secondary bg-clip-text text-transparent ${size === 'sm' ? 'text-2xl' : 'text-3xl'}`}
+            >
+              {isBundle
+                ? `desde ${formatPrice(displayPrice)} · sticker`
+                : formatPrice(displayPrice)}
             </span>
-          </div>
-        ) : (
-          <span
-            className={`font-bold bg-gradient-to-r from-brand-primary to-brand-secondary bg-clip-text text-transparent ${size === 'sm' ? 'text-2xl' : 'text-3xl'}`}
-          >
-            {formatPrice(price)}
-          </span>
-        )}
+          )}
+        </div>
+        {(onBuyClick || onBuildBundle) && <WantButton size={size} />}
       </div>
-      {onBuyClick && <WantButton size={size} />}
-    </div>
-  );
+    );
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

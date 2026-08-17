@@ -157,6 +157,9 @@ exports.handler = async (event) => {
 
       for (const item of items) {
         if (item.product_id === 'shipping') continue; // ítem de envío, no es un producto
+        // Slots de "sticker sorpresa" de un pack: no hay un producto concreto que
+        // descontar — se resuelven desde stock disponible al momento de despachar.
+        if (item.product_id.endsWith('@surpresa')) continue;
         const [updated] = await sql`
           UPDATE products
           SET stock = GREATEST(0, stock - ${item.quantity})

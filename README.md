@@ -114,6 +114,8 @@ Aplica en orden desde `migrations/` en el SQL Editor de Neon:
 | 10 | `add_original_price_to_order_items.sql` | Precio original para emails con descuentos |
 | 11 | `add_notes_to_orders.sql` | Notas internas por orden (solo admin) |
 | 12 | `create_settings.sql` | Configuración dinámica de la tienda |
+| 13 | `add_archived_to_products_and_orders.sql` | Archivado reversible de productos y órdenes |
+| 14 | `add_bundle_and_addon_fields.sql` | Packs de stickers + add-ons (sin tocar productos actuales) |
 
 ### Esquema resumido
 
@@ -122,6 +124,9 @@ products
   id, name, description, long_description (Markdown)
   category, price, sale_price, on_sale
   visible, available, stock
+  product_type (standard|bundle|addon)  ← packs + stickers (migración 14)
+  selectable_in_bundles, bundle_unit_price
+  bundle_sizes (JSON [3,4,6]), bundle_allow_surprise
   created_time
 
 product_images
@@ -173,6 +178,16 @@ Usuario → Catálogo → Carrito → Checkout Form
 ```
 
 **Costo de envío:** si el usuario selecciona envío a domicilio y aplica un costo (configurado en `/admin/settings`), se agrega como ítem `product_id='shipping'` al array de ítems — así MercadoPago lo cobra y los emails lo muestran con breakdown separado.
+
+---
+
+## 🎟️ Packs de stickers y add-ons
+
+Los stickers tienen un valor bajo que no justifica un envío propio, así que no se venden sueltos:
+
+- **Pack (bundle):** producto `product_type='bundle'` con `bundle_unit_price` (precio por sticker), `bundle_sizes` (p. ej. `[3,4,6]`) y `bundle_allow_surprise`. Su botón en el catálogo abre el **constructor de packs** (`BundleBuilder`): se elige tamaño y se combinan stickers seleccionables (`selectable_in_bundles=true`, con stock). Si faltan stickers para completar el tamaño se muestra un aviso: con sorpresas, el usuario debe confirmar "acepto stickers sorpresa"; sin sorpresas, se bloquea hasta completar la selección.
+- **Add-on (sticker):** producto `product_type='addon'`. No aparece en el catálogo salvo que el carrito ya acumule subtotal ≥ costo de envío (entonces se puede añadir al mismo pedido sin envío extra).
+- El backend valida todo de nuevo en `create-payment.js`: tamaño ∈ `bundle_sizes`, selección = tamaño (explícitos + sorpresas), stickers elegibles/con stock, precio recalculado desde la BD, y rechaza stickers add-on en pedidos cuyo subtotal no cubra el envío. Al aprobarse el pago, el webhook descuenta el stock de cada sticker elegido; los slots sorpresa se resuelven con stock disponible al despachar.
 
 ---
 
@@ -267,7 +282,7 @@ Las tablas incluyen skeleton animado (Motion) en la carga y stagger spring en la
 ├── hooks/
 │   ├── useCart.ts           # Estado del carrito (localStorage)
 │   └── useStoreSettings.ts  # Settings desde NeonDB con helpers parseados
-├── migrations/              # 12 archivos SQL secuenciales para NeonDB
+├── migrations/              # 14 archivos SQL secuenciales para NeonDB
 ├── netlify/
 │   └── functions/
 │       ├── admin-api.js         # Router CRUD admin (JWT) — products, orders, images,

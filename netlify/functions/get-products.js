@@ -65,6 +65,11 @@ exports.handler = async (event, context) => {
         p.long_description,
         p.sale_price,
         p.created_time,
+        p.product_type,
+        p.selectable_in_bundles,
+        p.bundle_unit_price,
+        p.bundle_sizes,
+        p.bundle_allow_surprise,
 
         -- Imagen de portada del card (is_cover = true, máximo 1 por producto)
         (
@@ -146,6 +151,11 @@ exports.handler = async (event, context) => {
         on_sale: row.on_sale,
         long_description: row.long_description ?? null,
         sale_price: row.sale_price != null ? Number(row.sale_price) : null,
+        product_type: row.product_type || 'standard',
+        selectable_in_bundles: !!row.selectable_in_bundles,
+        bundle_unit_price: row.bundle_unit_price != null ? Number(row.bundle_unit_price) : null,
+        bundle_sizes: row.bundle_sizes ? JSON.parse(row.bundle_sizes) : null,
+        bundle_allow_surprise: row.bundle_allow_surprise,
       },
       createdTime:
         row.created_time instanceof Date ? row.created_time.toISOString() : row.created_time,

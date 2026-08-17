@@ -6,6 +6,14 @@ export interface CartItem {
   quantity: number;
   unitPrice: number; // precio efectivo (sale_price si hay oferta)
   originalPrice: number; // precio base siempre (para mostrar descuento en emails)
+  /** Presencia solo en ítems de tipo pack (product_type='bundle'). El servidor
+   *  descompone el pack en líneas por sticker y valida todo (nunca confía en
+   *  unitPrice/quantity enviados para packs). */
+  bundle?: {
+    size: number;
+    items: { productId: string; name?: string; quantity: number }[];
+    surpriseCount: number;
+  };
 }
 
 export interface CustomerData {

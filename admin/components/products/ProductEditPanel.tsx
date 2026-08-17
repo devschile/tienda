@@ -19,6 +19,11 @@ interface Product {
   stock: number;
   on_sale: boolean;
   cover_url: string | null;
+  product_type: 'standard' | 'bundle' | 'addon';
+  selectable_in_bundles: boolean;
+  bundle_unit_price: number | null;
+  bundle_sizes: string;
+  bundle_allow_surprise: boolean;
 }
 
 const DEFAULTS: Partial<Product> = {
@@ -32,6 +37,11 @@ const DEFAULTS: Partial<Product> = {
   available: true,
   stock: 0,
   on_sale: false,
+  product_type: 'standard',
+  selectable_in_bundles: false,
+  bundle_unit_price: null,
+  bundle_sizes: '',
+  bundle_allow_surprise: true,
 };
 
 interface Props {
@@ -70,7 +80,20 @@ export function ProductEditPanel({ productId, creating = false, onClose, onSaved
   // Populate form when editing an existing product
   useEffect(() => {
     if (!creating && data) {
-      setForm(data);
+      const rawSizes = data.bundle_sizes as unknown;
+      // bundle_sizes llega como JSON string desde el backend ('[3,4,6]') o array
+      let sizesStr = '';
+      if (typeof rawSizes === 'string') {
+        try {
+          const parsed = JSON.parse(rawSizes);
+          if (Array.isArray(parsed)) sizesStr = parsed.join(', ');
+        } catch {
+          sizesStr = rawSizes;
+        }
+      } else if (Array.isArray(rawSizes)) {
+        sizesStr = rawSizes.join(', ');
+      }
+      setForm({ ...data, bundle_sizes: sizesStr });
       setPreview(false);
       setSaved(false);
       setValidationError(null);
@@ -88,6 +111,20 @@ export function ProductEditPanel({ productId, creating = false, onClose, onSaved
     if (form.price === undefined || form.price === null || isNaN(Number(form.price))) {
       setValidationError('El precio es requerido');
       return;
+    }
+    if (form.product_type === 'bundle') {
+      if (!form.bundle_unit_price || form.bundle_unit_price <= 0) {
+        setValidationError('Los packs requieren un precio por sticker');
+        return;
+      }
+      const sizes = (form.bundle_sizes ?? '')
+        .split(/[,\s]+/)
+        .map((s) => parseInt(s, 10))
+        .filter((n) => Number.isInteger(n) && n > 0);
+      if (sizes.length === 0) {
+        setValidationError('Los packs requieren al menos un tamaño (ej. 3, 4, 6)');
+        return;
+      }
     }
     setValidationError(null);
 
@@ -285,6 +322,111 @@ export function ProductEditPanel({ productId, creating = false, onClose, onSaved
                     </div>
                   ))}
                 </div>
+
+                {/* Tipo de producto */}
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-1.5">
+                    Tipo de producto
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {(
+                      [
+                        ['standard', 'Standard', 'Compra directa como siempre'],
+                        ['bundle', 'Pack', 'Constructor de stickers'],
+                        ['addon', 'Sticker', 'Solo como agregado o en pack'],
+                      ] as const
+                    ).map(([value, label, hint]) => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => set('product_type', value)}
+                        className={`px-3 py-2 rounded-lg border text-left transition-colors ${
+                          form.product_type === value
+                            ? 'bg-slate-800 text-white border-slate-800'
+                            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                        }`}
+                      >
+                        <span className="block text-sm font-medium">{label}</span>
+                        <span
+                          className={`block text-[10px] leading-tight mt-0.5 ${
+                            form.product_type === value ? 'text-white/70' : 'text-slate-400'
+                          }`}
+                        >
+                          {hint}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Configuración de pack (solo product_type = bundle) */}
+                {form.product_type === 'bundle' && (
+                  <div className="bg-slate-50 rounded-xl p-4 space-y-4 border border-slate-200">
+                    <div>
+                      <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-1.5">
+                        Precio por sticker (CLP) <span className="text-red-400">*</span>
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        className={input}
+                        value={form.bundle_unit_price ?? ''}
+                        onChange={(e) =>
+                          set('bundle_unit_price', e.target.value ? parseInt(e.target.value) : null)
+                        }
+                        placeholder="1000"
+                      />
+                      <p className="text-xs text-slate-400 mt-1">
+                        El precio del pack es tamaño × precio por sticker.
+                      </p>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-1.5">
+                        Tamaños disponibles <span className="text-red-400">*</span>
+                      </label>
+                      <input
+                        className={input}
+                        value={form.bundle_sizes ?? ''}
+                        onChange={(e) => set('bundle_sizes', e.target.value)}
+                        placeholder="3, 4, 6"
+                      />
+                      <p className="text-xs text-slate-400 mt-1">
+                        Tamaños separados por coma. Ej. 3, 4, 6 = packs de 3, 4 y 6 stickers.
+                      </p>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-slate-700">
+                        Permitir stickers sorpresa
+                        <span className="block text-xs text-slate-400">
+                          Si el usuario elige menos stickers que el tamaño, se completan con
+                          sorpresa (tras confirmación).
+                        </span>
+                      </span>
+                      <Toggle
+                        checked={form.bundle_allow_surprise ?? true}
+                        onChange={(v) => set('bundle_allow_surprise', v)}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Flag sticker seleccionable en packs */}
+                {form.product_type !== 'bundle' && (
+                  <div className="bg-slate-50 rounded-xl p-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-slate-700">
+                        Seleccionable en packs
+                        <span className="block text-xs text-slate-400">
+                          Este sticker puede elegirse dentro de un pack de stickers.
+                        </span>
+                      </span>
+                      <Toggle
+                        checked={!!form.selectable_in_bundles}
+                        onChange={(v) => set('selectable_in_bundles', v)}
+                      />
+                    </div>
+                  </div>
+                )}
 
                 {/* Descripción corta */}
                 <div>

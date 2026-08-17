@@ -30,6 +30,12 @@ export interface ProductFields {
   on_sale: boolean;
   long_description: string | null;
   sale_price: number | null;
+  /** Incremento packs/addons — opcionales para no tocar productos existentes. */
+  product_type?: 'standard' | 'bundle' | 'addon';
+  selectable_in_bundles?: boolean;
+  bundle_unit_price?: number | null;
+  bundle_sizes?: number[] | null;
+  bundle_allow_surprise?: boolean;
 }
 
 export interface ProductRecord {
