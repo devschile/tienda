@@ -2,6 +2,23 @@
 const { MercadoPagoConfig, Preference } = require('mercadopago');
 const { neon } = require('@neondatabase/serverless');
 
+// Parsea bundle_sizes (JSON '[3,4,6]') → array de enteros positivos. [] si inválido.
+function parseBundleSizes(raw) {
+  if (!raw) return [];
+  let arr = raw;
+  if (typeof raw === 'string') {
+    try {
+      arr = JSON.parse(raw);
+    } catch {
+      return [];
+    }
+  }
+  if (!Array.isArray(arr)) return [];
+  return arr
+    .map((n) => parseInt(n, 10))
+    .filter((n) => Number.isInteger(n) && n > 0);
+}
+
 exports.handler = async (event, context) => {
   const allowedOrigins = process.env.ALLOWED_ORIGINS
     ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
@@ -74,7 +91,12 @@ exports.handler = async (event, context) => {
     // (u omita) un ítem 'shipping' en el array — si no, alcanzaría con no mandar
     // ese ítem para pedir despacho gratis.
     const shippingRequested = customer.wantsDelivery === true;
-    const productItemsRequested = items.filter((item) => item.productId !== 'shipping');
+    // Los ítems con `bundle` son packs de stickers (product_type='bundle') y se
+    // procesan aparte como un solo ítem que el servidor descompone en líneas.
+    const productItemsRequested = items.filter(
+      (item) => item.productId !== 'shipping' && !item.bundle,
+    );
+    const bundleItemsRequested = items.filter((item) => item.bundle);
 
     const requestedQuantities = new Map();
     for (const item of productItemsRequested) {
@@ -90,7 +112,7 @@ exports.handler = async (event, context) => {
       // quedarse solo con la última cantidad enviada.
       requestedQuantities.set(productId, (requestedQuantities.get(productId) ?? 0) + qty);
     }
-    if (requestedQuantities.size === 0) {
+    if (requestedQuantities.size === 0 && bundleItemsRequested.length === 0) {
       return { statusCode: 400, headers, body: JSON.stringify({ error: 'items requeridos' }) };
     }
 
@@ -98,13 +120,18 @@ exports.handler = async (event, context) => {
     // nunca se confía en lo que manda el cliente (evita manipulación de precio) ─
     const productIds = [...requestedQuantities.keys()];
     const dbProducts = await sql`
-      SELECT id, name, price, sale_price, on_sale, available, stock
+      SELECT id, name, price, sale_price, on_sale, available, stock, product_type, shipping_enabled
       FROM products
       WHERE id = ANY(${productIds}) AND archived = false
     `;
     const productsById = new Map(dbProducts.map((p) => [p.id, p]));
 
     const sanitizedItems = [];
+    let hasAddon = false;
+    // true si al menos un producto comprado admite envío — si ninguno lo admite
+    // (ej. carrito de solo membresías digitales), el envío nunca se cobra,
+    // aunque el cliente lo pida (nunca se confía solo en el checkbox del form).
+    let anyItemAllowsShipping = false;
     for (const [productId, qty] of requestedQuantities) {
       const product = productsById.get(productId);
       if (!product) {
@@ -121,6 +148,8 @@ exports.handler = async (event, context) => {
           body: JSON.stringify({ error: `Sin stock suficiente: ${product.name}` }),
         };
       }
+      if (product.product_type === 'addon') hasAddon = true;
+      if (product.shipping_enabled !== false) anyItemAllowsShipping = true;
       const originalPrice = Number(product.price);
       const unitPrice = product.on_sale && product.sale_price != null ? Number(product.sale_price) : originalPrice;
       sanitizedItems.push({
@@ -133,18 +162,185 @@ exports.handler = async (event, context) => {
       });
     }
 
-    // ── Envío: costo siempre derivado de settings, nunca del cliente ──────────
-    if (shippingRequested) {
-      const settingsRows = await sql`
-        SELECT key, value FROM settings
-        WHERE key IN ('shipping_enabled', 'shipping_cost', 'free_shipping_threshold')
-      `;
-      const settings = Object.fromEntries(settingsRows.map((r) => [r.key, r.value]));
-      const shippingEnabled = settings.shipping_enabled === 'true';
-      const shippingCost = parseInt(settings.shipping_cost, 10) || 0;
-      const freeShippingThreshold = parseInt(settings.free_shipping_threshold, 10) || 0;
-      const productsSubtotal = sanitizedItems.reduce((sum, i) => sum + i.subtotal, 0);
+    // ── Packs de stickers (product_type='bundle') ─────────────────────────────
+    // El cliente manda un solo ítem por pack con su selección; aquí se valida
+    // contra la BD y se descompone en líneas por sticker (incluida la sorpresa).
+    for (const item of bundleItemsRequested) {
+      const bundleId = String(item.productId || '')
+        .substring(0, 50)
+        .replace(/[<>]/g, '');
+      if (!bundleId) {
+        return { statusCode: 400, headers, body: JSON.stringify({ error: 'Item inválido' }) };
+      }
 
+      const [bundle] = await sql`
+        SELECT id, name, available, on_sale, sale_price, bundle_unit_price,
+               bundle_sizes, bundle_allow_surprise, product_type, shipping_enabled
+        FROM products WHERE id = ${bundleId} AND archived = false
+      `;
+      if (!bundle || bundle.product_type !== 'bundle') {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ error: `Pack no encontrado: ${bundleId}` }),
+        };
+      }
+      if (!bundle.available) {
+        return { statusCode: 400, headers, body: JSON.stringify({ error: 'Pack no disponible' }) };
+      }
+      if (bundle.shipping_enabled !== false) anyItemAllowsShipping = true;
+
+      // Precio por sticker definido por el pack (nunca por el cliente).
+      const bundleUnitPrice =
+        bundle.on_sale && bundle.sale_price != null
+          ? Number(bundle.sale_price)
+          : bundle.bundle_unit_price != null
+            ? Number(bundle.bundle_unit_price)
+            : null;
+      if (!bundleUnitPrice || bundleUnitPrice <= 0) {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ error: 'Pack sin precio por sticker configurado' }),
+        };
+      }
+
+      const sizes = parseBundleSizes(bundle.bundle_sizes);
+      const size = item.bundle?.size;
+      if (typeof size !== 'number' || !Number.isInteger(size) || size <= 0 || !sizes.includes(size)) {
+        return { statusCode: 400, headers, body: JSON.stringify({ error: 'Tamaño de pack inválido' }) };
+      }
+      // Cantidad de packs idénticos en esta línea (el cliente agrupa packs iguales).
+      const packCount = item.quantity;
+      if (!Number.isInteger(packCount) || packCount <= 0) {
+        return { statusCode: 400, headers, body: JSON.stringify({ error: 'Item inválido' }) };
+      }
+
+      // Candidatos elegidos explícitamente (permite duplicados vía quantity).
+      const selectionQuantities = new Map();
+      for (const sel of item.bundle?.items || []) {
+        const sid = String(sel.productId || '').substring(0, 50).replace(/[<>]/g, '');
+        const qty = sel.quantity;
+        if (!sid || typeof qty !== 'number' || !Number.isInteger(qty) || qty <= 0) {
+          return { statusCode: 400, headers, body: JSON.stringify({ error: 'Selección de pack inválida' }) };
+        }
+        selectionQuantities.set(sid, (selectionQuantities.get(sid) ?? 0) + qty);
+      }
+      const explicitCount = [...selectionQuantities.values()].reduce((s, q) => s + q, 0);
+      const surpriseCount =
+        Number.isInteger(item.bundle?.surpriseCount) &&
+        (item.bundle?.surpriseCount ?? 0) >= 0
+          ? item.bundle.surpriseCount
+          : 0;
+
+      // La selección explícita + sorpresas debe cubrir exactamente el tamaño.
+      if (explicitCount + surpriseCount !== size) {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({
+            error: 'La selección del pack no cubre los stickers del tamaño elegido',
+          }),
+        };
+      }
+      if (surpriseCount > 0 && bundle.bundle_allow_surprise !== true) {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ error: 'Este pack no permite stickers sorpresa' }),
+        };
+      }
+
+      // Validar stickers elegidos: elegibles, disponibles y con stock.
+      const stickerIds = [...selectionQuantities.keys()];
+      const stickerRows =
+        stickerIds.length > 0
+          ? await sql`
+              SELECT id, name, available, stock, selectable_in_bundles, product_type
+              FROM products WHERE id = ANY(${stickerIds}) AND archived = false
+            `
+          : [];
+      const stickersById = new Map(stickerRows.map((s) => [s.id, s]));
+      for (const [sid, qty] of selectionQuantities) {
+        const sticker = stickersById.get(sid);
+        if (!sticker || sticker.selectable_in_bundles !== true) {
+          return { statusCode: 400, headers, body: JSON.stringify({ error: `Sticker no elegible: ${sid}` }) };
+        }
+        if (!sticker.available || sticker.stock < qty) {
+          return {
+            statusCode: 400,
+            headers,
+            body: JSON.stringify({ error: `Sin stock suficiente: ${sticker.name}` }),
+          };
+        }
+        if (sticker.product_type === 'addon') hasAddon = true;
+      }
+
+      // La sorpresa se completa con stickers que existan en stock al despachar.
+      if (surpriseCount > 0) {
+        const [anySticker] = await sql`
+          SELECT 1 FROM products
+          WHERE selectable_in_bundles = true AND available = true AND stock > 0 AND archived = false
+          LIMIT 1
+        `;
+        if (!anySticker) {
+          return {
+            statusCode: 400,
+            headers,
+            body: JSON.stringify({ error: 'No hay stickers en stock para completar el pack' }),
+          };
+        }
+      }
+
+      const packName = bundle.name;
+      for (const [sid, qty] of selectionQuantities) {
+        const sticker = stickersById.get(sid);
+        sanitizedItems.push({
+          productId: sticker.id,
+          productName: `${packName} · ${sticker.name}`,
+          quantity: qty * packCount,
+          unitPrice: bundleUnitPrice,
+          originalPrice: bundleUnitPrice,
+          subtotal: qty * packCount * bundleUnitPrice,
+        });
+      }
+      if (surpriseCount > 0) {
+        sanitizedItems.push({
+          productId: `${bundleId}@surpresa`,
+          productName: `${packName} · Sticker sorpresa`,
+          quantity: surpriseCount * packCount,
+          unitPrice: bundleUnitPrice,
+          originalPrice: bundleUnitPrice,
+          subtotal: surpriseCount * packCount * bundleUnitPrice,
+        });
+      }
+    }
+
+    // ── Envío: costo siempre derivado de settings, nunca del cliente ──────────
+    const settingsRows = await sql`
+      SELECT key, value FROM settings
+      WHERE key IN ('shipping_enabled', 'shipping_cost', 'free_shipping_threshold')
+    `;
+    const settings = Object.fromEntries(settingsRows.map((r) => [r.key, r.value]));
+    const shippingEnabled = settings.shipping_enabled === 'true';
+    const shippingCost = parseInt(settings.shipping_cost, 10) || 0;
+    const freeShippingThreshold = parseInt(settings.free_shipping_threshold, 10) || 0;
+    const productsSubtotal = sanitizedItems.reduce((sum, i) => sum + i.subtotal, 0);
+
+    // ── Stickers add-on: solo en pedidos que ya cubran el envío ───────────────
+    // Un sticker no debe ser el único motivo del pedido si el subtotal no cubre
+    // el costo de envío. El pack de stickers es su vía explícita de compra.
+    if (hasAddon && shippingEnabled && shippingCost > 0 && productsSubtotal < shippingCost) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({
+          error: 'Los stickers solo pueden añadirse a un pedido que cubra el costo de envío',
+        }),
+      };
+    }
+
+    if (shippingRequested && anyItemAllowsShipping) {
       const effectiveShipping =
         shippingEnabled && shippingCost > 0
           ? freeShippingThreshold > 0 && productsSubtotal >= freeShippingThreshold

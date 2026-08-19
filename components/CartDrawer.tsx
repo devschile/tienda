@@ -101,10 +101,19 @@ export function CartDrawer({
                       </motion.div>
                     ) : (
                       <AnimatePresence mode="popLayout" initial={false}>
-                        {items.map(({ product, quantity }) => {
+                        {items.map(({ product, quantity, bundle }) => {
                           const coverUrl =
                             product.fields.coverImage?.url ?? '/assets/images/default.svg';
                           const stock = product.fields.stock;
+                          const isBundle = product.fields.product_type === 'bundle';
+                          const unit =
+                            product.fields.on_sale && product.fields.sale_price != null
+                              ? product.fields.sale_price
+                              : isBundle
+                                ? (product.fields.bundle_unit_price ?? product.fields.price)
+                                : product.fields.price;
+                          const lineTotal =
+                            (isBundle && bundle ? unit * bundle.size : unit) * quantity;
                           return (
                             <motion.div
                               key={product.id}
@@ -124,12 +133,32 @@ export function CartDrawer({
                                 <p className="font-mono font-semibold text-sm text-devs-text line-clamp-2 leading-tight mb-1">
                                   {product.fields.name}
                                 </p>
+                                {bundle && (
+                                  <ul className="mb-1.5 space-y-0.5">
+                                    {bundle.items.map((it) => (
+                                      <li
+                                        key={it.productId}
+                                        className="text-xs text-devs-muted leading-tight"
+                                      >
+                                        ×{it.quantity} {it.name}
+                                      </li>
+                                    ))}
+                                    {bundle.surpriseCount > 0 && (
+                                      <li className="text-xs text-amber-600 font-medium leading-tight">
+                                        🎲 sorpresa ×{bundle.surpriseCount}
+                                      </li>
+                                    )}
+                                    {bundle.size > 0 && (
+                                      <li className="text-xs text-devs-muted/60 italic leading-tight">
+                                        Pack de {bundle.size} stickers
+                                      </li>
+                                    )}
+                                  </ul>
+                                )}
                                 {product.fields.on_sale && product.fields.sale_price ? (
                                   <div className="mb-2">
                                     <p className="flex items-center justify-between text-sm font-bold text-brand-primary leading-tight">
-                                      <span>
-                                        {formatPrice(product.fields.sale_price * quantity)}
-                                      </span>
+                                      <span>{formatPrice(lineTotal)}</span>
                                       <span className="text-[10px] font-bold bg-amber-400 text-amber-900 px-1.5 py-0.5 rounded-full">
                                         ⚡ Oferta
                                       </span>
@@ -140,7 +169,7 @@ export function CartDrawer({
                                   </div>
                                 ) : (
                                   <p className="text-sm font-bold text-brand-primary mb-2">
-                                    {formatPrice(product.fields.price * quantity)}
+                                    {formatPrice(lineTotal)}
                                   </p>
                                 )}
                                 <div className="flex items-center gap-2">
@@ -157,7 +186,7 @@ export function CartDrawer({
                                   <button
                                     onClick={() => onUpdateQuantity(product.id, quantity + 1)}
                                     className="w-7 h-7 rounded-full border border-brand-secondary/20 flex items-center justify-center text-brand-secondary hover:bg-brand-secondary hover:text-white transition-colors disabled:opacity-40"
-                                    disabled={quantity >= stock}
+                                    disabled={!isBundle && quantity >= stock}
                                   >
                                     <Plus className="h-3 w-3" />
                                   </button>

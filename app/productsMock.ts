@@ -7,6 +7,8 @@ const img = (id: string, url: string, filename: string, isCover: boolean) => ({
   is_cover: isCover,
 });
 
+import type { ProductRecord } from '@/types/products';
+
 const LONG_DESC_DESTAPABOTELLAS = `# ¿Por qué elegirlo?
 
 El destapabotellas con imán del Huemul es el accesorio perfecto para cualquier amante de la cerveza artesanal y la comunidad devsChile.
@@ -337,4 +339,322 @@ export const productsMock = [
     },
     createdTime: '2025-06-01T00:00:00.000Z',
   },
-];
+
+  // ── Incremento: pack de stickers (bundle) ─────────────────────────────────────
+  {
+    id: 'bundle-stickers-001',
+    fields: {
+      id: 'bundle-stickers-001',
+      name: 'Pack de stickers devsChile',
+      price: 1000,
+      description:
+        'Arma tu propio pack de stickers oficiales de devsChile. Elige el tamaño y combina los diseños que quieras, todo en un mismo envío.',
+      category: 'Stickers',
+      coverImage: img(
+        'bundle-cover',
+        'https://placehold.co/600x600?text=Pack+de+stickers',
+        'pack-stickers.jpg',
+        true,
+      ),
+      images: [
+        img(
+          'bundle-cover',
+          'https://placehold.co/600x600?text=Pack+de+stickers',
+          'pack-stickers.jpg',
+          true,
+        ),
+      ],
+      thumbnailImages: [
+        img('bundle-thumb', 'https://placehold.co/300x300?text=Stickers', 'pack-thumb.jpg', true),
+      ],
+      largeImages: [
+        img(
+          'bundle-large',
+          'https://placehold.co/600x600?text=Pack+de+stickers',
+          'pack-stickers.jpg',
+          false,
+        ),
+      ],
+      visible: true,
+      available: true,
+      stock: 0,
+      on_sale: false,
+      long_description:
+        '## Cómo funciona\n\nCada sticker cuesta **$1.000**. Eliges el tamaño del pack (3, 4 o 6) y seleccionas los diseños que quieras de los disponibles en stock. Si dejas slots vacíos, se completarán con **stickers sorpresa** (avísanos y elige a mano si lo prefieres en [huemul@devschile.cl](mailto:huemul@devschile.cl)).',
+      sale_price: null,
+      product_type: 'bundle',
+      selectable_in_bundles: false,
+      bundle_unit_price: 1000,
+      bundle_sizes: [3, 4, 6],
+      bundle_allow_surprise: true,
+    },
+    createdTime: '2026-08-01T00:00:00.000Z',
+  },
+
+  // ── Incremento: sticker individual (addon, seleccionable en packs) ────────────
+  {
+    id: 'sticker-huemul-001',
+    fields: {
+      id: 'sticker-huemul-001',
+      name: 'Sticker Huemul',
+      price: 1000,
+      description:
+        'Sticker de vinilo del Huemul devsChile. Solo se vende dentro de un pack o como agregado a un pedido que ya cubra el envío.',
+      category: 'Stickers',
+      coverImage: img(
+        'huemul-cover',
+        'https://placehold.co/600x600?text=Sticker+Huemul',
+        'sticker-huemul.jpg',
+        true,
+      ),
+      images: [
+        img(
+          'huemul-cover',
+          'https://placehold.co/600x600?text=Sticker+Huemul',
+          'sticker-huemul.jpg',
+          true,
+        ),
+      ],
+      thumbnailImages: [
+        img(
+          'huemul-thumb',
+          'https://placehold.co/300x300?text=Huemul',
+          'sticker-huemul-thumb.jpg',
+          true,
+        ),
+      ],
+      largeImages: [
+        img(
+          'huemul-large',
+          'https://placehold.co/600x600?text=Sticker+Huemul',
+          'sticker-huemul.jpg',
+          false,
+        ),
+      ],
+      visible: true,
+      available: true,
+      stock: 25,
+      on_sale: false,
+      long_description: null,
+      sale_price: null,
+      product_type: 'addon',
+      selectable_in_bundles: true,
+      bundle_unit_price: null,
+      bundle_sizes: null,
+      bundle_allow_surprise: true,
+    },
+    createdTime: '2026-08-01T00:00:00.000Z',
+  },
+  {
+    id: 'sticker-typescript-001',
+    fields: {
+      id: 'sticker-typescript-001',
+      name: 'Sticker TypeScript',
+      price: 1000,
+      description:
+        'Sticker de vinilo de TypeScript. Solo se vende dentro de un pack o como agregado a un pedido que ya cubra el envío.',
+      category: 'Stickers',
+      coverImage: img(
+        'typescript-cover',
+        'https://placehold.co/600x600?text=Sticker+TypeScript',
+        'sticker-typescript.jpg',
+        true,
+      ),
+      images: [
+        img(
+          'typescript-cover',
+          'https://placehold.co/600x600?text=Sticker+TypeScript',
+          'sticker-typescript.jpg',
+          true,
+        ),
+      ],
+      thumbnailImages: [
+        img(
+          'typescript-thumb',
+          'https://placehold.co/300x300?text=TypeScript',
+          'sticker-typescript-thumb.jpg',
+          true,
+        ),
+      ],
+      largeImages: [
+        img(
+          'typescript-large',
+          'https://placehold.co/600x600?text=Sticker+TypeScript',
+          'sticker-typescript.jpg',
+          false,
+        ),
+      ],
+      visible: true,
+      available: true,
+      stock: 25,
+      on_sale: false,
+      long_description: null,
+      sale_price: null,
+      product_type: 'addon',
+      selectable_in_bundles: true,
+      bundle_unit_price: null,
+      bundle_sizes: null,
+      bundle_allow_surprise: true,
+    },
+    createdTime: '2026-08-01T00:00:00.000Z',
+  },
+  {
+    id: 'sticker-llanto-001',
+    fields: {
+      id: 'sticker-llanto-001',
+      name: 'Sticker Llanto',
+      price: 1000,
+      description:
+        'Sticker de vinilo de Llanto. Solo se vende dentro de un pack o como agregado a un pedido que ya cubra el envío.',
+      category: 'Stickers',
+      coverImage: img(
+        'llanto-cover',
+        'https://placehold.co/600x600?text=Sticker+Llanto',
+        'sticker-llanto.jpg',
+        true,
+      ),
+      images: [
+        img(
+          'llanto-cover',
+          'https://placehold.co/600x600?text=Sticker+Llanto',
+          'sticker-llanto.jpg',
+          true,
+        ),
+      ],
+      thumbnailImages: [
+        img(
+          'llanto-thumb',
+          'https://placehold.co/300x300?text=Llanto',
+          'sticker-llanto-thumb.jpg',
+          true,
+        ),
+      ],
+      largeImages: [
+        img(
+          'llanto-large',
+          'https://placehold.co/600x600?text=Sticker+Llanto',
+          'sticker-llanto.jpg',
+          false,
+        ),
+      ],
+      visible: true,
+      available: true,
+      stock: 25,
+      on_sale: false,
+      long_description: null,
+      sale_price: null,
+      product_type: 'addon',
+      selectable_in_bundles: true,
+      bundle_unit_price: null,
+      bundle_sizes: null,
+      bundle_allow_surprise: true,
+    },
+    createdTime: '2026-08-01T00:00:00.000Z',
+  },
+  {
+    id: 'sticker-huemulfest-001',
+    fields: {
+      id: 'sticker-huemulfest-001',
+      name: 'Sticker HuemulFest',
+      price: 1000,
+      description:
+        'Sticker de vinilo de HuemulFest. Solo se vende dentro de un pack o como agregado a un pedido que ya cubra el envío.',
+      category: 'Stickers',
+      coverImage: img(
+        'huemulfest-cover',
+        'https://placehold.co/600x600?text=Sticker+HuemulFest',
+        'sticker-huemulfest.jpg',
+        true,
+      ),
+      images: [
+        img(
+          'huemulfest-cover',
+          'https://placehold.co/600x600?text=Sticker+HuemulFest',
+          'sticker-huemulfest.jpg',
+          true,
+        ),
+      ],
+      thumbnailImages: [
+        img(
+          'huemulfest-thumb',
+          'https://placehold.co/300x300?text=HuemulFest',
+          'sticker-huemulfest-thumb.jpg',
+          true,
+        ),
+      ],
+      largeImages: [
+        img(
+          'huemulfest-large',
+          'https://placehold.co/600x600?text=Sticker+HuemulFest',
+          'sticker-huemulfest.jpg',
+          false,
+        ),
+      ],
+      visible: true,
+      available: true,
+      stock: 25,
+      on_sale: false,
+      long_description: null,
+      sale_price: null,
+      product_type: 'addon',
+      selectable_in_bundles: true,
+      bundle_unit_price: null,
+      bundle_sizes: null,
+      bundle_allow_surprise: true,
+    },
+    createdTime: '2026-08-01T00:00:00.000Z',
+  },
+  {
+    id: 'sticker-18sept-001',
+    fields: {
+      id: 'sticker-18sept-001',
+      name: 'Sticker 18 de septiembre',
+      price: 1000,
+      description:
+        'Sticker de vinilo del 18 de septiembre. Solo se vende dentro de un pack o como agregado a un pedido que ya cubra el envío.',
+      category: 'Stickers',
+      coverImage: img(
+        '18sept-cover',
+        'https://placehold.co/600x600?text=Sticker+18+de+septiembre',
+        'sticker-18sept.jpg',
+        true,
+      ),
+      images: [
+        img(
+          '18sept-cover',
+          'https://placehold.co/600x600?text=Sticker+18+de+septiembre',
+          'sticker-18sept.jpg',
+          true,
+        ),
+      ],
+      thumbnailImages: [
+        img(
+          '18sept-thumb',
+          'https://placehold.co/300x300?text=18+de+septiembre',
+          'sticker-18sept-thumb.jpg',
+          true,
+        ),
+      ],
+      largeImages: [
+        img(
+          '18sept-large',
+          'https://placehold.co/600x600?text=Sticker+18+de+septiembre',
+          'sticker-18sept.jpg',
+          false,
+        ),
+      ],
+      visible: true,
+      available: true,
+      stock: 25,
+      on_sale: false,
+      long_description: null,
+      sale_price: null,
+      product_type: 'addon',
+      selectable_in_bundles: true,
+      bundle_unit_price: null,
+      bundle_sizes: null,
+      bundle_allow_surprise: true,
+    },
+    createdTime: '2026-08-01T00:00:00.000Z',
+  },
+] satisfies ProductRecord[];

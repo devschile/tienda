@@ -31,6 +31,8 @@ interface Product {
   archived: boolean;
   cover_url: string | null;
   created_time: string;
+  product_type: 'standard' | 'bundle' | 'addon';
+  selectable_in_bundles: boolean;
 }
 
 const formatCLP = (n: number) =>
@@ -62,6 +64,8 @@ const exportProductsToCSV = (rows: Product[], label: string) => {
     'Visible',
     'Disponible',
     'En oferta',
+    'Tipo',
+    'Seleccionable en packs',
   ];
   const lines = [
     headers.join(','),
@@ -76,6 +80,8 @@ const exportProductsToCSV = (rows: Product[], label: string) => {
         p.visible,
         p.available,
         p.on_sale,
+        esc(p.product_type ?? 'standard'),
+        p.selectable_in_bundles ?? false,
       ].join(','),
     ),
   ];
@@ -361,7 +367,27 @@ export function ProductListPage() {
                       >
                         {p.name}
                       </p>
-                      <p className="text-xs text-slate-400 mt-0.5">{p.category}</p>
+                      <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-1.5">
+                        {p.category}
+                        {p.product_type === 'bundle' && (
+                          <span className="px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-700 text-[10px] font-semibold">
+                            PACK
+                          </span>
+                        )}
+                        {p.product_type === 'addon' && (
+                          <span className="px-1.5 py-0.5 rounded-full bg-sky-100 text-sky-700 text-[10px] font-semibold">
+                            STICKER
+                          </span>
+                        )}
+                        {p.selectable_in_bundles && (
+                          <span
+                            className="text-[10px] text-emerald-600"
+                            title="Seleccionable en packs"
+                          >
+                            en packs
+                          </span>
+                        )}
+                      </p>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       {p.on_sale && p.sale_price ? (

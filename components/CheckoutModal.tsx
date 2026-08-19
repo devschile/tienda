@@ -15,6 +15,9 @@ interface CheckoutModalProps {
   shippingEnabled?: boolean;
   shippingCost?: number;
   freeShippingThreshold?: number;
+  /** false = ningún producto del carrito admite envío (ej. solo membresías digitales) —
+   * oculta la sección de envío aunque shippingEnabled sea true. Default true. */
+  cartAllowsShipping?: boolean;
 }
 
 const formatPrice = (n: number) =>
@@ -65,7 +68,9 @@ export function CheckoutModal({
   shippingEnabled = true,
   shippingCost = 0,
   freeShippingThreshold = 0,
+  cartAllowsShipping = true,
 }: CheckoutModalProps) {
+  const showShippingSection = shippingEnabled && cartAllowsShipping;
   const [formScope, animateForm] = useAnimate();
   const [form, setForm] = useState<CustomerData>({
     name: '',
@@ -81,7 +86,7 @@ export function CheckoutModal({
 
   // Costo de envío efectivo: 0 si supera el umbral de envío gratis
   const effectiveShipping =
-    form.wantsDelivery && shippingEnabled && shippingCost > 0
+    form.wantsDelivery && showShippingSection && shippingCost > 0
       ? freeShippingThreshold > 0 && totalAmount >= freeShippingThreshold
         ? 0
         : shippingCost
@@ -179,7 +184,7 @@ export function CheckoutModal({
                 Total:{' '}
                 <span className="font-bold text-brand-primary">{formatPrice(grandTotal)}</span>
                 {form.wantsDelivery &&
-                  shippingEnabled &&
+                  showShippingSection &&
                   freeShippingThreshold > 0 &&
                   totalAmount >= freeShippingThreshold && (
                     <span className="ml-2 text-green-600 font-medium text-xs">✓ Envío gratis</span>
@@ -239,8 +244,9 @@ export function CheckoutModal({
               </div>
             </motion.div>
 
-            {/* Checkbox: ¿Envío a domicilio? — solo si está habilitado en ajustes */}
-            {shippingEnabled && (
+            {/* Checkbox: ¿Envío a domicilio? — solo si está habilitado en ajustes
+                y al menos un producto del carrito admite envío */}
+            {showShippingSection && (
               <motion.div
                 className="rounded-xl border border-brand-secondary/10 bg-brand-surface/50 p-4 space-y-4"
                 variants={{

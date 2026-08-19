@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Eye, EyeOff, Loader2, Check } from 'lucide-react';
+import { X, Eye, EyeOff, Loader2, Check, Plus } from 'lucide-react';
 import { useAdminOne, useAdminMutation } from '../../hooks/useAdminData';
+import { adminFetch } from '../../utils/adminFetch';
 import { Toggle } from '../ui/Toggle';
 import { ImageManager } from './ImageManager';
 import posthog from '../../../lib/posthog';
@@ -19,6 +20,12 @@ interface Product {
   stock: number;
   on_sale: boolean;
   cover_url: string | null;
+  product_type: 'standard' | 'bundle' | 'addon';
+  selectable_in_bundles: boolean;
+  bundle_unit_price: number | null;
+  bundle_sizes: string;
+  bundle_allow_surprise: boolean;
+  shipping_enabled: boolean;
 }
 
 const DEFAULTS: Partial<Product> = {
@@ -32,6 +39,12 @@ const DEFAULTS: Partial<Product> = {
   available: true,
   stock: 0,
   on_sale: false,
+  product_type: 'standard',
+  selectable_in_bundles: false,
+  bundle_unit_price: null,
+  bundle_sizes: '',
+  bundle_allow_surprise: true,
+  shipping_enabled: true,
 };
 
 interface Props {
@@ -56,6 +69,16 @@ export function ProductEditPanel({ productId, creating = false, onClose, onSaved
   const [preview, setPreview] = useState(false);
   const [saved, setSaved] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [addingCategory, setAddingCategory] = useState(false);
+
+  // Categorías existentes para el select — se cargan una vez al abrir el panel
+  useEffect(() => {
+    if (!isOpen) return;
+    adminFetch<{ data: string[] }>('categories')
+      .then((res) => setCategories(res.data))
+      .catch(() => {});
+  }, [isOpen]);
 
   // Reset form when mode changes
   useEffect(() => {
@@ -64,16 +87,31 @@ export function ProductEditPanel({ productId, creating = false, onClose, onSaved
       setPreview(false);
       setSaved(false);
       setValidationError(null);
+      setAddingCategory(false);
     }
   }, [creating]);
 
   // Populate form when editing an existing product
   useEffect(() => {
     if (!creating && data) {
-      setForm(data);
+      const rawSizes = data.bundle_sizes as unknown;
+      // bundle_sizes llega como JSON string desde el backend ('[3,4,6]') o array
+      let sizesStr = '';
+      if (typeof rawSizes === 'string') {
+        try {
+          const parsed = JSON.parse(rawSizes);
+          if (Array.isArray(parsed)) sizesStr = parsed.join(', ');
+        } catch {
+          sizesStr = rawSizes;
+        }
+      } else if (Array.isArray(rawSizes)) {
+        sizesStr = rawSizes.join(', ');
+      }
+      setForm({ ...data, bundle_sizes: sizesStr });
       setPreview(false);
       setSaved(false);
       setValidationError(null);
+      setAddingCategory(false);
     }
   }, [creating, data]);
 
@@ -88,6 +126,20 @@ export function ProductEditPanel({ productId, creating = false, onClose, onSaved
     if (form.price === undefined || form.price === null || isNaN(Number(form.price))) {
       setValidationError('El precio es requerido');
       return;
+    }
+    if (form.product_type === 'bundle') {
+      if (!form.bundle_unit_price || form.bundle_unit_price <= 0) {
+        setValidationError('Los packs requieren un precio por sticker');
+        return;
+      }
+      const sizes = (form.bundle_sizes ?? '')
+        .split(/[,\s]+/)
+        .map((s) => parseInt(s, 10))
+        .filter((n) => Number.isInteger(n) && n > 0);
+      if (sizes.length === 0) {
+        setValidationError('Los packs requieren al menos un tamaño (ej. 3, 4, 6)');
+        return;
+      }
     }
     setValidationError(null);
 
@@ -215,12 +267,53 @@ export function ProductEditPanel({ productId, creating = false, onClose, onSaved
                   <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-1.5">
                     Categoría
                   </label>
-                  <input
-                    className={input}
-                    value={form.category ?? ''}
-                    onChange={(e) => set('category', e.target.value)}
-                    placeholder="ej. Accesorios"
-                  />
+                  {addingCategory ? (
+                    <div className="flex gap-2">
+                      <input
+                        className={input}
+                        autoFocus
+                        value={form.category ?? ''}
+                        onChange={(e) => set('category', e.target.value)}
+                        placeholder="Nombre de la nueva categoría"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setAddingCategory(false)}
+                        className="px-3 py-2 text-sm text-slate-500 hover:text-slate-700 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors whitespace-nowrap"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <select
+                        className={input}
+                        value={form.category ?? ''}
+                        onChange={(e) => set('category', e.target.value)}
+                      >
+                        <option value="">Sin categoría</option>
+                        {categories.map((c) => (
+                          <option key={c} value={c}>
+                            {c}
+                          </option>
+                        ))}
+                        {form.category && !categories.includes(form.category) && (
+                          <option value={form.category}>{form.category}</option>
+                        )}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          set('category', '');
+                          setAddingCategory(true);
+                        }}
+                        className="flex items-center gap-1 px-3 py-2 text-sm text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors whitespace-nowrap"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                        Nueva
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Precios */}
@@ -277,6 +370,7 @@ export function ProductEditPanel({ productId, creating = false, onClose, onSaved
                       ['visible', 'Visible en catálogo'],
                       ['available', 'Disponible para comprar'],
                       ['on_sale', 'En oferta'],
+                      ['shipping_enabled', 'Habilita envío'],
                     ] as const
                   ).map(([field, label]) => (
                     <div key={field} className="flex items-center justify-between">
@@ -285,6 +379,111 @@ export function ProductEditPanel({ productId, creating = false, onClose, onSaved
                     </div>
                   ))}
                 </div>
+
+                {/* Tipo de producto */}
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-1.5">
+                    Tipo de producto
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {(
+                      [
+                        ['standard', 'Standard', 'Compra directa como siempre'],
+                        ['bundle', 'Pack', 'Constructor de stickers'],
+                        ['addon', 'Sticker', 'Solo como agregado o en pack'],
+                      ] as const
+                    ).map(([value, label, hint]) => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => set('product_type', value)}
+                        className={`px-3 py-2 rounded-lg border text-left transition-colors ${
+                          form.product_type === value
+                            ? 'bg-slate-800 text-white border-slate-800'
+                            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                        }`}
+                      >
+                        <span className="block text-sm font-medium">{label}</span>
+                        <span
+                          className={`block text-[10px] leading-tight mt-0.5 ${
+                            form.product_type === value ? 'text-white/70' : 'text-slate-400'
+                          }`}
+                        >
+                          {hint}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Configuración de pack (solo product_type = bundle) */}
+                {form.product_type === 'bundle' && (
+                  <div className="bg-slate-50 rounded-xl p-4 space-y-4 border border-slate-200">
+                    <div>
+                      <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-1.5">
+                        Precio por sticker (CLP) <span className="text-red-400">*</span>
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        className={input}
+                        value={form.bundle_unit_price ?? ''}
+                        onChange={(e) =>
+                          set('bundle_unit_price', e.target.value ? parseInt(e.target.value) : null)
+                        }
+                        placeholder="1000"
+                      />
+                      <p className="text-xs text-slate-400 mt-1">
+                        El precio del pack es tamaño × precio por sticker.
+                      </p>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-1.5">
+                        Tamaños disponibles <span className="text-red-400">*</span>
+                      </label>
+                      <input
+                        className={input}
+                        value={form.bundle_sizes ?? ''}
+                        onChange={(e) => set('bundle_sizes', e.target.value)}
+                        placeholder="3, 4, 6"
+                      />
+                      <p className="text-xs text-slate-400 mt-1">
+                        Tamaños separados por coma. Ej. 3, 4, 6 = packs de 3, 4 y 6 stickers.
+                      </p>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-slate-700">
+                        Permitir stickers sorpresa
+                        <span className="block text-xs text-slate-400">
+                          Si el usuario elige menos stickers que el tamaño, se completan con
+                          sorpresa (tras confirmación).
+                        </span>
+                      </span>
+                      <Toggle
+                        checked={form.bundle_allow_surprise ?? true}
+                        onChange={(v) => set('bundle_allow_surprise', v)}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Flag sticker seleccionable en packs */}
+                {form.product_type !== 'bundle' && (
+                  <div className="bg-slate-50 rounded-xl p-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-slate-700">
+                        Seleccionable en packs
+                        <span className="block text-xs text-slate-400">
+                          Este sticker puede elegirse dentro de un pack de stickers.
+                        </span>
+                      </span>
+                      <Toggle
+                        checked={!!form.selectable_in_bundles}
+                        onChange={(v) => set('selectable_in_bundles', v)}
+                      />
+                    </div>
+                  </div>
+                )}
 
                 {/* Descripción corta */}
                 <div>

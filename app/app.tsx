@@ -14,8 +14,10 @@ import createPayment from '@/actions/createPayment';
 import type { CustomerData } from '@/actions/createPayment';
 import loadProducts, { productsMockFallback } from '@/actions/loadProducts';
 import { useCart } from '@/hooks/useCart';
+import type { BundleSelection } from '@/hooks/useCart';
 import { CartDrawer } from '@/components/CartDrawer';
 import { CheckoutModal } from '@/components/CheckoutModal';
+import { BundleBuilder } from '@/components/BundleBuilder';
 import { DevTools } from '@/components/DevTools';
 import { useStoreSettings } from '@/hooks/useStoreSettings';
 import { version } from '../package.json';
@@ -49,6 +51,8 @@ function App() {
   const [selectedProduct, setSelectedProduct] = useState<ProductRecord | null>(null);
   const [imageModalOpen, setImageModalOpen] = useState(false);
   const [infoModalOpen, setInfoModalOpen] = useState(false);
+  const [bundleProduct, setBundleProduct] = useState<ProductRecord | null>(null);
+  const [bundleOpen, setBundleOpen] = useState(false);
 
   // Replace UIBakery hooks with standard React state
   const [productsData, setProductsData] = useState<ProductResponse | null>(null);
@@ -191,6 +195,21 @@ function App() {
     });
   };
 
+  const handleBuildBundle = (product: ProductRecord) => {
+    setImageModalOpen(false);
+    setBundleProduct(product);
+    setBundleOpen(true);
+  };
+
+  const handleAddBundle = (product: ProductRecord, bundle: BundleSelection) => {
+    cart.addItem(product, 1, bundle);
+    setCartOpen(true);
+    toast({
+      title: 'Pack agregado',
+      description: `Pack de ${bundle.size} stickers en tu carrito`,
+    });
+  };
+
   const handleCheckout = async (customer: CustomerData) => {
     if (checkoutLoading) return;
     try {
@@ -199,11 +218,9 @@ function App() {
         productId: i.product.id,
         productName: i.product.fields.name,
         quantity: i.quantity,
-        unitPrice:
-          i.product.fields.on_sale && i.product.fields.sale_price != null
-            ? i.product.fields.sale_price
-            : i.product.fields.price,
+        unitPrice: cart.unitPriceOf(i),
         originalPrice: i.product.fields.price,
+        ...(i.bundle ? { bundle: i.bundle } : {}),
       }));
 
       // Agregar envio como ítem si aplica
@@ -242,7 +259,21 @@ function App() {
     }
   };
 
-  const allProducts = (productsData?.records || []).filter((p) => p.fields.visible);
+  const addonsUnlocked = !shippingEnabled || cart.totalAmount >= shippingCost;
+  // Si ningún producto del carrito admite envío (ej. solo membresías digitales),
+  // el checkout ni siquiera pregunta por envío/dirección.
+  const cartAllowsShipping = cart.items.some((i) => i.product.fields.shipping_enabled !== false);
+  const allProducts = (productsData?.records || []).filter(
+    (p) => p.fields.visible && (p.fields.product_type !== 'addon' || addonsUnlocked),
+  );
+  // Stickers elegibles dentro de un pack (independiente de la gating de add-ons)
+  const selectableStickers = (productsData?.records || []).filter(
+    (p) =>
+      p.fields.selectable_in_bundles &&
+      p.fields.available &&
+      (p.fields.stock ?? 0) > 0 &&
+      p.fields.product_type !== 'bundle',
+  );
   const uniqueCategories = Array.from(
     new Set(allProducts.map((p) => p.fields.category).filter(Boolean)),
   ).sort();
@@ -514,6 +545,8 @@ function App() {
                         onImageClick={handleImageClick}
                         onBuyClick={handleBuyClick}
                         onCategoryClick={handleCategoryChange}
+                        onBuildBundle={handleBuildBundle}
+                        addonLocked={!addonsUnlocked}
                       />
                     </motion.div>
                   ))}
@@ -558,9 +591,20 @@ function App() {
           }
         }}
         onBuyClick={handleBuyClick}
+        onBuildBundle={handleBuildBundle}
       />
 
       <InfoModal open={infoModalOpen} onOpenChange={setInfoModalOpen} />
+
+      {bundleProduct && (
+        <BundleBuilder
+          product={bundleProduct}
+          open={bundleOpen}
+          onOpenChange={setBundleOpen}
+          stickers={selectableStickers}
+          onAddToCart={handleAddBundle}
+        />
+      )}
 
       <CartDrawer
         open={cartOpen}
@@ -584,6 +628,7 @@ function App() {
         shippingEnabled={shippingEnabled}
         shippingCost={shippingCost}
         freeShippingThreshold={freeShippingThreshold}
+        cartAllowsShipping={cartAllowsShipping}
       />
 
       <Toaster />

@@ -45,6 +45,30 @@ const parsePath = (rawPath) => {
   return { resource: parts[0] || '', id: parts[1] || null };
 };
 
+// Valida product_type — solo valores conocidos (incremento: no toca productos actuales).
+const sanitizeProductType = (value) =>
+  ['standard', 'bundle', 'addon'].includes(value) ? value : 'standard';
+
+// Entero positivo opcional → null si vacío/inválido (usado por bundle_unit_price).
+const sanitizeNullableInt = (value) => {
+  const n = parseInt(value, 10);
+  return Number.isInteger(n) && n > 0 ? n : null;
+};
+
+// bundle_sizes llega como textarea o array. Normaliza a JSON '[3,4,6]' (null si vacío).
+const sanitizeSizes = (value) => {
+  if (Array.isArray(value)) {
+    const nums = value.map((v) => parseInt(v, 10)).filter((n) => Number.isInteger(n) && n > 0);
+    return nums.length > 0 ? JSON.stringify([...new Set(nums)].sort((a, b) => a - b)) : null;
+  }
+  const raw = Array.isArray(value) ? value.join(',') : String(value || '');
+  const nums = raw
+    .split(/[,\s]+/)
+    .map((v) => parseInt(v, 10))
+    .filter((n) => Number.isInteger(n) && n > 0);
+  return nums.length > 0 ? JSON.stringify([...new Set(nums)].sort((a, b) => a - b)) : null;
+};
+
 // ── Handlers por recurso ───────────────────────────────────────────────────────
 
 const handlers = {
@@ -74,6 +98,9 @@ const handlers = {
       const rows = await sql`
         SELECT p.id, p.name, p.category, p.price, p.sale_price,
                p.visible, p.available, p.stock, p.on_sale, p.archived, p.created_time,
+               p.product_type, p.selectable_in_bundles,
+               p.bundle_unit_price, p.bundle_sizes, p.bundle_allow_surprise,
+               p.shipping_enabled,
                (SELECT pi.url FROM product_images pi
                 WHERE pi.product_id = p.id AND pi.is_cover = true LIMIT 1) AS cover_url
         FROM products p
@@ -108,6 +135,12 @@ const handlers = {
         available,
         stock,
         on_sale,
+        product_type,
+        selectable_in_bundles,
+        bundle_unit_price,
+        bundle_sizes,
+        bundle_allow_surprise,
+        shipping_enabled,
       } = body;
       if (!name || price === undefined || price === null)
         return json(400, { error: 'Nombre y precio son requeridos' });
@@ -118,7 +151,10 @@ const handlers = {
       const [created] = await sql`
         INSERT INTO products
           (id, name, description, long_description, category, price, sale_price,
-           visible, available, stock, on_sale)
+           visible, available, stock, on_sale,
+           product_type, selectable_in_bundles,
+           bundle_unit_price, bundle_sizes, bundle_allow_surprise,
+           shipping_enabled)
         VALUES (
           ${id},
           ${name},
@@ -130,7 +166,13 @@ const handlers = {
           ${visible ?? true},
           ${available ?? true},
           ${stock ?? 0},
-          ${on_sale ?? false}
+          ${on_sale ?? false},
+          ${sanitizeProductType(product_type)},
+          ${!!selectable_in_bundles},
+          ${sanitizeNullableInt(bundle_unit_price)},
+          ${sanitizeSizes(bundle_sizes)},
+          ${bundle_allow_surprise !== false},
+          ${shipping_enabled !== false}
         )
         RETURNING *
       `;
@@ -151,6 +193,12 @@ const handlers = {
         stock,
         on_sale,
         archived,
+        product_type,
+        selectable_in_bundles,
+        bundle_unit_price,
+        bundle_sizes,
+        bundle_allow_surprise,
+        shipping_enabled,
       } = body;
 
       const [updated] = await sql`
@@ -165,13 +213,34 @@ const handlers = {
           available        = COALESCE(${available ?? null}, available),
           stock            = COALESCE(${stock ?? null}, stock),
           on_sale          = COALESCE(${on_sale ?? null}, on_sale),
-          archived         = COALESCE(${archived ?? null}, archived)
+          archived         = COALESCE(${archived ?? null}, archived),
+          product_type          = COALESCE(${product_type !== undefined ? sanitizeProductType(product_type) : null}, product_type),
+          selectable_in_bundles = COALESCE(${selectable_in_bundles !== undefined ? !!selectable_in_bundles : null}, selectable_in_bundles),
+          bundle_unit_price     = ${bundle_unit_price === undefined ? null : sanitizeNullableInt(bundle_unit_price)},
+          bundle_sizes          = ${bundle_sizes === undefined ? null : sanitizeSizes(bundle_sizes)},
+          bundle_allow_surprise = COALESCE(${bundle_allow_surprise !== undefined ? bundle_allow_surprise !== false : null}, bundle_allow_surprise),
+          shipping_enabled      = COALESCE(${shipping_enabled !== undefined ? shipping_enabled !== false : null}, shipping_enabled)
         WHERE id = ${id}
         RETURNING *
       `;
       return updated
         ? json(200, { data: updated })
         : json(404, { error: 'Producto no encontrado' });
+    },
+  },
+
+  // ── categories ────────────────────────────────────────────────────────────
+  // Solo lectura: las categorías son un valor libre en products.category, no
+  // una tabla propia. Este endpoint junta los valores únicos ya usados para
+  // poblar el select del admin (en vez de re-tipear categorías existentes).
+  categories: {
+    async GET({ sql }) {
+      const rows = await sql`
+        SELECT DISTINCT category FROM products
+        WHERE category IS NOT NULL AND category != ''
+        ORDER BY category
+      `;
+      return json(200, { data: rows.map((r) => r.category) });
     },
   },
 
