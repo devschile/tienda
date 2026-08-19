@@ -260,6 +260,9 @@ function App() {
   };
 
   const addonsUnlocked = !shippingEnabled || cart.totalAmount >= shippingCost;
+  // Si ningún producto del carrito admite envío (ej. solo membresías digitales),
+  // el checkout ni siquiera pregunta por envío/dirección.
+  const cartAllowsShipping = cart.items.some((i) => i.product.fields.shipping_enabled !== false);
   const allProducts = (productsData?.records || []).filter(
     (p) => p.fields.visible && (p.fields.product_type !== 'addon' || addonsUnlocked),
   );
@@ -625,6 +628,7 @@ function App() {
         shippingEnabled={shippingEnabled}
         shippingCost={shippingCost}
         freeShippingThreshold={freeShippingThreshold}
+        cartAllowsShipping={cartAllowsShipping}
       />
 
       <Toaster />

@@ -70,6 +70,7 @@ exports.handler = async (event, context) => {
         p.bundle_unit_price,
         p.bundle_sizes,
         p.bundle_allow_surprise,
+        p.shipping_enabled,
 
         -- Imagen de portada del card (is_cover = true, máximo 1 por producto)
         (
@@ -156,6 +157,7 @@ exports.handler = async (event, context) => {
         bundle_unit_price: row.bundle_unit_price != null ? Number(row.bundle_unit_price) : null,
         bundle_sizes: row.bundle_sizes ? JSON.parse(row.bundle_sizes) : null,
         bundle_allow_surprise: row.bundle_allow_surprise,
+        shipping_enabled: row.shipping_enabled !== false,
       },
       createdTime:
         row.created_time instanceof Date ? row.created_time.toISOString() : row.created_time,

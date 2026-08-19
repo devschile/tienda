@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Eye, EyeOff, Loader2, Check } from 'lucide-react';
+import { X, Eye, EyeOff, Loader2, Check, Plus } from 'lucide-react';
 import { useAdminOne, useAdminMutation } from '../../hooks/useAdminData';
+import { adminFetch } from '../../utils/adminFetch';
 import { Toggle } from '../ui/Toggle';
 import { ImageManager } from './ImageManager';
 import posthog from '../../../lib/posthog';
@@ -24,6 +25,7 @@ interface Product {
   bundle_unit_price: number | null;
   bundle_sizes: string;
   bundle_allow_surprise: boolean;
+  shipping_enabled: boolean;
 }
 
 const DEFAULTS: Partial<Product> = {
@@ -42,6 +44,7 @@ const DEFAULTS: Partial<Product> = {
   bundle_unit_price: null,
   bundle_sizes: '',
   bundle_allow_surprise: true,
+  shipping_enabled: true,
 };
 
 interface Props {
@@ -66,6 +69,16 @@ export function ProductEditPanel({ productId, creating = false, onClose, onSaved
   const [preview, setPreview] = useState(false);
   const [saved, setSaved] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [addingCategory, setAddingCategory] = useState(false);
+
+  // Categorías existentes para el select — se cargan una vez al abrir el panel
+  useEffect(() => {
+    if (!isOpen) return;
+    adminFetch<{ data: string[] }>('categories')
+      .then((res) => setCategories(res.data))
+      .catch(() => {});
+  }, [isOpen]);
 
   // Reset form when mode changes
   useEffect(() => {
@@ -74,6 +87,7 @@ export function ProductEditPanel({ productId, creating = false, onClose, onSaved
       setPreview(false);
       setSaved(false);
       setValidationError(null);
+      setAddingCategory(false);
     }
   }, [creating]);
 
@@ -97,6 +111,7 @@ export function ProductEditPanel({ productId, creating = false, onClose, onSaved
       setPreview(false);
       setSaved(false);
       setValidationError(null);
+      setAddingCategory(false);
     }
   }, [creating, data]);
 
@@ -252,12 +267,53 @@ export function ProductEditPanel({ productId, creating = false, onClose, onSaved
                   <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-1.5">
                     Categoría
                   </label>
-                  <input
-                    className={input}
-                    value={form.category ?? ''}
-                    onChange={(e) => set('category', e.target.value)}
-                    placeholder="ej. Accesorios"
-                  />
+                  {addingCategory ? (
+                    <div className="flex gap-2">
+                      <input
+                        className={input}
+                        autoFocus
+                        value={form.category ?? ''}
+                        onChange={(e) => set('category', e.target.value)}
+                        placeholder="Nombre de la nueva categoría"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setAddingCategory(false)}
+                        className="px-3 py-2 text-sm text-slate-500 hover:text-slate-700 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors whitespace-nowrap"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <select
+                        className={input}
+                        value={form.category ?? ''}
+                        onChange={(e) => set('category', e.target.value)}
+                      >
+                        <option value="">Sin categoría</option>
+                        {categories.map((c) => (
+                          <option key={c} value={c}>
+                            {c}
+                          </option>
+                        ))}
+                        {form.category && !categories.includes(form.category) && (
+                          <option value={form.category}>{form.category}</option>
+                        )}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          set('category', '');
+                          setAddingCategory(true);
+                        }}
+                        className="flex items-center gap-1 px-3 py-2 text-sm text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors whitespace-nowrap"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                        Nueva
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Precios */}
@@ -314,6 +370,7 @@ export function ProductEditPanel({ productId, creating = false, onClose, onSaved
                       ['visible', 'Visible en catálogo'],
                       ['available', 'Disponible para comprar'],
                       ['on_sale', 'En oferta'],
+                      ['shipping_enabled', 'Habilita envío'],
                     ] as const
                   ).map(([field, label]) => (
                     <div key={field} className="flex items-center justify-between">

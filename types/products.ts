@@ -36,6 +36,9 @@ export interface ProductFields {
   bundle_unit_price?: number | null;
   bundle_sizes?: number[] | null;
   bundle_allow_surprise?: boolean;
+  /** false = el producto nunca ofrece envío a domicilio (ej. membresías digitales).
+   * Opcional — ausente/undefined se trata como true (comportamiento actual). */
+  shipping_enabled?: boolean;
 }
 
 export interface ProductRecord {

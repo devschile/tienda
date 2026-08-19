@@ -120,7 +120,7 @@ exports.handler = async (event, context) => {
     // nunca se confía en lo que manda el cliente (evita manipulación de precio) ─
     const productIds = [...requestedQuantities.keys()];
     const dbProducts = await sql`
-      SELECT id, name, price, sale_price, on_sale, available, stock, product_type
+      SELECT id, name, price, sale_price, on_sale, available, stock, product_type, shipping_enabled
       FROM products
       WHERE id = ANY(${productIds}) AND archived = false
     `;
@@ -128,6 +128,10 @@ exports.handler = async (event, context) => {
 
     const sanitizedItems = [];
     let hasAddon = false;
+    // true si al menos un producto comprado admite envío — si ninguno lo admite
+    // (ej. carrito de solo membresías digitales), el envío nunca se cobra,
+    // aunque el cliente lo pida (nunca se confía solo en el checkbox del form).
+    let anyItemAllowsShipping = false;
     for (const [productId, qty] of requestedQuantities) {
       const product = productsById.get(productId);
       if (!product) {
@@ -145,6 +149,7 @@ exports.handler = async (event, context) => {
         };
       }
       if (product.product_type === 'addon') hasAddon = true;
+      if (product.shipping_enabled !== false) anyItemAllowsShipping = true;
       const originalPrice = Number(product.price);
       const unitPrice = product.on_sale && product.sale_price != null ? Number(product.sale_price) : originalPrice;
       sanitizedItems.push({
@@ -170,7 +175,7 @@ exports.handler = async (event, context) => {
 
       const [bundle] = await sql`
         SELECT id, name, available, on_sale, sale_price, bundle_unit_price,
-               bundle_sizes, bundle_allow_surprise, product_type
+               bundle_sizes, bundle_allow_surprise, product_type, shipping_enabled
         FROM products WHERE id = ${bundleId} AND archived = false
       `;
       if (!bundle || bundle.product_type !== 'bundle') {
@@ -183,6 +188,7 @@ exports.handler = async (event, context) => {
       if (!bundle.available) {
         return { statusCode: 400, headers, body: JSON.stringify({ error: 'Pack no disponible' }) };
       }
+      if (bundle.shipping_enabled !== false) anyItemAllowsShipping = true;
 
       // Precio por sticker definido por el pack (nunca por el cliente).
       const bundleUnitPrice =
@@ -334,7 +340,7 @@ exports.handler = async (event, context) => {
       };
     }
 
-    if (shippingRequested) {
+    if (shippingRequested && anyItemAllowsShipping) {
       const effectiveShipping =
         shippingEnabled && shippingCost > 0
           ? freeShippingThreshold > 0 && productsSubtotal >= freeShippingThreshold

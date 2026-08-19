@@ -115,7 +115,8 @@ Aplica en orden desde `migrations/` en el SQL Editor de Neon:
 | 11 | `add_notes_to_orders.sql` | Notas internas por orden (solo admin) |
 | 12 | `create_settings.sql` | Configuración dinámica de la tienda |
 | 13 | `add_archived_to_products_and_orders.sql` | Archivado reversible de productos y órdenes |
-| 14 | `add_bundle_and_addon_fields.sql` | Packs de stickers + add-ons (sin tocar productos actuales) |
+| 15 | `add_bundle_and_addon_fields.sql` | Packs de stickers + add-ons (sin tocar productos actuales) |
+| 16 | `add_shipping_enabled_to_products.sql` | Envío opcional por producto (default: habilitado) |
 
 ### Esquema resumido
 
@@ -124,8 +125,9 @@ products
   id, name, description, long_description (Markdown)
   category, price, sale_price, on_sale
   visible, available, stock
-  product_type (standard|bundle|addon)  ← packs + stickers (migración 14)
+  product_type (standard|bundle|addon)  ← packs + stickers (migración 15)
   selectable_in_bundles, bundle_unit_price
+  shipping_enabled (default true)  ← envío opcional por producto (migración 16)
   bundle_sizes (JSON [3,4,6]), bundle_allow_surprise
   created_time
 

@@ -100,6 +100,7 @@ const handlers = {
                p.visible, p.available, p.stock, p.on_sale, p.archived, p.created_time,
                p.product_type, p.selectable_in_bundles,
                p.bundle_unit_price, p.bundle_sizes, p.bundle_allow_surprise,
+               p.shipping_enabled,
                (SELECT pi.url FROM product_images pi
                 WHERE pi.product_id = p.id AND pi.is_cover = true LIMIT 1) AS cover_url
         FROM products p
@@ -139,6 +140,7 @@ const handlers = {
         bundle_unit_price,
         bundle_sizes,
         bundle_allow_surprise,
+        shipping_enabled,
       } = body;
       if (!name || price === undefined || price === null)
         return json(400, { error: 'Nombre y precio son requeridos' });
@@ -151,7 +153,8 @@ const handlers = {
           (id, name, description, long_description, category, price, sale_price,
            visible, available, stock, on_sale,
            product_type, selectable_in_bundles,
-           bundle_unit_price, bundle_sizes, bundle_allow_surprise)
+           bundle_unit_price, bundle_sizes, bundle_allow_surprise,
+           shipping_enabled)
         VALUES (
           ${id},
           ${name},
@@ -168,7 +171,8 @@ const handlers = {
           ${!!selectable_in_bundles},
           ${sanitizeNullableInt(bundle_unit_price)},
           ${sanitizeSizes(bundle_sizes)},
-          ${bundle_allow_surprise !== false}
+          ${bundle_allow_surprise !== false},
+          ${shipping_enabled !== false}
         )
         RETURNING *
       `;
@@ -194,6 +198,7 @@ const handlers = {
         bundle_unit_price,
         bundle_sizes,
         bundle_allow_surprise,
+        shipping_enabled,
       } = body;
 
       const [updated] = await sql`
@@ -213,13 +218,29 @@ const handlers = {
           selectable_in_bundles = COALESCE(${selectable_in_bundles !== undefined ? !!selectable_in_bundles : null}, selectable_in_bundles),
           bundle_unit_price     = ${bundle_unit_price === undefined ? null : sanitizeNullableInt(bundle_unit_price)},
           bundle_sizes          = ${bundle_sizes === undefined ? null : sanitizeSizes(bundle_sizes)},
-          bundle_allow_surprise = COALESCE(${bundle_allow_surprise !== undefined ? bundle_allow_surprise !== false : null}, bundle_allow_surprise)
+          bundle_allow_surprise = COALESCE(${bundle_allow_surprise !== undefined ? bundle_allow_surprise !== false : null}, bundle_allow_surprise),
+          shipping_enabled      = COALESCE(${shipping_enabled !== undefined ? shipping_enabled !== false : null}, shipping_enabled)
         WHERE id = ${id}
         RETURNING *
       `;
       return updated
         ? json(200, { data: updated })
         : json(404, { error: 'Producto no encontrado' });
+    },
+  },
+
+  // ── categories ────────────────────────────────────────────────────────────
+  // Solo lectura: las categorías son un valor libre en products.category, no
+  // una tabla propia. Este endpoint junta los valores únicos ya usados para
+  // poblar el select del admin (en vez de re-tipear categorías existentes).
+  categories: {
+    async GET({ sql }) {
+      const rows = await sql`
+        SELECT DISTINCT category FROM products
+        WHERE category IS NOT NULL AND category != ''
+        ORDER BY category
+      `;
+      return json(200, { data: rows.map((r) => r.category) });
     },
   },
 
