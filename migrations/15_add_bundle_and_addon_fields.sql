@@ -1,5 +1,5 @@
 -- =============================================================================
--- 14_add_bundle_and_addon_fields.sql
+-- 15_add_bundle_and_addon_fields.sql
 -- Soporte para packs de stickers y productos add-on de bajo valor.
 -- =============================================================================
 --
@@ -34,6 +34,6 @@ CREATE INDEX IF NOT EXISTS idx_products_selectable_in_bundles ON products (selec
 
 -- =============================================================================
 -- Para aplicar esta migración en NeonDB:
---   psql "$NEON_DATABASE_URL" -f migrations/14_add_bundle_and_addon_fields.sql
+--   psql "$NEON_DATABASE_URL" -f migrations/15_add_bundle_and_addon_fields.sql
 -- O ejecutar en el SQL Editor de https://console.neon.tech
 -- =============================================================================
