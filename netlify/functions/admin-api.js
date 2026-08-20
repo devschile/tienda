@@ -216,8 +216,8 @@ const handlers = {
           archived         = COALESCE(${archived ?? null}, archived),
           product_type          = COALESCE(${product_type !== undefined ? sanitizeProductType(product_type) : null}, product_type),
           selectable_in_bundles = COALESCE(${selectable_in_bundles !== undefined ? !!selectable_in_bundles : null}, selectable_in_bundles),
-          bundle_unit_price     = ${bundle_unit_price === undefined ? null : sanitizeNullableInt(bundle_unit_price)},
-          bundle_sizes          = ${bundle_sizes === undefined ? null : sanitizeSizes(bundle_sizes)},
+          bundle_unit_price     = COALESCE(${bundle_unit_price === undefined ? null : sanitizeNullableInt(bundle_unit_price)}, bundle_unit_price),
+          bundle_sizes          = COALESCE(${bundle_sizes === undefined ? null : sanitizeSizes(bundle_sizes)}, bundle_sizes),
           bundle_allow_surprise = COALESCE(${bundle_allow_surprise !== undefined ? bundle_allow_surprise !== false : null}, bundle_allow_surprise),
           shipping_enabled      = COALESCE(${shipping_enabled !== undefined ? shipping_enabled !== false : null}, shipping_enabled)
         WHERE id = ${id}
