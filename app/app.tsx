@@ -546,7 +546,7 @@ function App() {
                         onBuyClick={handleBuyClick}
                         onCategoryClick={handleCategoryChange}
                         onBuildBundle={handleBuildBundle}
-                        addonLocked={!addonsUnlocked}
+                        addonLocked={product.fields.product_type === 'addon' && !addonsUnlocked}
                       />
                     </motion.div>
                   ))}
