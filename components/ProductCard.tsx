@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import type { ProductRecord } from '@/types/products';
 import { ShoppingCart, Eye, Layers } from 'lucide-react';
 import { useState } from 'react';
+import { EmojiText } from '@/components/Emoji';
 
 interface ProductCardProps {
   product: ProductRecord;
@@ -124,10 +125,10 @@ export function ProductCard({
               {product.fields.category || 'Varios'}
             </button>
             <h3 className="font-mono font-light text-lg mb-2 text-devs-text line-clamp-3 min-h-[4.5rem] group-hover:text-brand-secondary transition-colors leading-tight">
-              {name}
+              <EmojiText text={name} />
             </h3>
             <p className="text-sm text-devs-text/70 mb-4 line-clamp-4 min-h-[4.5rem]">
-              {description}
+              <EmojiText text={description} />
             </p>
             <div>
               {on_sale && sale_price ? (

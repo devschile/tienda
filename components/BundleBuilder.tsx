@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import type { ProductRecord } from '@/types/products';
 import type { BundleSelection } from '@/hooks/useCart';
 import posthog from '@/lib/posthog';
+import { EmojiText } from '@/components/Emoji';
 
 interface BundleBuilderProps {
   product: ProductRecord;
@@ -134,7 +135,7 @@ export function BundleBuilder({
                   <div className="flex items-start justify-between pr-8">
                     <div>
                       <h2 className="font-mono text-xl font-bold text-brand-secondary">
-                        {product.fields.name}
+                        <EmojiText text={product.fields.name} />
                       </h2>
                       <p className="text-sm text-devs-muted mt-0.5">
                         {unitPrice ? `${formatPrice(unitPrice)} por sticker` : ''} · Elige de los
@@ -257,7 +258,7 @@ export function BundleBuilder({
                               className={`w-full aspect-square object-cover rounded-lg bg-brand-surface ${soldOut || (exhausted && qty === 0) ? 'opacity-40 grayscale' : ''}`}
                             />
                             <p className="mt-2 text-sm font-semibold text-devs-text line-clamp-1 leading-tight">
-                              {sticker.fields.name}
+                              <EmojiText text={sticker.fields.name} />
                             </p>
                             <p className="text-xs text-devs-muted mb-2">
                               {formatPrice(unitPrice)} · stock {sticker.fields.stock}
