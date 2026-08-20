@@ -4,49 +4,49 @@
 import { useEffect, useState, type ReactNode } from 'react';
 
 const EMOJI_RE = /(:[a-z0-9_-]+:)/gi;
-const EMOJI_URL = (word: string) => `https://static.devschile.cl/emoji/${word}.png`;
+const EMOJI_URL = (word: string, ext: 'png' | 'gif') =>
+  `https://static.devschile.cl/emoji/${word}.${ext}`;
 
-const cache = new Map<string, boolean>();
+const cache = new Map<string, 'png' | 'gif' | null>();
 
-function emojiExists(word: string): Promise<boolean> {
+async function emojiExists(word: string): Promise<'png' | 'gif' | null> {
   const cached = cache.get(word);
-  if (cached !== undefined) return Promise.resolve(cached);
-  return fetch(EMOJI_URL(word), { method: 'HEAD' })
-    .then((res) => {
-      const exists = res.ok;
-      cache.set(word, exists);
-      return exists;
-    })
-    .catch(() => {
-      cache.set(word, false);
-      return false;
-    });
+  if (cached !== undefined) return cached;
+  let ext: 'png' | 'gif' | null = null;
+  try {
+    const png = await fetch(EMOJI_URL(word, 'png'), { method: 'HEAD' });
+    if (png.ok) ext = 'png';
+    else {
+      const gif = await fetch(EMOJI_URL(word, 'gif'), { method: 'HEAD' });
+      if (gif.ok) ext = 'gif';
+    }
+  } catch {
+    ext = null;
+  }
+  cache.set(word, ext);
+  return ext;
 }
 
 function WordToken({ word }: { word: string }) {
-  const [found, setFound] = useState<boolean | null>(null);
+  const [ext, setExt] = useState<'png' | 'gif' | null>(null);
 
   useEffect(() => {
     let active = true;
-    emojiExists(word).then((exists) => {
-      if (active) setFound(exists);
+    emojiExists(word).then((result) => {
+      if (active) setExt(result);
     });
     return () => {
       active = false;
     };
   }, [word]);
 
-  if (found === null) {
-    return <span className="inline-block">:{word}:</span>;
-  }
-
-  if (!found) {
+  if (!ext) {
     return <span className="inline-block">:{word}:</span>;
   }
 
   return (
     <img
-      src={EMOJI_URL(word)}
+      src={EMOJI_URL(word, ext)}
       alt={word}
       className="inline-block h-[1em] w-auto align-text-bottom"
     />
