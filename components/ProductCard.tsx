@@ -29,10 +29,24 @@ export function ProductCard({
   const [isHovered, setIsHovered] = useState(false);
   const [added, setAdded] = useState(false);
   const [quantity, setQuantity] = useState(1);
-  const { name, description, price, coverImage, available, stock, on_sale, sale_price } =
-    product.fields;
+  const {
+    name,
+    description,
+    price,
+    coverImage,
+    available,
+    stock,
+    on_sale,
+    sale_price,
+    bundle_unit_price,
+    bundle_sizes,
+  } = product.fields;
   const isBundle = product.fields.product_type === 'bundle';
   const isSold = !available;
+
+  const bundleUnitPrice = bundle_unit_price ?? price;
+  const bundleMinPrice =
+    isBundle && bundle_sizes?.length ? Math.min(...bundle_sizes) * bundleUnitPrice : null;
   const isLowStock = available && stock > 0 && stock <= 5;
 
   const thumbnailUrl = coverImage?.url || '/assets/images/default.svg';
@@ -150,7 +164,9 @@ export function ProductCard({
                 <>
                   <p className="text-xs text-brand-secondary font-medium mb-1">Precio</p>
                   <p className="text-3xl font-bold bg-gradient-to-r from-brand-primary to-brand-secondary bg-clip-text text-transparent">
-                    {formatPrice(price)}
+                    {bundleMinPrice !== null
+                      ? `desde ${formatPrice(bundleMinPrice)}`
+                      : formatPrice(price)}
                   </p>
                 </>
               )}
