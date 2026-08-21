@@ -2,17 +2,18 @@
 // Soporta: # Título, ## Subtítulo, - listas, **negrita**, párrafos.
 // Sin dependencias externas — puro React.
 import type { ReactNode } from 'react';
+import { EmojiText } from '@/components/Emoji';
 
 function inlineMarkdown(text: string): ReactNode[] {
-  // Convierte **negrita** a <strong>
+  // Convierte **negrita** a <strong> y :emoji: a <img>
   const parts = text.split(/(\*\*[^*]+\*\*)/g);
   return parts.map((part, i) =>
     part.startsWith('**') && part.endsWith('**') ? (
       <strong key={i} className="font-semibold text-devs-text">
-        {part.slice(2, -2)}
+        <EmojiText text={part.slice(2, -2)} />
       </strong>
     ) : (
-      part
+      <EmojiText key={i} text={part} />
     ),
   );
 }
@@ -36,7 +37,7 @@ export function MarkdownText({ content, className = '' }: MarkdownTextProps) {
           key={i}
           className="font-mono font-bold text-base text-brand-secondary mt-5 mb-2 first:mt-0"
         >
-          {line.slice(2)}
+          <EmojiText text={line.slice(2)} />
         </h2>,
       );
     } else if (line.startsWith('## ')) {
@@ -45,7 +46,7 @@ export function MarkdownText({ content, className = '' }: MarkdownTextProps) {
           key={i}
           className="font-mono font-semibold text-md text-brand pt-4 pb-1.5 uppercase tracking-wide"
         >
-          {line.slice(3)}
+          <EmojiText text={line.slice(3)} />
         </h3>,
       );
     } else if (line.startsWith('- ')) {

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Minus, Plus, Trash2, ShoppingCart, X } from 'lucide-react';
 import type { CartItem } from '@/hooks/useCart';
 import posthog from '@/lib/posthog';
+import { EmojiText } from '@/components/Emoji';
 
 interface CartDrawerProps {
   open: boolean;
@@ -131,7 +132,7 @@ export function CartDrawer({
                               />
                               <div className="flex-1 min-w-0">
                                 <p className="font-mono font-semibold text-sm text-devs-text line-clamp-2 leading-tight mb-1">
-                                  {product.fields.name}
+                                  <EmojiText text={product.fields.name} />
                                 </p>
                                 {bundle && (
                                   <ul className="mb-1.5 space-y-0.5">

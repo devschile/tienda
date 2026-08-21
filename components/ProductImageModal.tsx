@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import type { ProductRecord } from '@/types/products';
 import { ChevronLeft, ChevronRight, ShoppingCart, Layers } from 'lucide-react';
 import { MarkdownText } from '@/components/MarkdownText';
+import { EmojiText } from '@/components/Emoji';
 
 interface ProductImageModalProps {
   product: ProductRecord | null;
@@ -268,7 +269,7 @@ export function ProductImageModal({
           {/* Header sticky (desktop) — nombre + precio + botón */}
           <div className="sticky top-0 bg-white z-10 px-6 pr-14 py-5 border-b border-brand-secondary/10 shadow-md shadow-black/10 space-y-3">
             <DialogTitle className="font-mono font-bold text-xl text-black leading-tight">
-              {product.fields.name}
+              <EmojiText text={product.fields.name} />
             </DialogTitle>
             <PriceRow />
           </div>
@@ -277,7 +278,7 @@ export function ProductImageModal({
           <div className="px-6 py-5 space-y-4 flex-1">
             {product.fields.description && (
               <p className="text-sm text-devs-muted leading-relaxed">
-                {product.fields.description}
+                <EmojiText text={product.fields.description} />
               </p>
             )}
             {long_description && <MarkdownText content={long_description} />}
