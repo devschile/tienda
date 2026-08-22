@@ -153,6 +153,8 @@ export function ProductEditPanel({ productId, creating = false, onClose, onSaved
 
     const dbFields = { ...form };
     delete (dbFields as Partial<Product>).cover_url;
+    delete (dbFields as Record<string, unknown>).image_count;
+    delete (dbFields as Record<string, unknown>).created_time;
     const result = creating
       ? await create(dbFields)
       : productId
