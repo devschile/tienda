@@ -10,6 +10,9 @@
 
 [functions]
   directory = "netlify/functions"
+  # "none": empaqueta node_modules tal cual. Necesario para @napi-rs/canvas
+  # (binario .node) en og-image.js; el bundler esbuild no lo puede procesar.
+  node_bundler = "none"
 
 # Headers para todos los recursos
 [[headers]]
@@ -56,6 +59,19 @@
   from = "/admin-api/*"
   to   = "/.netlify/functions/admin-api/:splat"
   status = 200
+
+# Imagen OG de producto — enruta /og-image/<id>.png a la función generadora
+# DEBE ir antes del catch-all /* (la URL es determinística y se cachea en el CDN)
+[[redirects]]
+  from = "/og-image/*"
+  to   = "/.netlify/functions/og-image/:splat"
+  status = 200
+
+# Meta OG por producto — inyecta tags en el HTML de la SPA para /p/<id>
+# (se ejecuta antes del redirect catch-all, así se sirve index.html + meta)
+[[edge_functions]]
+  path = "/p/*"
+  function = "product-og"
 
 # SPA catch-all — siempre al final
 [[redirects]]
