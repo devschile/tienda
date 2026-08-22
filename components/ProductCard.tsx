@@ -85,35 +85,29 @@ export function ProductCard({
 
             {/* Badge oferta */}
             {on_sale && !presale && (
-              <div className="absolute top-3 -left-6 -rotate-45 z-20 bg-amber-400 text-amber-900 shadow-md">
-                <span className="block rotate-45">
-                  <motion.span
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.25, delay: 0.1 }}
-                    className="flex items-center gap-1 px-3 py-1 text-xs font-bold uppercase tracking-wide"
-                  >
-                    <span className="text-sm">💸</span>
-                    Oferta
-                  </motion.span>
+              <div className="absolute top-3 left-0 z-20 flex items-stretch pointer-events-none shadow-md">
+                <span className="flex items-center gap-1.5 bg-amber-400 text-amber-900 text-xs font-bold uppercase tracking-wide pl-3 pr-2 py-1.5">
+                  <span className="text-sm">💸</span>
+                  Oferta
                 </span>
+                <span
+                  aria-hidden
+                  className="border-y-[16px] border-l-[14px] border-y-transparent border-l-amber-400"
+                />
               </div>
             )}
 
             {/* Badge preventa */}
             {!on_sale && presale && (
-              <div className="absolute top-3 -left-6 -rotate-45 z-20 bg-emerald-100 text-emerald-800 shadow-md">
-                <span className="block rotate-45">
-                  <motion.span
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.25, delay: 0.1 }}
-                    className="flex items-center gap-1 px-3 py-1 text-xs font-bold uppercase tracking-wide"
-                  >
-                    <span className="text-sm">⏳</span>
-                    Preventa
-                  </motion.span>
+              <div className="absolute top-3 left-0 z-20 flex items-stretch pointer-events-none shadow-md">
+                <span className="flex items-center gap-1.5 bg-emerald-200 text-emerald-900 text-xs font-bold uppercase tracking-wide pl-3 pr-2 py-1.5">
+                  <span className="text-sm">⏳</span>
+                  Preventa
                 </span>
+                <span
+                  aria-hidden
+                  className="border-y-[16px] border-l-[14px] border-y-transparent border-l-emerald-200"
+                />
               </div>
             )}
 
