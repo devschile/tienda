@@ -4,6 +4,7 @@
   "description": "Netlify Functions for Tienda devsChile",
   "main": "create-payment.js",
   "dependencies": {
+    "@napi-rs/canvas": "^1.0.7",
     "@neondatabase/serverless": "^1.1.0",
     "form-data": "^4.0.1",
     "mailgun.js": "^10.0.0",

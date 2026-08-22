@@ -38,6 +38,16 @@ function ProductCardSkeleton() {
   );
 }
 
+// Resuelve el id de producto desde la URL. Formas soportadas:
+// - canónica:  /p/<id>  (path real — compartible, con OG server-side)
+// - legacy:    #<id>    (deep-link con hash de versiones anteriores)
+const parseProductIdFromUrl = (): string | null => {
+  const pathMatch = window.location.pathname.match(/^\/p\/([^/]+)\/?$/);
+  if (pathMatch) return pathMatch[1];
+  const hash = window.location.hash.replace(/^#/, '');
+  return hash || null;
+};
+
 function App() {
   const { toast } = useToast();
   const {
@@ -71,8 +81,8 @@ function App() {
     const handlePopState = () => {
       setSelectedCategory(new URLSearchParams(window.location.search).get('category'));
 
-      const hashId = window.location.hash.replace('#', '');
-      const match = hashId ? productsData?.records.find((p) => p.id === hashId) : undefined;
+      const id = parseProductIdFromUrl();
+      const match = id ? productsData?.records.find((p) => p.id === id) : undefined;
       if (match) {
         setSelectedProduct(match);
         setImageModalOpen(true);
@@ -116,16 +126,25 @@ function App() {
     }
   }, [loadingProducts, productsData, selectedCategory, toast]);
 
-  // Abrir el modal de un producto si la URL trae un hash con su id
-  // (deep link para compartir el link de un producto específico)
+  // Abrir el modal de un producto si la URL trae un id (deep link compartible).
+  // Formas soportadas: /p/<id> (path real) y #<id> (legacy con hash).
   useEffect(() => {
     if (!loadingProducts && productsData && productsData.records.length > 0) {
-      const hashId = window.location.hash.replace('#', '');
-      if (hashId) {
-        const match = productsData.records.find((p) => p.id === hashId);
+      const id = parseProductIdFromUrl();
+      if (id) {
+        const match = productsData.records.find((p) => p.id === id);
         if (match) {
           setSelectedProduct(match);
           setImageModalOpen(true);
+
+          // Normaliza deep-links legacy (#<id>) a la URL canónica /p/<id>,
+          // así la barra de direcciones siempre muestra el link compartible.
+          if (window.location.hash) {
+            const url = new URL(window.location.href);
+            url.pathname = `/p/${id}`;
+            url.hash = '';
+            window.history.replaceState({}, '', url);
+          }
         } else {
           toast({
             title: 'Producto no encontrado',
@@ -133,6 +152,7 @@ function App() {
             variant: 'destructive',
           });
           const url = new URL(window.location.href);
+          url.pathname = '/';
           url.hash = '';
           window.history.replaceState({}, '', url);
         }
@@ -171,8 +191,10 @@ function App() {
     setSelectedProduct(product);
     setImageModalOpen(true);
 
+    // URL canónica compartible: /p/<id> (el crawler social la ve con OG propio)
     const url = new URL(window.location.href);
-    url.hash = product.id;
+    url.pathname = `/p/${product.id}`;
+    url.hash = '';
     window.history.pushState({}, '', url);
   };
 
@@ -583,8 +605,10 @@ function App() {
           setImageModalOpen(open);
           if (!open) {
             setSelectedProduct(null);
-            if (window.location.hash) {
-              const url = new URL(window.location.href);
+            const url = new URL(window.location.href);
+            const isProductPath = /^\/p\/[^/]+\/?$/.test(url.pathname);
+            if (isProductPath || url.hash) {
+              if (isProductPath) url.pathname = '/';
               url.hash = '';
               window.history.pushState({}, '', url);
             }
