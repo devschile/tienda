@@ -204,7 +204,7 @@ export function BundleBuilder({
                                 ⚠️ Faltan {deficit} {deficit === 1 ? 'sticker' : 'stickers'} —{' '}
                                 {deficit === 1 ? 'se completará' : 'se completarán'} con{' '}
                                 {deficit === 1 ? 'un sticker sorpresa' : 'stickers sorpresa'} (los
-                                elige la tienda según stock disponible).
+                                elegiremos según stock disponible).
                               </p>
                               <label className="mt-2 flex items-start gap-2.5 cursor-pointer select-none">
                                 <input
