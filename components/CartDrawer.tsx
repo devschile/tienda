@@ -13,8 +13,8 @@ interface CartDrawerProps {
   onOpenChange: (open: boolean) => void;
   items: CartItem[];
   totalAmount: number;
-  onUpdateQuantity: (productId: string, quantity: number) => void;
-  onRemoveItem: (productId: string) => void;
+  onUpdateQuantity: (lineId: string, quantity: number) => void;
+  onRemoveItem: (lineId: string) => void;
   onCheckout: () => void;
 }
 
@@ -102,7 +102,8 @@ export function CartDrawer({
                       </motion.div>
                     ) : (
                       <AnimatePresence mode="popLayout" initial={false}>
-                        {items.map(({ product, quantity, bundle }) => {
+                        {items.map((item) => {
+                          const { product, quantity, bundle } = item;
                           const coverUrl =
                             product.fields.coverImage?.url ?? '/assets/images/default.svg';
                           const stock = product.fields.stock;
@@ -117,7 +118,7 @@ export function CartDrawer({
                             (isBundle && bundle ? unit * bundle.size : unit) * quantity;
                           return (
                             <motion.div
-                              key={product.id}
+                              key={item.lineId}
                               layout
                               initial={{ opacity: 0, x: 40 }}
                               animate={{ opacity: 1, x: 0 }}
@@ -175,7 +176,7 @@ export function CartDrawer({
                                 )}
                                 <div className="flex items-center gap-2">
                                   <button
-                                    onClick={() => onUpdateQuantity(product.id, quantity - 1)}
+                                    onClick={() => onUpdateQuantity(item.lineId, quantity - 1)}
                                     className="w-7 h-7 rounded-full border border-brand-secondary/20 flex items-center justify-center text-brand-secondary hover:bg-brand-secondary hover:text-white transition-colors disabled:opacity-40"
                                     disabled={quantity <= 1}
                                   >
@@ -185,7 +186,7 @@ export function CartDrawer({
                                     {quantity}
                                   </span>
                                   <button
-                                    onClick={() => onUpdateQuantity(product.id, quantity + 1)}
+                                    onClick={() => onUpdateQuantity(item.lineId, quantity + 1)}
                                     className="w-7 h-7 rounded-full border border-brand-secondary/20 flex items-center justify-center text-brand-secondary hover:bg-brand-secondary hover:text-white transition-colors disabled:opacity-40"
                                     disabled={!isBundle && quantity >= stock}
                                   >
@@ -194,7 +195,7 @@ export function CartDrawer({
                                 </div>
                               </div>
                               <button
-                                onClick={() => onRemoveItem(product.id)}
+                                onClick={() => onRemoveItem(item.lineId)}
                                 className="self-start p-1 text-devs-muted hover:text-red-500 transition-colors"
                                 aria-label="Eliminar del carrito"
                               >

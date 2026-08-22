@@ -13,6 +13,7 @@ export interface BundleSelection {
 }
 
 export interface CartItem {
+  lineId: string;
   product: ProductRecord;
   quantity: number;
   bundle?: BundleSelection;
@@ -23,7 +24,9 @@ const STORAGE_KEY = 'devschile-cart';
 function loadCart(): CartItem[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as CartItem[];
+    return parsed.map((item) => (item.lineId ? item : { ...item, lineId: crypto.randomUUID() }));
   } catch {
     return [];
   }
@@ -56,7 +59,7 @@ export function useCart() {
                 : i,
             );
           }
-          return [...prev, { product, quantity: 1, bundle }];
+          return [...prev, { lineId: crypto.randomUUID(), product, quantity: 1, bundle }];
         }
         const existing = prev.find((i) => i.product.id === product.id && !i.bundle);
         if (existing) {
@@ -66,52 +69,58 @@ export function useCart() {
             i.product.id === product.id && !i.bundle ? { ...i, quantity: newQty } : i,
           );
         }
-        return [...prev, { product, quantity: Math.min(quantity, product.fields.stock) }];
+        return [
+          ...prev,
+          {
+            lineId: crypto.randomUUID(),
+            product,
+            quantity: Math.min(quantity, product.fields.stock),
+          },
+        ];
       });
     },
     [],
   );
 
-  const removeItem = useCallback((productId: string) => {
+  const removeItem = useCallback((lineId: string) => {
     setItems((prev) => {
-      const item = prev.find((i) => i.product.id === productId);
+      const item = prev.find((i) => i.lineId === lineId);
       if (item) {
         posthog.capture('cart_item_removed', {
-          product_id: productId,
+          product_id: item.product.id,
           category: item.product.fields.category || 'uncategorized',
           quantity: item.quantity,
         });
       }
-      return prev.filter((i) => i.product.id !== productId);
+      return prev.filter((i) => i.lineId !== lineId);
     });
   }, []);
 
-  const updateQuantity = useCallback((productId: string, quantity: number) => {
+  const updateQuantity = useCallback((lineId: string, quantity: number) => {
     setItems((prev) => {
-      const item = prev.find((i) => i.product.id === productId);
+      const item = prev.find((i) => i.lineId === lineId);
       if (!item) return prev;
 
       if (quantity <= 0) {
         posthog.capture('cart_item_removed', {
-          product_id: productId,
+          product_id: item.product.id,
           category: item.product.fields.category || 'uncategorized',
           quantity: item.quantity,
         });
-        return prev.filter((i) => i.product.id !== productId);
+        return prev.filter((i) => i.lineId !== lineId);
       }
 
-      // Los packs no tienen stock propio (shell) — solo se limitan arriba (min 1)
       const nextQuantity = item.bundle ? quantity : Math.min(quantity, item.product.fields.stock);
       if (nextQuantity !== item.quantity) {
         posthog.capture('cart_quantity_updated', {
-          product_id: productId,
+          product_id: item.product.id,
           category: item.product.fields.category || 'uncategorized',
           previous_quantity: item.quantity,
           quantity: nextQuantity,
         });
       }
       return prev.map((cartItem) =>
-        cartItem.product.id === productId ? { ...cartItem, quantity: nextQuantity } : cartItem,
+        cartItem.lineId === lineId ? { ...cartItem, quantity: nextQuantity } : cartItem,
       );
     });
   }, []);

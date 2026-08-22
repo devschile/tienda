@@ -151,7 +151,13 @@ export function ProductEditPanel({ productId, creating = false, onClose, onSaved
     }
     setValidationError(null);
 
-    const result = creating ? await create(form) : productId ? await update(productId, form) : null;
+    const dbFields = { ...form };
+    delete (dbFields as Partial<Product>).cover_url;
+    const result = creating
+      ? await create(dbFields)
+      : productId
+        ? await update(productId, dbFields)
+        : null;
 
     if (result) {
       posthog.capture(creating ? 'admin_product_created' : 'admin_product_updated', {
