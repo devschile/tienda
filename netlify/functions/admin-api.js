@@ -210,6 +210,14 @@ const handlers = {
         shipping_enabled,
       } = body;
 
+      // presale y on_sale son mutuamente excluyentes: gana presale.
+      // Se calculan en JS (mismo criterio que POST) para evitar el CASE en SQL.
+      const hasOnSale = on_sale !== undefined;
+      const hasPresale = presale !== undefined;
+      const nextPresale = hasPresale ? presale === true : undefined;
+      const nextOnSale =
+        hasOnSale || hasPresale ? (nextPresale ? false : on_sale === true) : undefined;
+
       const [updated] = await sql`
         UPDATE products SET
           name             = COALESCE(${name ?? null}, name),
@@ -221,16 +229,8 @@ const handlers = {
           visible          = COALESCE(${visible ?? null}, visible),
           available        = COALESCE(${available ?? null}, available),
           stock            = COALESCE(${stock ?? null}, stock),
-          on_sale          = CASE
-                              WHEN ${on_sale ?? null} IS NOT NULL THEN ${on_sale === true}
-                              WHEN ${presale ?? null} THEN FALSE
-                              ELSE on_sale
-                            END,
-          presale          = CASE
-                              WHEN ${presale ?? null} IS NOT NULL THEN ${presale === true}
-                              WHEN ${on_sale ?? null} THEN FALSE
-                              ELSE presale
-                            END,
+          on_sale          = COALESCE(${nextOnSale ?? null}, on_sale),
+          presale          = COALESCE(${nextPresale ?? null}, presale),
           archived         = COALESCE(${archived ?? null}, archived),
           product_type          = COALESCE(${product_type !== undefined ? sanitizeProductType(product_type) : null}, product_type),
           selectable_in_bundles = COALESCE(${selectable_in_bundles !== undefined ? !!selectable_in_bundles : null}, selectable_in_bundles),
@@ -542,6 +542,6 @@ exports.handler = async (event) => {
     return await methodHandler({ id, body, qs, sql });
   } catch (error) {
     console.error(`admin-api [${method} ${resource}/${id}]:`, error.message);
-    return json(500, { error: 'Error interno del servidor' });
+    return json(500, { error: error.message || 'Error interno del servidor' });
   }
 };
