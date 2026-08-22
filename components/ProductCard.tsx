@@ -85,31 +85,35 @@ export function ProductCard({
 
             {/* Badge oferta */}
             {on_sale && !presale && (
-              <div className="absolute top-3 -left-6 -rotate-45 z-20 bg-amber-400 text-amber-900 text-xs font-bold px-2.5 py-1 shadow-md tracking-wide uppercase flex items-center gap-1">
-                <motion.span
-                  initial={{ scale: 0, opacity: 0, rotate: 45 }}
-                  animate={{ scale: 1, opacity: 1, rotate: 45 }}
-                  transition={{ type: 'spring', bounce: 0.5, delay: 0.1 }}
-                  className="absolute left-8 top-10 rotate-45 text-[48px]"
-                >
-                  💸
-                </motion.span>
-                Oferta
+              <div className="absolute top-3 -left-6 -rotate-45 z-20 bg-amber-400 text-amber-900 shadow-md">
+                <span className="block rotate-45">
+                  <motion.span
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.25, delay: 0.1 }}
+                    className="flex items-center gap-1 px-3 py-1 text-xs font-bold uppercase tracking-wide"
+                  >
+                    <span className="text-sm">💸</span>
+                    Oferta
+                  </motion.span>
+                </span>
               </div>
             )}
 
             {/* Badge preventa */}
             {!on_sale && presale && (
-              <div className="absolute top-3 -left-6 -rotate-45 z-20 bg-emerald-100 text-emerald-800 text-xs font-bold px-2.5 py-1 shadow-md tracking-wide uppercase flex items-center gap-1">
-                <motion.span
-                  initial={{ scale: 0, opacity: 0, rotate: 45 }}
-                  animate={{ scale: 1, opacity: 1, rotate: 45 }}
-                  transition={{ type: 'spring', bounce: 0.5, delay: 0.1 }}
-                  className="absolute left-8 top-10 rotate-45 text-[48px]"
-                >
-                  ⏳
-                </motion.span>
-                Preventa
+              <div className="absolute top-3 -left-6 -rotate-45 z-20 bg-emerald-100 text-emerald-800 shadow-md">
+                <span className="block rotate-45">
+                  <motion.span
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.25, delay: 0.1 }}
+                    className="flex items-center gap-1 px-3 py-1 text-xs font-bold uppercase tracking-wide"
+                  >
+                    <span className="text-sm">⏳</span>
+                    Preventa
+                  </motion.span>
+                </span>
               </div>
             )}
 
