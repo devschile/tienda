@@ -28,6 +28,8 @@ export interface ProductFields {
   available: boolean;
   stock: number;
   on_sale: boolean;
+  /** true = producto a la venta antes de su lanzamiento. Excluyente con on_sale. */
+  presale: boolean;
   long_description: string | null;
   sale_price: number | null;
   /** Incremento packs/addons — opcionales para no tocar productos existentes. */
