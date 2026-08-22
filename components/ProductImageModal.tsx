@@ -66,7 +66,8 @@ export function ProductImageModal({
 
   if (!product) return null;
 
-  const { on_sale, long_description, price, sale_price, available, product_type } = product.fields;
+  const { on_sale, presale, long_description, price, sale_price, available, product_type } =
+    product.fields;
   const isSold = !available;
   const isBundle = product_type === 'bundle';
 
@@ -215,9 +216,15 @@ export function ProductImageModal({
               )}
             </div>
 
-            {on_sale && (
+            {on_sale && !presale && (
               <div className="absolute top-3 left-3 z-20 bg-amber-400 text-amber-900 text-xs font-bold px-3 py-1.5 rounded-full shadow-md tracking-wide uppercase flex items-center gap-1.5">
                 <span className="text-[32px]">💸</span> Oferta
+              </div>
+            )}
+
+            {!on_sale && presale && (
+              <div className="absolute top-3 left-3 z-20 bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1.5 rounded-full shadow-md tracking-wide uppercase flex items-center gap-1.5">
+                <span className="text-[32px]">⏳</span> Preventa
               </div>
             )}
 

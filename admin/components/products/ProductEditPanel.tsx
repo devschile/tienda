@@ -19,6 +19,7 @@ interface Product {
   available: boolean;
   stock: number;
   on_sale: boolean;
+  presale: boolean;
   cover_url: string | null;
   product_type: 'standard' | 'bundle' | 'addon';
   selectable_in_bundles: boolean;
@@ -39,6 +40,7 @@ const DEFAULTS: Partial<Product> = {
   available: true,
   stock: 0,
   on_sale: false,
+  presale: false,
   product_type: 'standard',
   selectable_in_bundles: false,
   bundle_unit_price: null,
@@ -116,7 +118,13 @@ export function ProductEditPanel({ productId, creating = false, onClose, onSaved
   }, [creating, data]);
 
   const set = (field: keyof Product, value: unknown) =>
-    setForm((prev) => ({ ...prev, [field]: value }));
+    setForm((prev) => {
+      const next = { ...prev, [field]: value };
+      // presale y on_sale son mutuamente excluyentes
+      if (field === 'presale' && value === true) next.on_sale = false;
+      else if (field === 'on_sale' && value === true) next.presale = false;
+      return next;
+    });
 
   const handleSave = async () => {
     if (!form.name?.trim()) {
@@ -370,6 +378,7 @@ export function ProductEditPanel({ productId, creating = false, onClose, onSaved
                       ['visible', 'Visible en catálogo'],
                       ['available', 'Disponible para comprar'],
                       ['on_sale', 'En oferta'],
+                      ['presale', 'En preventa'],
                       ['shipping_enabled', 'Habilita envío'],
                     ] as const
                   ).map(([field, label]) => (

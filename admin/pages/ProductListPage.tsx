@@ -28,6 +28,7 @@ interface Product {
   available: boolean;
   stock: number;
   on_sale: boolean;
+  presale: boolean;
   archived: boolean;
   cover_url: string | null;
   created_time: string;
@@ -42,11 +43,12 @@ const formatCLP = (n: number) =>
     minimumFractionDigits: 0,
   }).format(n);
 
-type FilterKey = 'all' | 'on_sale' | 'low_stock' | 'hidden' | 'archived';
+type FilterKey = 'all' | 'on_sale' | 'presale' | 'low_stock' | 'hidden' | 'archived';
 
 const FILTERS: { key: FilterKey; label: string }[] = [
   { key: 'all', label: 'Todos' },
   { key: 'on_sale', label: '⚡ En oferta' },
+  { key: 'presale', label: '⏳ En preventa' },
   { key: 'low_stock', label: '⚠️ Stock bajo' },
   { key: 'hidden', label: '🙈 Ocultos' },
   { key: 'archived', label: '📦 Archivados' },
@@ -64,6 +66,7 @@ const exportProductsToCSV = (rows: Product[], label: string) => {
     'Visible',
     'Disponible',
     'En oferta',
+    'En preventa',
     'Tipo',
     'Seleccionable en packs',
   ];
@@ -80,6 +83,7 @@ const exportProductsToCSV = (rows: Product[], label: string) => {
         p.visible,
         p.available,
         p.on_sale,
+        p.presale,
         esc(p.product_type ?? 'standard'),
         p.selectable_in_bundles ?? false,
       ].join(','),
@@ -106,6 +110,7 @@ export function ProductListPage() {
     pageSize: 15,
     search: search || undefined,
     on_sale: filter === 'on_sale' ? 'true' : undefined,
+    presale: filter === 'presale' ? 'true' : undefined,
     low_stock: filter === 'low_stock' ? 'true' : undefined,
     visible: filter === 'hidden' ? 'false' : undefined,
     archived: filter === 'archived' ? 'true' : undefined,
@@ -140,8 +145,9 @@ export function ProductListPage() {
   }, [sel, products, filter]);
 
   // Toggle inline sin abrir el formulario
+  // Exclusividad on_sale ↔ preventa la aplica el servidor (PUT en admin-api.js)
   const toggle = useCallback(
-    async (id: string, field: 'visible' | 'available' | 'on_sale', value: boolean) => {
+    async (id: string, field: 'visible' | 'available' | 'on_sale' | 'presale', value: boolean) => {
       await update(id, { [field]: value });
       refetch();
     },
@@ -255,6 +261,9 @@ export function ProductListPage() {
               <th className="text-center px-3 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">
                 Oferta
               </th>
+              <th className="text-center px-3 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                Preventa
+              </th>
               <th className="w-10" />
             </tr>
           </thead>
@@ -278,7 +287,7 @@ export function ProductListPage() {
                 exit={{ opacity: 0 }}
               >
                 <tr>
-                  <td colSpan={9} className="px-6 py-14 text-center">
+                  <td colSpan={10} className="px-6 py-14 text-center">
                     <motion.div
                       initial={{ scale: 0.8, opacity: 0, y: 10 }}
                       animate={{ scale: 1, opacity: 1, y: 0 }}
@@ -306,7 +315,7 @@ export function ProductListPage() {
                 exit={{ opacity: 0 }}
               >
                 <tr>
-                  <td colSpan={9} className="px-6 py-14 text-center">
+                  <td colSpan={10} className="px-6 py-14 text-center">
                     <motion.div
                       initial={{ scale: 0.7, opacity: 0, y: 16 }}
                       animate={{ scale: 1, opacity: 1, y: 0 }}
@@ -433,6 +442,13 @@ export function ProductListPage() {
                         size="sm"
                         checked={p.on_sale}
                         onChange={(v) => toggle(p.id, 'on_sale', v)}
+                      />
+                    </td>
+                    <td className="px-3 py-3 text-center">
+                      <Toggle
+                        size="sm"
+                        checked={p.presale}
+                        onChange={(v) => toggle(p.id, 'presale', v)}
                       />
                     </td>
                     <td className="pr-4 py-3 text-right">

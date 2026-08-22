@@ -117,6 +117,7 @@ Aplica en orden desde `migrations/` en el SQL Editor de Neon:
 | 13 | `add_archived_to_products_and_orders.sql` | Archivado reversible de productos y órdenes |
 | 15 | `add_bundle_and_addon_fields.sql` | Packs de stickers + add-ons (sin tocar productos actuales) |
 | 16 | `add_shipping_enabled_to_products.sql` | Envío opcional por producto (default: habilitado) |
+| 17 | `add_presale_to_products.sql` | Badge de preventa (⏳) — excluyente con `on_sale` |
 
 ### Esquema resumido
 
@@ -124,6 +125,7 @@ Aplica en orden desde `migrations/` en el SQL Editor de Neon:
 products
   id, name, description, long_description (Markdown)
   category, price, sale_price, on_sale
+  presale  ← badge de preventa (⏳), excluyente con on_sale (migración 17)
   visible, available, stock
   product_type (standard|bundle|addon)  ← packs + stickers (migración 15)
   selectable_in_bundles, bundle_unit_price
@@ -238,7 +240,7 @@ Acceso mediante JWT con credenciales de las variables de entorno (`ADMIN_EMAIL`,
 | Sección | Ruta | Funcionalidad |
 |---|---|---|
 | **Dashboard** | `/admin` | Stats por periodo (hoy/7d/30d/6m/todo), últimas órdenes, stock bajo |
-| **Productos** | `/admin/products` | Tabla con skeleton, toggles inline (visible/disponible/oferta), filtros, crear, editar, gestión de imágenes, exportar CSV |
+| **Productos** | `/admin/products` | Tabla con skeleton, toggles inline (visible/disponible/oferta/preventa), filtros, crear, editar, gestión de imágenes, exportar CSV |
 | **Pedidos** | `/admin/orders` | Tabs por estado, cambio de estado con confirmación, notas internas, detalle con breakdown de envío, exportar CSV |
 | **Configuración** | `/admin/settings` | store_name, tagline, email contacto, modo mantenimiento, envío (habilitado/costo/umbral gratis), status integraciones |
 

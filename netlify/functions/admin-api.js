@@ -91,13 +91,14 @@ const handlers = {
       const offset = (page - 1) * pageSize;
       const search = qs.search ? `%${qs.search}%` : null;
       const onSale = qs.on_sale === 'true' ? true : qs.on_sale === 'false' ? false : null;
+      const presaleF = qs.presale === 'true' ? true : qs.presale === 'false' ? false : null;
       const visibleF = qs.visible === 'true' ? true : qs.visible === 'false' ? false : null;
       const lowStock = qs.low_stock === 'true';
       const archived = qs.archived === 'true';
 
       const rows = await sql`
         SELECT p.id, p.name, p.category, p.price, p.sale_price,
-               p.visible, p.available, p.stock, p.on_sale, p.archived, p.created_time,
+               p.visible, p.available, p.stock, p.on_sale, p.presale, p.archived, p.created_time,
                p.product_type, p.selectable_in_bundles,
                p.bundle_unit_price, p.bundle_sizes, p.bundle_allow_surprise,
                p.shipping_enabled,
@@ -107,6 +108,7 @@ const handlers = {
         WHERE p.archived = ${archived}
           ${search !== null ? sql`AND p.name ILIKE ${search}` : sql``}
           ${onSale !== null ? sql`AND p.on_sale = ${onSale}` : sql``}
+          ${presaleF !== null ? sql`AND p.presale = ${presaleF}` : sql``}
           ${visibleF !== null ? sql`AND p.visible = ${visibleF}` : sql``}
           ${lowStock ? sql`AND p.stock < 5` : sql``}
         ORDER BY p.created_time DESC
@@ -117,6 +119,7 @@ const handlers = {
         WHERE p.archived = ${archived}
           ${search !== null ? sql`AND p.name ILIKE ${search}` : sql``}
           ${onSale !== null ? sql`AND p.on_sale = ${onSale}` : sql``}
+          ${presaleF !== null ? sql`AND p.presale = ${presaleF}` : sql``}
           ${visibleF !== null ? sql`AND p.visible = ${visibleF}` : sql``}
           ${lowStock ? sql`AND p.stock < 5` : sql``}
       `;
@@ -148,10 +151,14 @@ const handlers = {
       // Generar ID único en formato legible (mismo estilo que los existentes)
       const id = `prod_${crypto.randomBytes(5).toString('hex')}`;
 
+      // presale y on_sale son mutuamente excluyentes: gana presale.
+      const presale = body.presale === true;
+      const isOnSale = presale ? false : on_sale === true;
+
       const [created] = await sql`
         INSERT INTO products
           (id, name, description, long_description, category, price, sale_price,
-           visible, available, stock, on_sale,
+           visible, available, stock, on_sale, presale,
            product_type, selectable_in_bundles,
            bundle_unit_price, bundle_sizes, bundle_allow_surprise,
            shipping_enabled)
@@ -166,7 +173,8 @@ const handlers = {
           ${visible ?? true},
           ${available ?? true},
           ${stock ?? 0},
-          ${on_sale ?? false},
+          ${isOnSale},
+          ${presale},
           ${sanitizeProductType(product_type)},
           ${!!selectable_in_bundles},
           ${sanitizeNullableInt(bundle_unit_price)},
@@ -192,6 +200,7 @@ const handlers = {
         available,
         stock,
         on_sale,
+        presale,
         archived,
         product_type,
         selectable_in_bundles,
@@ -212,7 +221,16 @@ const handlers = {
           visible          = COALESCE(${visible ?? null}, visible),
           available        = COALESCE(${available ?? null}, available),
           stock            = COALESCE(${stock ?? null}, stock),
-          on_sale          = COALESCE(${on_sale ?? null}, on_sale),
+          on_sale          = CASE
+                              WHEN ${on_sale ?? null} IS NOT NULL THEN ${on_sale === true}
+                              WHEN ${presale ?? null} THEN FALSE
+                              ELSE on_sale
+                            END,
+          presale          = CASE
+                              WHEN ${presale ?? null} IS NOT NULL THEN ${presale === true}
+                              WHEN ${on_sale ?? null} THEN FALSE
+                              ELSE presale
+                            END,
           archived         = COALESCE(${archived ?? null}, archived),
           product_type          = COALESCE(${product_type !== undefined ? sanitizeProductType(product_type) : null}, product_type),
           selectable_in_bundles = COALESCE(${selectable_in_bundles !== undefined ? !!selectable_in_bundles : null}, selectable_in_bundles),
