@@ -1,5 +1,6 @@
 // Netlify Function — devuelve los metadatos OG de un producto (JSON ligero).
 // La consume el Edge Function de /p/* para inyectar las meta tags en el HTML de la SPA.
+const crypto = require('crypto');
 const { getProductById } = require('./lib/products');
 
 const formatPrice = (n) =>
@@ -8,6 +9,24 @@ const formatPrice = (n) =>
     currency: 'CLP',
     minimumFractionDigits: 0,
   }).format(n);
+
+// Cambia si cambia lo que se dibuja en el card OG (1200x630). Al cambiar,
+// la URL de la imagen og:image lleva otro ?rev= → el CDN la renderiza de nuevo.
+const revOf = (f) => {
+  const currentPrice = f.on_sale && f.sale_price != null ? f.sale_price : f.price;
+  return crypto
+    .createHash('sha1')
+    .update(
+      JSON.stringify({
+        name: f.name,
+        category: f.category,
+        price: currentPrice,
+        cover: f.coverImage?.url ?? null,
+      }),
+    )
+    .digest('hex')
+    .slice(0, 8);
+};
 
 const headers = {
   'Content-Type': 'application/json',
@@ -50,7 +69,7 @@ exports.handler = async (event) => {
     availability,
     cover_url: cover?.url ?? null,
     url: `/p/${id}`,
-    image: `/og-image/${id}.png`,
+    image: `/og-image/${id}.png?rev=${revOf(f)}`,
   });
 
   return { statusCode: 200, headers, body };
