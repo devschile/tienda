@@ -83,12 +83,21 @@ function App() {
 
       const id = parseProductIdFromUrl();
       const match = id ? productsData?.records.find((p) => p.id === id) : undefined;
-      if (match) {
+      if (match && match.fields.product_type === 'bundle') {
+        setSelectedProduct(null);
+        setImageModalOpen(false);
+        setBundleProduct(match);
+        setBundleOpen(true);
+      } else if (match) {
+        setBundleProduct(null);
+        setBundleOpen(false);
         setSelectedProduct(match);
         setImageModalOpen(true);
       } else {
         setImageModalOpen(false);
         setSelectedProduct(null);
+        setBundleOpen(false);
+        setBundleProduct(null);
       }
     };
     window.addEventListener('popstate', handlePopState);
@@ -133,18 +142,16 @@ function App() {
       const id = parseProductIdFromUrl();
       if (id) {
         const match = productsData.records.find((p) => p.id === id);
-        if (match) {
+        if (match && match.fields.product_type === 'bundle') {
+          setSelectedProduct(null);
+          setImageModalOpen(false);
+          setBundleProduct(match);
+          setBundleOpen(true);
+        } else if (match) {
+          setBundleProduct(null);
+          setBundleOpen(false);
           setSelectedProduct(match);
           setImageModalOpen(true);
-
-          // Normaliza deep-links legacy (#<id>) a la URL canónica /p/<id>,
-          // así la barra de direcciones siempre muestra el link compartible.
-          if (window.location.hash) {
-            const url = new URL(window.location.href);
-            url.pathname = `/p/${id}`;
-            url.hash = '';
-            window.history.replaceState({}, '', url);
-          }
         } else {
           toast({
             title: 'Producto no encontrado',
@@ -153,6 +160,15 @@ function App() {
           });
           const url = new URL(window.location.href);
           url.pathname = '/';
+          url.hash = '';
+          window.history.replaceState({}, '', url);
+        }
+
+        // Normaliza deep-links legacy (#<id>) a la URL canónica /p/<id>,
+        // así la barra de direcciones siempre muestra el link compartible.
+        if (match && window.location.hash) {
+          const url = new URL(window.location.href);
+          url.pathname = `/p/${id}`;
           url.hash = '';
           window.history.replaceState({}, '', url);
         }
@@ -182,20 +198,36 @@ function App() {
     loadProductsData();
   }, []);
 
+  // Empuja la URL canónica compartible /p/<id> para un producto abierto.
+  const pushProductUrl = (productId: string) => {
+    const url = new URL(window.location.href);
+    url.pathname = `/p/${productId}`;
+    url.hash = '';
+    window.history.pushState({}, '', url);
+  };
+
   const handleImageClick = (product: ProductRecord) => {
     posthog.capture('product_viewed', {
       product_id: product.id,
       category: product.fields.category || 'uncategorized',
       on_sale: product.fields.on_sale,
     });
+
+    pushProductUrl(product.id);
+
+    // Los packs abren directo el constructor de bundles, no el modal de detalle.
+    if (product.fields.product_type === 'bundle') {
+      setSelectedProduct(null);
+      setImageModalOpen(false);
+      setBundleProduct(product);
+      setBundleOpen(true);
+      return;
+    }
+
+    setBundleProduct(null);
+    setBundleOpen(false);
     setSelectedProduct(product);
     setImageModalOpen(true);
-
-    // URL canónica compartible: /p/<id> (el crawler social la ve con OG propio)
-    const url = new URL(window.location.href);
-    url.pathname = `/p/${product.id}`;
-    url.hash = '';
-    window.history.pushState({}, '', url);
   };
 
   const handleBuyClick = (product: ProductRecord, quantity: number) => {
@@ -219,8 +251,10 @@ function App() {
 
   const handleBuildBundle = (product: ProductRecord) => {
     setImageModalOpen(false);
+    setSelectedProduct(null);
     setBundleProduct(product);
     setBundleOpen(true);
+    pushProductUrl(product.id);
   };
 
   const handleAddBundle = (product: ProductRecord, bundle: BundleSelection) => {
@@ -624,7 +658,18 @@ function App() {
         <BundleBuilder
           product={bundleProduct}
           open={bundleOpen}
-          onOpenChange={setBundleOpen}
+          onOpenChange={(open) => {
+            setBundleOpen(open);
+            if (!open) {
+              const url = new URL(window.location.href);
+              const isProductPath = /^\/p\/[^/]+\/?$/.test(url.pathname);
+              if (isProductPath || url.hash) {
+                if (isProductPath) url.pathname = '/';
+                url.hash = '';
+                window.history.pushState({}, '', url);
+              }
+            }
+          }}
           stickers={selectableStickers}
           onAddToCart={handleAddBundle}
         />
