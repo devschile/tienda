@@ -27,7 +27,7 @@ const STATUS_CONFIG = {
   },
 };
 
-function confirmacionCompraHTML({ customerName, status, items, totalAmount, orderId, siteUrl }) {
+function confirmacionCompraHTML({ customerName, status, items, totalAmount, orderId, siteUrl, promo }) {
   const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.rejected;
   const url = siteUrl || 'https://tienda.devschile.cl';
 
@@ -55,7 +55,7 @@ function confirmacionCompraHTML({ customerName, status, items, totalAmount, orde
     <tr><td style="background:#ffffff;padding:32px;">
       <p style="margin:0 0 28px;color:#2d1a12;font-size:16px;">Hola <strong>${customerName}</strong>,</p>
 
-      ${orderBreakdown(items, totalAmount, 'product_name')}
+      ${orderBreakdown(items, totalAmount, 'product_name', promo)}
 
       ${retryBtn}
 

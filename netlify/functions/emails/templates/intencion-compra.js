@@ -1,6 +1,6 @@
 const { emailHeader, emailFooter, emailWrap, orderBreakdown } = require('../partials');
 
-function intencionCompraHTML({ customerName, items, totalAmount, checkoutUrl, orderId }) {
+function intencionCompraHTML({ customerName, items, totalAmount, checkoutUrl, orderId, promo }) {
   const rows = `
     ${emailHeader('Tu resumen de compra 🛒')}
 
@@ -11,7 +11,7 @@ function intencionCompraHTML({ customerName, items, totalAmount, checkoutUrl, or
         Haz clic en el botón para completar tu pago de forma segura con MercadoPago.
       </p>
 
-      ${orderBreakdown(items)}
+      ${orderBreakdown(items, totalAmount, 'productName', promo)}
 
       <!-- CTA -->
       <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:28px;">

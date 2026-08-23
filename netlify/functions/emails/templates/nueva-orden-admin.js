@@ -30,6 +30,7 @@ function nuevaOrdenAdminHTML({
   shipping,
   items,
   totalAmount,
+  promo,
 }) {
   const cfg = STATUS_LABELS[status] || STATUS_LABELS.pending;
 
@@ -112,21 +113,47 @@ function nuevaOrdenAdminHTML({
             (i.productId || i.product_id) === 'shipping' ||
             (i.productName || i.product_name) === 'Envío a domicilio',
         );
-        if (!shippingItem) return '';
-        const shippingCost =
-          shippingItem.subtotal || shippingItem.unit_price || shippingItem.unitPrice || 0;
-        const subtotal = totalAmount - shippingCost;
-        return `
-        <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:8px;">
-          <tr>
-            <td colspan="2" style="padding:7px 0;color:#9ca3af;font-size:12px;">Subtotal productos</td>
-            <td style="padding:7px 0;color:#e5e7eb;font-size:13px;text-align:right;">${formatPrice(subtotal)}</td>
-          </tr>
-          <tr>
-            <td colspan="2" style="padding:5px 0 10px;color:#9ca3af;font-size:12px;">🚚 Envío a domicilio</td>
-            <td style="padding:5px 0 10px;color:#e5e7eb;font-size:13px;text-align:right;">${formatPrice(shippingCost)}</td>
-          </tr>
-        </table>`;
+        const discount = promo && promo.amount > 0 ? promo.amount : 0;
+        const isShippingPromo = discount > 0 && promo.type === 'shipping';
+        let html = '';
+        if (shippingItem) {
+          const shippingCost =
+            shippingItem.subtotal || shippingItem.unit_price || shippingItem.unitPrice || 0;
+          const subtotal = totalAmount - shippingCost + discount;
+          html += `
+          <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:8px;">
+            <tr>
+              <td colspan="2" style="padding:7px 0;color:#9ca3af;font-size:12px;">Subtotal productos</td>
+              <td style="padding:7px 0;color:#e5e7eb;font-size:13px;text-align:right;">${formatPrice(subtotal)}</td>
+            </tr>
+            <tr>
+              <td colspan="2" style="padding:5px 0 10px;color:#9ca3af;font-size:12px;">🚚 Envío a domicilio</td>
+              <td style="padding:5px 0 10px;color:#e5e7eb;font-size:13px;text-align:right;">${formatPrice(shippingCost)}</td>
+            </tr>
+          </table>`;
+        } else if (discount > 0 && !isShippingPromo) {
+          const subtotal = totalAmount + discount;
+          html += `
+          <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:8px;">
+            <tr>
+              <td colspan="2" style="padding:7px 0;color:#9ca3af;font-size:12px;">Subtotal productos</td>
+              <td style="padding:7px 0;color:#e5e7eb;font-size:13px;text-align:right;">${formatPrice(subtotal)}</td>
+            </tr>
+          </table>`;
+        }
+        if (discount > 0) {
+          const label = isShippingPromo
+            ? `🎟️ Envío gratis (${promo.code})`
+            : `🎟️ Descuento (${promo.code})`;
+          html += `
+          <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:8px;">
+            <tr>
+              <td colspan="2" style="padding:5px 0 10px;color:#9ca3af;font-size:12px;">${label}</td>
+              <td style="padding:5px 0 10px;color:#4ade80;font-size:13px;text-align:right;font-weight:700;">&minus;${formatPrice(discount)}</td>
+            </tr>
+          </table>`;
+        }
+        return html;
       })()}
       <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:8px;background:#0f172a;border-radius:8px;padding:12px 16px;">
         <tr>

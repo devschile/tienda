@@ -7,6 +7,7 @@
 const { neon } = require('@neondatabase/serverless');
 const crypto = require('crypto');
 const { UTApi } = require('uploadthing/server');
+const { normalizeCode } = require('./lib/promo');
 
 // ── JWT verify (inline) ────────────────────────────────────────────────────────
 function verifyJWT(token, secret) {
@@ -67,6 +68,17 @@ const sanitizeSizes = (value) => {
     .map((v) => parseInt(v, 10))
     .filter((n) => Number.isInteger(n) && n > 0);
   return nums.length > 0 ? JSON.stringify([...new Set(nums)].sort((a, b) => a - b)) : null;
+};
+
+// Valida discount_type de un código de descuento — solo valores conocidos.
+const sanitizeDiscountType = (value) =>
+  ['percent', 'fixed', 'shipping'].includes(value) ? value : null;
+
+// Convierte ''/undefined a null; dejando el valor tal cual si es una fecha válida.
+const sanitizeOptionalDate = (value) => {
+  if (value === undefined || value === null || value === '') return null;
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? null : value;
 };
 
 // ── Handlers por recurso ───────────────────────────────────────────────────────
@@ -262,6 +274,114 @@ const handlers = {
     },
   },
 
+  // ── coupons — códigos de descuento ───────────────────────────────────────
+  coupons: {
+    async GET({ id, qs, sql }) {
+      if (id) {
+        const [row] = await sql`SELECT * FROM promo_codes WHERE id = ${id}`;
+        return row ? json(200, { data: row }) : json(404, { error: 'Código no encontrado' });
+      }
+
+      const page = Math.max(1, parseInt(qs.page || '1', 10));
+      const pageSize = Math.min(50, parseInt(qs.pageSize || '20', 10));
+      const offset = (page - 1) * pageSize;
+      const search = qs.search ? `%${qs.search}%` : null;
+      const activeF = qs.active === 'true' ? true : qs.active === 'false' ? false : null;
+      const archived = qs.archived === 'true';
+
+      const filter = sql`
+        WHERE archived = ${archived}
+          ${search !== null ? sql`AND code ILIKE ${search}` : sql``}
+          ${activeF !== null ? sql`AND active = ${activeF}` : sql``}
+      `;
+
+      const rows = await sql`
+        SELECT * FROM promo_codes ${filter}
+        ORDER BY created_time DESC
+        LIMIT ${pageSize} OFFSET ${offset}
+      `;
+      const [{ total }] = await sql`
+        SELECT COUNT(*)::int AS total FROM promo_codes ${filter}
+      `;
+      return json(200, { data: rows, total, page, pageSize });
+    },
+
+    async POST({ body, sql }) {
+      const discountType = sanitizeDiscountType(body.discount_type);
+      const value = parseInt(body.discount_value, 10);
+      const code = normalizeCode(body.code);
+
+      if (!code) return json(400, { error: 'El código es requerido' });
+      if (!discountType) return json(400, { error: 'Tipo de descuento inválido' });
+      if (!Number.isInteger(value) || value <= 0) {
+        return json(400, { error: 'El valor del descuento debe ser un número positivo' });
+      }
+      if (discountType === 'percent' && (value < 1 || value > 100)) {
+        return json(400, { error: 'Un descuento en porcentaje debe estar entre 1 y 100' });
+      }
+
+      const id = `prm_${crypto.randomBytes(5).toString('hex')}`;
+      const [created] = await sql`
+        INSERT INTO promo_codes (
+          id, code, description, discount_type, discount_value,
+          min_subtotal, max_discount, starts_at, expires_at, max_uses, active
+        )
+        VALUES (
+          ${id}, ${code}, ${body.description ?? ''}, ${discountType}, ${value},
+          ${sanitizeNullableInt(body.min_subtotal) ?? 0},
+          ${sanitizeNullableInt(body.max_discount)},
+          ${sanitizeOptionalDate(body.starts_at)},
+          ${sanitizeOptionalDate(body.expires_at)},
+          ${sanitizeNullableInt(body.max_uses)},
+          ${body.active === false ? false : true}
+        )
+        RETURNING *
+      `;
+      return json(201, { data: created });
+    },
+
+    async PUT({ id, body, sql }) {
+      if (!id) return json(400, { error: 'ID requerido' });
+
+      const discountType =
+        body.discount_type !== undefined ? sanitizeDiscountType(body.discount_type) : undefined;
+      if (body.discount_type !== undefined && !discountType) {
+        return json(400, { error: 'Tipo de descuento inválido' });
+      }
+      const value =
+        body.discount_value !== undefined ? parseInt(body.discount_value, 10) : undefined;
+      if (body.discount_value !== undefined && (!Number.isInteger(value) || value <= 0)) {
+        return json(400, { error: 'El valor del descuento debe ser un número positivo' });
+      }
+      if (
+        discountType === 'percent' && value !== undefined && (value < 1 || value > 100)
+      ) {
+        return json(400, { error: 'Un descuento en porcentaje debe estar entre 1 y 100' });
+      }
+
+      const nextCode = body.code !== undefined ? normalizeCode(body.code) : undefined;
+      if (nextCode === '') return json(400, { error: 'El código no puede quedar vacío' });
+
+      const [updated] = await sql`
+        UPDATE promo_codes SET
+          code            = COALESCE(${nextCode ?? null}, code),
+          description     = COALESCE(${body.description ?? null}, description),
+          discount_type   = COALESCE(${discountType ?? null}, discount_type),
+          discount_value  = COALESCE(${value ?? null}, discount_value),
+          min_subtotal    = COALESCE(${body.min_subtotal === undefined ? null : sanitizeNullableInt(body.min_subtotal) ?? 0}, min_subtotal),
+          max_discount    = ${body.max_discount === undefined ? sql`max_discount` : sanitizeNullableInt(body.max_discount)},
+          starts_at       = ${body.starts_at === undefined ? sql`starts_at` : sanitizeOptionalDate(body.starts_at)},
+          expires_at      = ${body.expires_at === undefined ? sql`expires_at` : sanitizeOptionalDate(body.expires_at)},
+          max_uses        = ${body.max_uses === undefined ? sql`max_uses` : sanitizeNullableInt(body.max_uses)},
+          active          = COALESCE(${body.active === undefined ? null : body.active === true}, active),
+          archived        = COALESCE(${body.archived === undefined ? null : body.archived === true}, archived)
+        WHERE id = ${id}
+        RETURNING *
+      `;
+      return updated ? json(200, { data: updated }) : json(404, { error: 'Código no encontrado' });
+    },
+  },
+
   // ── orders ────────────────────────────────────────────────────────────────
   orders: {
     async GET({ id, qs, sql }) {
@@ -286,6 +406,7 @@ const handlers = {
       const rows = await sql`
         SELECT o.id, o.status, o.total_amount, o.customer_name, o.customer_email,
                o.shipping_city, o.shipping_region, o.mp_payment_id, o.channel,
+               o.discount_code, o.discount_amount,
                o.archived, o.created_at, o.updated_at,
                COUNT(oi.id)::int AS items_count
         FROM orders o

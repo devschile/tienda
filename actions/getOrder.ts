@@ -17,12 +17,19 @@ export interface OrderItem {
   subtotal: number;
 }
 
+export interface OrderDiscount {
+  code: string;
+  type: string;
+  amount: number;
+}
+
 export interface Order {
   id: string;
   status: OrderStatus;
   total_amount: number;
   customer: { name: string };
   shipping: { city: string | null; region: string | null };
+  discount: OrderDiscount | null;
   items: OrderItem[];
   mp_payment_id: string | null;
   created_at: string;
@@ -39,6 +46,7 @@ export const getOrder = async (orderId: string): Promise<Order> => {
       total_amount: 5000,
       customer: { name: 'Jorge Dev' },
       shipping: { city: 'Santiago', region: 'Región Metropolitana' },
+      discount: null,
       items: [
         {
           product_id: 'rec1',

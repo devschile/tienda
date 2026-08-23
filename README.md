@@ -118,6 +118,7 @@ Aplica en orden desde `migrations/` en el SQL Editor de Neon:
 | 15 | `add_bundle_and_addon_fields.sql` | Packs de stickers + add-ons (sin tocar productos actuales) |
 | 16 | `add_shipping_enabled_to_products.sql` | Envío opcional por producto (default: habilitado) |
 | 17 | `add_presale_to_products.sql` | Badge de preventa (⏳) — excluyente con `on_sale` |
+| 18 | `add_promo_codes.sql` | Códigos de descuento (%, monto fijo o envío gratis) + columnas de descuento en `orders` |
 
 ### Esquema resumido
 
@@ -143,6 +144,7 @@ orders
   total_amount, customer_name, customer_email
   shipping_address, shipping_city, shipping_region, shipping_zip
   mp_preference_id, mp_payment_id
+  discount_code, discount_type (percent|fixed|shipping), discount_amount ← promo aplicada
   wants_newsletter, notes, created_at, updated_at
 
 order_items
@@ -153,6 +155,14 @@ order_items
 settings
   key (PK), value, updated_at
   — pares clave/valor editables desde /admin/settings
+
+promo_codes
+  id (uuid), code (PK normalizada a mayúsculas), description
+  discount_type (percent|fixed|shipping), discount_value (%, CLP o referencia)
+  min_subtotal, max_discount (tope para %)
+  starts_at, expires_at, max_uses, uses_count
+  active, archived, created_time
+  — gestionados desde /admin/promos; el uso se suma en el webhook al aprobar
 ```
 
 ---
@@ -192,6 +202,18 @@ Los stickers tienen un valor bajo que no justifica un envío propio, así que no
 - **Pack (bundle):** producto `product_type='bundle'` con `bundle_unit_price` (precio por sticker), `bundle_sizes` (p. ej. `[3,4,6]`) y `bundle_allow_surprise`. Su botón en el catálogo abre el **constructor de packs** (`BundleBuilder`): se elige tamaño y se combinan stickers seleccionables (`selectable_in_bundles=true`, con stock). Si faltan stickers para completar el tamaño se muestra un aviso: con sorpresas, el usuario debe confirmar "acepto stickers sorpresa"; sin sorpresas, se bloquea hasta completar la selección.
 - **Add-on (sticker):** producto `product_type='addon'`. No aparece en el catálogo salvo que el carrito ya acumule subtotal ≥ costo de envío (entonces se puede añadir al mismo pedido sin envío extra).
 - El backend valida todo de nuevo en `create-payment.js`: tamaño ∈ `bundle_sizes`, selección = tamaño (explícitos + sorpresas), stickers elegibles/con stock, precio recalculado desde la BD, y rechaza stickers add-on en pedidos cuyo subtotal no cubra el envío. Al aprobarse el pago, el webhook descuenta el stock de cada sticker elegido; los slots sorpresa se resuelven con stock disponible al despachar.
+
+---
+
+## 🎟️ Códigos de descuento
+
+Se administran en `/admin/promos`. Un pedido aplica **un solo código**, validado SIEMPRE por el servidor al crear el pago (el checkout solo muestra el descuento estimado):
+
+- **Tipos:** `percent` (X% del subtotal, con tope opcional `max_discount`), `fixed` (monto CLP) o `shipping` (anula solo el costo de envío — no descuenta del subtotal).
+- **Restricciones:** subtotal mínimo, ventana `starts_at`/`expires_at`, `max_uses` y toggle `active`.
+- **Uso de los códigos:** `uses_count` se incrementa en el webhook al pasar la orden a `approved` (idempotente) — los pedidos abandonados en `pending` no consumen usos.
+- **Almacenamiento:** las líneas de `order_items` guardan el precio sin descuento (snapshot). El descuento vive en `orders.discount_code` / `discount_type` / `discount_amount`, y MercadoPago lo prorratea de forma exacta entre las líneas de producto (`lib/discount.js`).
+- **Emails y confirmación:** muestran la fila `Descuento (CÓDIGO) −CLP` o `Envío gratis (CÓDIGO)` según el tipo.
 
 ---
 
@@ -242,6 +264,7 @@ Acceso mediante JWT con credenciales de las variables de entorno (`ADMIN_EMAIL`,
 | **Dashboard** | `/admin` | Stats por periodo (hoy/7d/30d/6m/todo), últimas órdenes, stock bajo |
 | **Productos** | `/admin/products` | Tabla con skeleton, toggles inline (visible/disponible/oferta/preventa), filtros, crear, editar, gestión de imágenes, exportar CSV |
 | **Pedidos** | `/admin/orders` | Tabs por estado, cambio de estado con confirmación, notas internas, detalle con breakdown de envío, exportar CSV |
+| **Códigos** | `/admin/promos` | Códigos de descuento (% / monto fijo / envío gratis), vigencia, límites de uso, toggle activo, exportar CSV |
 | **Configuración** | `/admin/settings` | store_name, tagline, email contacto, modo mantenimiento, envío (habilitado/costo/umbral gratis), status integraciones |
 
 Las tablas incluyen skeleton animado (Motion) en la carga y stagger spring en la entrada de filas.
@@ -286,7 +309,7 @@ Las tablas incluyen skeleton animado (Motion) en la carga y stagger spring en la
 ├── hooks/
 │   ├── useCart.ts           # Estado del carrito (localStorage)
 │   └── useStoreSettings.ts  # Settings desde NeonDB con helpers parseados
-├── migrations/              # 14 archivos SQL secuenciales para NeonDB
+├── migrations/              # 18 archivos SQL secuenciales para NeonDB
 ├── netlify/
 │   └── functions/
 │       ├── admin-api.js         # Router CRUD admin (JWT) — products, orders, images,

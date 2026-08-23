@@ -25,6 +25,9 @@ interface Order {
   mp_payment_id: string | null;
   wants_newsletter: boolean;
   channel: 'web' | 'cli';
+  discount_code: string | null;
+  discount_type: string | null;
+  discount_amount: number;
   notes: string | null;
   created_at: string;
   updated_at: string;
@@ -258,12 +261,25 @@ export function OrderDetailPanel({ orderId, onClose, onSaved }: Props) {
               {/* Productos + Envío */}
               <section>
                 {(() => {
+                  // ── Breakdown total (subtotal, envío, descuento, total) ───────────────
                   const all = order.items ?? [];
                   const isShipping = (i: OrderItem) => i.product_id === 'shipping';
                   const productItems = all.filter((i) => !isShipping(i));
                   const shippingItem = all.find(isShipping);
                   const shippingCost = shippingItem?.subtotal ?? 0;
-                  const subtotal = order.total_amount - shippingCost;
+                  const discount =
+                    order.discount_code && order.discount_amount > 0
+                      ? {
+                          code: order.discount_code,
+                          type: order.discount_type,
+                          amount: order.discount_amount,
+                        }
+                      : null;
+                  const isShippingPromo = discount?.type === 'shipping';
+                  const subtotal =
+                    order.total_amount -
+                    shippingCost +
+                    (discount && !isShippingPromo ? discount.amount : 0);
 
                   return (
                     <>
@@ -322,7 +338,7 @@ export function OrderDetailPanel({ orderId, onClose, onSaved }: Props) {
 
                       {/* Breakdown total */}
                       <div className="mt-4 rounded-xl overflow-hidden border border-slate-100">
-                        {shippingItem && (
+                        {(shippingItem || discount) && (
                           <div className="flex items-center justify-between px-4 py-2.5 bg-slate-50 border-b border-slate-100">
                             <span className="text-xs text-slate-500">Subtotal productos</span>
                             <span className="text-sm font-medium text-slate-600">
@@ -335,6 +351,26 @@ export function OrderDetailPanel({ orderId, onClose, onSaved }: Props) {
                             <span className="text-xs text-slate-500">Envío</span>
                             <span className="text-sm font-medium text-slate-600">
                               {formatCLP(shippingCost)}
+                            </span>
+                          </div>
+                        )}
+                        {discount && discount.type === 'shipping' && (
+                          <div className="flex items-center justify-between px-4 py-2.5 bg-slate-50 border-b border-slate-100">
+                            <span className="text-xs text-slate-500">
+                              Envío gratis ({discount.code})
+                            </span>
+                            <span className="text-sm font-semibold text-green-600">
+                              −{formatCLP(discount.amount)}
+                            </span>
+                          </div>
+                        )}
+                        {discount && discount.type !== 'shipping' && (
+                          <div className="flex items-center justify-between px-4 py-2.5 bg-slate-50 border-b border-slate-100">
+                            <span className="text-xs text-slate-500">
+                              Descuento ({discount.code})
+                            </span>
+                            <span className="text-sm font-semibold text-green-600">
+                              −{formatCLP(discount.amount)}
                             </span>
                           </div>
                         )}

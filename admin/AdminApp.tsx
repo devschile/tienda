@@ -4,6 +4,7 @@ import { AdminLayout } from './components/AdminLayout';
 import { DashboardPage } from './pages/DashboardPage';
 import { ProductListPage } from './pages/ProductListPage';
 import { OrderListPage } from './pages/OrderListPage';
+import { PromoListPage } from './pages/PromoListPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { LoginPage } from './pages/LoginPage';
 
@@ -25,6 +26,7 @@ export default function AdminApp() {
           <Route index element={<DashboardPage />} />
           <Route path="products" element={<ProductListPage />} />
           <Route path="orders" element={<OrderListPage />} />
+          <Route path="promos" element={<PromoListPage />} />
           <Route path="settings" element={<SettingsPage />} />
         </Route>
       ) : (

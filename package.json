@@ -16,6 +16,7 @@
     "start": "vite",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
+    "test": "node --test netlify/functions/lib/*.test.js",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "type-check": "tsc --noEmit"

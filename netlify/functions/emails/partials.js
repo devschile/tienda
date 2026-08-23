@@ -122,11 +122,13 @@ function totalRow(amount) {
 }
 
 /**
- * Tabla de items con envío separado del total.
+ * Tabla de items con envío separado del total y descuento de promos.
  * Detecta el item de envío por product_id === 'shipping' o productName.
- * Muestra: productos → subtotal (si hay envío) → fila envío → total.
+ * promo = { code, amount, type } | null — type 'shipping' anula el costo de envío
+ * (su amount es el envío ahorrado); 'percent'|'fixed' descuentan del subtotal.
+ * Muestra: productos → (subtotal) → (envío) → (descuento) → total.
  */
-function orderBreakdown(items, totalAmount, nameKey = 'productName') {
+function orderBreakdown(items, totalAmount, nameKey = 'productName', promo = null) {
   const fmt = (n) =>
     new Intl.NumberFormat('es-CL', {
       style: 'currency',
@@ -145,10 +147,14 @@ function orderBreakdown(items, totalAmount, nameKey = 'productName') {
       (shippingItem.unit_price || shippingItem.unitPrice || 0) * (shippingItem.quantity || 1)
     : 0;
 
+  const discount = promo && promo.amount > 0 ? promo.amount : 0;
+  const isShippingPromo = discount > 0 && promo.type === 'shipping';
+
   let html = itemsTable(productItems, nameKey);
 
+  // Subtotal de productos SIN descuento (la fila de descuento va aparte).
   if (shippingItem && shippingCost > 0) {
-    const subtotal = totalAmount - shippingCost;
+    const subtotal = totalAmount - shippingCost + discount;
     html += `
     <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:6px;">
       <tr>
@@ -158,6 +164,29 @@ function orderBreakdown(items, totalAmount, nameKey = 'productName') {
       <tr>
         <td colspan="2" style="padding:6px 0 10px;color:#7a6b63;font-size:13px;">🚚 Envío a domicilio</td>
         <td style="padding:6px 0 10px;color:#2d1a12;font-size:13px;text-align:right;font-weight:600;white-space:nowrap;">${fmt(shippingCost)}</td>
+      </tr>
+    </table>`;
+  } else if (discount > 0 && !isShippingPromo) {
+    const subtotal = totalAmount + discount;
+    html += `
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:6px;">
+      <tr>
+        <td colspan="2" style="padding:8px 0;border-top:1px solid #f0ebe5;color:#7a6b63;font-size:13px;">Subtotal productos</td>
+        <td style="padding:8px 0;border-top:1px solid #f0ebe5;color:#2d1a12;font-size:13px;text-align:right;font-weight:600;white-space:nowrap;">${fmt(subtotal)}</td>
+      </tr>
+    </table>`;
+  }
+
+  // Fila de descuento / envío gratis por código.
+  if (discount > 0) {
+    const label = isShippingPromo
+      ? `🎟️ Envío gratis (${promo.code})`
+      : `🎟️ Descuento (${promo.code})`;
+    html += `
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:6px;">
+      <tr>
+        <td colspan="2" style="padding:6px 0 10px;color:#7a6b63;font-size:13px;">${label}</td>
+        <td style="padding:6px 0 10px;color:#16a34a;font-size:13px;text-align:right;font-weight:700;white-space:nowrap;">&minus;${fmt(discount)}</td>
       </tr>
     </table>`;
   }
