@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence, useAnimate } from 'motion/react';
 import { Dialog, DialogContent, DialogTitle, DialogHeader } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Loader2, Check, Tag, X } from 'lucide-react';
 import type { CustomerData } from '@/actions/createPayment';
 import applyPromoCode from '@/actions/applyPromoCode';
+import { useToast } from '@/hooks/use-toast';
+import posthog from '@/lib/posthog';
 import { REGIONES_COMUNAS, COMUNAS_POR_REGION } from '@/data/comunas-chile';
 
 interface PromoApplied {
@@ -94,8 +96,13 @@ export function CheckoutModal({
   const [promo, setPromo] = useState<PromoApplied | null>(null);
   const [promoError, setPromoError] = useState<string | null>(null);
   const [promoLoading, setPromoLoading] = useState(false);
+  // Inputs con los que se validó por última vez el código. Evita que el effect
+  // de re-validación se re-dispare por el propio setPromo (mismo code → mismo key).
+  const promoValidatedKeyRef = useRef<string>('');
+  const { toast } = useToast();
 
   // Costo de envío efectivo: 0 si supera el umbral de envío gratis
+  const deliverySelected = form.wantsDelivery && showShippingSection;
   const rawShippingCost =
     form.wantsDelivery && showShippingSection && shippingCost > 0
       ? freeShippingThreshold > 0 && totalAmount >= freeShippingThreshold
@@ -106,6 +113,54 @@ export function CheckoutModal({
   const effectiveShipping = shippingPromoActive ? 0 : rawShippingCost;
   const promoAmount = promo && promo.type !== 'shipping' ? Math.min(promo.amount, totalAmount) : 0;
   const grandTotal = totalAmount - promoAmount + effectiveShipping;
+
+  // Re-validar el código cuando cambian los inputs que condicionan su validez.
+  // El carrito solo cambia con el modal cerrado, así que se re-chequea al reabrir
+  // (open → true) y al alternar la entrega. Si el código deja de aplicar (p. ej. el
+  // subtotal quedó bajo min_subtotal), se quita automáticamente con el motivo.
+  useEffect(() => {
+    if (!promo || !open) return; // sin código o cerrado: no re-validar
+    const key = `${promo.code}|${totalAmount}|${rawShippingCost}|${deliverySelected}`;
+    if (promoValidatedKeyRef.current === key) return;
+
+    // Marcar antes de lanzar la request para evitar re-entradas del effect.
+    promoValidatedKeyRef.current = key;
+    let cancelled = false;
+    setPromoLoading(true);
+    applyPromoCode(promo.code, totalAmount, rawShippingCost, deliverySelected)
+      .then((res) => {
+        if (cancelled) return;
+        if (res.ok && res.code) {
+          // Actualiza el monto al carrito actual (los % siguen al subtotal).
+          setPromo({ code: res.code, type: res.type ?? promo.type, amount: res.discount_amount });
+          setPromoError(null);
+        } else {
+          const reason = res.error ?? 'El código ya no aplica a tu carrito';
+          posthog.capture('checkout_promo_invalidated', {
+            code: promo.code,
+            cart_total: totalAmount,
+            reason,
+          });
+          toast({
+            title: 'Código de descuento removido',
+            description: reason,
+          });
+          setPromo(null);
+          setPromoError(reason);
+          // Se deja el código en el input para re-aplicarlo si ajusta el carrito.
+          setPromoInput(promo.code);
+        }
+      })
+      .catch(() => {
+        // Falla de red: se conserva el código; el servidor igual re-valida al pagar.
+      })
+      .finally(() => {
+        if (!cancelled) setPromoLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, promo, totalAmount, rawShippingCost, deliverySelected, toast]);
 
   const set =
     (field: keyof CustomerData) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -125,9 +180,11 @@ export function CheckoutModal({
         promoInput,
         totalAmount,
         rawShippingCost,
-        form.wantsDelivery && showShippingSection,
+        deliverySelected,
       );
       if (result.ok && result.code) {
+        // Marcar la clave para que el effect de re-validación no repita la request.
+        promoValidatedKeyRef.current = `${result.code}|${totalAmount}|${rawShippingCost}|${deliverySelected}`;
         setPromo({
           code: result.code,
           type: result.type ?? 'fixed',
