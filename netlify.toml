@@ -10,9 +10,15 @@
 
 [functions]
   directory = "netlify/functions"
-  # "none": empaqueta node_modules tal cual. Necesario para @napi-rs/canvas
-  # (binario .node) en og-image.js; el bundler esbuild no lo puede procesar.
-  node_bundler = "none"
+
+# og-image usa @napi-rs/canvas (binario nativo .node) que el bundler no puede
+# inline. Se excluye externo solo para esta función: se copia tal cual, junto
+# con las fuentes de la tarjeta OG. El resto de funciones usan el bundler
+# normal (resuelve require() relativos y dependencias).
+[functions.og-image]
+  node_bundler = "esbuild"
+  external_node_modules = ["@napi-rs/canvas"]
+  included_files = ["netlify/functions/fonts/**"]
 
 # Headers para todos los recursos
 [[headers]]
