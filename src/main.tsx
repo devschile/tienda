@@ -23,12 +23,15 @@ function AnimatedRoutes() {
   return (
     <Routes location={location}>
       <Route path="/" element={<App />} />
+      <Route path="/p/*" element={<App />} />
       <Route path="/success" element={<SuccessPage />} />
       <Route path="/failure" element={<FailurePage />} />
       <Route path="/pending" element={<PendingPage />} />
       <Route path="/terminos" element={<TerminosPage />} />
       {/* Admin — lazy-loaded, código completamente separado de la tienda */}
       <Route path="/admin/*" element={<AdminApp />} />
+      {/* Fallback — cualquier otra ruta muestra la tienda */}
+      <Route path="*" element={<App />} />
     </Routes>
   );
 }
