@@ -1,5 +1,5 @@
 // Netlify Function to fetch products from NeonDB (Postgres serverless)
-const { neon } = require('@neondatabase/serverless');
+const { rowToFields, getSql } = require('./lib/products');
 
 exports.handler = async (event, context) => {
   // Get allowed origins from environment (should be set in Netlify)
@@ -48,7 +48,7 @@ exports.handler = async (event, context) => {
       throw new Error('Product database unavailable');
     }
 
-    const sql = neon(databaseUrl);
+    const sql = getSql(databaseUrl);
 
     // Fetch products with cover image, full image gallery, and legacy thumbnail/large arrays.
     const rows = await sql`
@@ -135,35 +135,7 @@ exports.handler = async (event, context) => {
       order by p.created_time desc
     `;
 
-    const records = rows.map((row) => ({
-      id: row.id,
-      fields: {
-        id: row.id,
-        name: row.name,
-        description: row.description,
-        category: row.category,
-        price: Number(row.price),
-        coverImage: row.cover_image ?? null,
-        images: row.images,
-        thumbnailImages: row.thumbnail_images,
-        largeImages: row.large_images,
-        visible: row.visible,
-        available: row.available,
-        stock: Number(row.stock),
-        on_sale: row.on_sale,
-        presale: row.presale,
-        long_description: row.long_description ?? null,
-        sale_price: row.sale_price != null ? Number(row.sale_price) : null,
-        product_type: row.product_type || 'standard',
-        selectable_in_bundles: !!row.selectable_in_bundles,
-        bundle_unit_price: row.bundle_unit_price != null ? Number(row.bundle_unit_price) : null,
-        bundle_sizes: row.bundle_sizes ? JSON.parse(row.bundle_sizes) : null,
-        bundle_allow_surprise: row.bundle_allow_surprise,
-        shipping_enabled: row.shipping_enabled !== false,
-      },
-      createdTime:
-        row.created_time instanceof Date ? row.created_time.toISOString() : row.created_time,
-    }));
+    const records = rows.map(rowToFields);
 
     return {
       statusCode: 200,
