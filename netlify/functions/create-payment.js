@@ -366,7 +366,9 @@ exports.handler = async (event, context) => {
       }
       if (promoRow.discount_type === 'shipping') {
         // Envío gratis: solo anula el costo de envío (si el pedido lo tendría);
-        // no toca el subtotal de productos.
+        // no toca el subtotal de productos. Si el código no puede generar ahorro
+        // (sin envío a domicilio, o envío ya gratis), se rechaza con el motivo
+        // en vez de descartarlo en silencio.
         const rawShipping =
           shippingEnabled && shippingCost > 0
             ? freeShippingThreshold > 0 && productsSubtotal >= freeShippingThreshold
@@ -374,11 +376,14 @@ exports.handler = async (event, context) => {
               : shippingCost
             : 0;
         const wouldChargeShipping = shippingRequested && anyItemAllowsShipping && rawShipping > 0;
-        if (wouldChargeShipping) {
-          discountAmount = rawShipping;
-          discountCode = promoRow.code;
-          discountType = 'shipping';
+        if (!wouldChargeShipping) {
+          const reason =
+            !shippingRequested || !anyItemAllowsShipping ? 'no_delivery' : 'already_free_shipping';
+          return { statusCode: 400, headers, body: JSON.stringify({ error: reasonMessage(reason) }) };
         }
+        discountAmount = rawShipping;
+        discountCode = promoRow.code;
+        discountType = 'shipping';
       } else {
         const amount = computeDiscount(promoRow, productsSubtotal);
         if (amount > 0) {

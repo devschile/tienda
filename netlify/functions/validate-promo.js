@@ -45,6 +45,7 @@ exports.handler = async (event) => {
     return { statusCode: 400, headers, body: JSON.stringify({ error: 'subtotal inválido' }) };
   }
   const shippingCost = Math.max(0, Number(body.shippingCost) || 0);
+  const deliverySelected = body.deliverySelected === true;
 
   try {
     const sql = neon(process.env.NEON_DATABASE_URL);
@@ -60,6 +61,22 @@ exports.handler = async (event) => {
     }
 
     if (row.discount_type === 'shipping') {
+      // Un código de envío gratis solo aplica si hay envío a domicilio con costo.
+      // Si no, se rechaza con el motivo (en vez de mostrar un ahorro de $0).
+      if (!deliverySelected) {
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({ ok: false, error: reasonMessage('no_delivery') }),
+        };
+      }
+      if (shippingCost <= 0) {
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({ ok: false, error: reasonMessage('already_free_shipping') }),
+        };
+      }
       return {
         statusCode: 200,
         headers,

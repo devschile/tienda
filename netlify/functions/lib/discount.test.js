@@ -60,3 +60,38 @@ test('distributeDiscount: caso mixto grande', () => {
     assert.equal(sum, subtotal - discount, `descuento ${discount}`);
   }
 });
+
+test('distributeDiscount: residuo no divisible entre líneas qty>1 → suma exacta', () => {
+  // 2×100 + 2×100 con descuento 3: el residuo (1) no es divisible por qty=2;
+  // debe colapsar una línea a qty=1 para absorberlo (regresión off-by-1).
+  const items = [
+    { id: 'a', unit_price: 100, quantity: 2 },
+    { id: 'b', unit_price: 100, quantity: 2 },
+  ];
+  const out = distributeDiscount(items, 3);
+  const sum = out.reduce((s, i) => s + i.unit_price * i.quantity, 0);
+  assert.equal(sum, 400 - 3, `suma ${sum}`);
+  assert.ok(out.every((i) => Number.isInteger(i.unit_price) && i.unit_price >= 0));
+});
+
+test('distributeDiscount: barrido exhaustivo qty>1 siempre suma exacto', () => {
+  const items = [
+    { id: 'a', unit_price: 100, quantity: 2 },
+    { id: 'b', unit_price: 100, quantity: 2 },
+    { id: 'c', unit_price: 150, quantity: 3 },
+  ];
+  const subtotal = items.reduce((s, i) => s + i.unit_price * i.quantity, 0);
+  const original = items.map((i) => i.unit_price * i.quantity);
+  for (let discount = 1; discount <= subtotal; discount++) {
+    const out = distributeDiscount(items, discount);
+    const sum = out.reduce((s, i) => s + i.unit_price * i.quantity, 0);
+    assert.equal(sum, subtotal - discount, `descuento ${discount}`);
+    assert.ok(
+      out.every((i, idx) => {
+        const line = i.unit_price * i.quantity;
+        return Number.isInteger(i.unit_price) && i.unit_price >= 0 && line <= original[idx];
+      }),
+      `descuento ${discount}: precios enteros, no negativos y sin exceder la línea original`,
+    );
+  }
+});

@@ -121,7 +121,12 @@ export function CheckoutModal({
     setPromoError(null);
     setPromoLoading(true);
     try {
-      const result = await applyPromoCode(promoInput, totalAmount, rawShippingCost);
+      const result = await applyPromoCode(
+        promoInput,
+        totalAmount,
+        rawShippingCost,
+        form.wantsDelivery && showShippingSection,
+      );
       if (result.ok && result.code) {
         setPromo({
           code: result.code,
@@ -155,6 +160,9 @@ export function CheckoutModal({
         delete next.city;
         return next;
       });
+      // Un código de envío gratis sin entrega no aplica: se quita para no
+      // mostrar un ahorro inexistente ni fallar al pagar.
+      if (promo?.type === 'shipping') removePromo();
     }
   };
 

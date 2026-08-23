@@ -14,6 +14,7 @@ export const applyPromoCode = async (
   code: string,
   subtotal: number,
   shippingCost: number = 0,
+  deliverySelected: boolean = false,
 ): Promise<PromoValidation> => {
   if (!code.trim()) {
     return { ok: false, discount_amount: 0, error: 'Ingresa un código' };
@@ -27,6 +28,16 @@ export const applyPromoCode = async (
       return { ok: true, code: upper, type: 'fixed', discount_amount: Math.min(3000, subtotal) };
     }
     if (upper === 'ENVIOGRATIS') {
+      if (!deliverySelected) {
+        return {
+          ok: false,
+          discount_amount: 0,
+          error: 'Selecciona envío a domicilio para usar este código',
+        };
+      }
+      if (shippingCost <= 0) {
+        return { ok: false, discount_amount: 0, error: 'Tu pedido ya tiene envío gratis' };
+      }
       return { ok: true, code: upper, type: 'shipping', discount_amount: shippingCost };
     }
     return { ok: false, discount_amount: 0, error: 'El código no es válido' };
@@ -35,7 +46,7 @@ export const applyPromoCode = async (
   const response = await fetch('/.netlify/functions/validate-promo', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ code, subtotal, shippingCost }),
+    body: JSON.stringify({ code, subtotal, shippingCost, deliverySelected }),
   });
 
   if (!response.ok) {

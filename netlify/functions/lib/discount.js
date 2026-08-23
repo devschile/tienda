@@ -6,9 +6,14 @@
 // Estrategia (garantiza sumas exactas con enteros):
 //   1. Prorrateo proporcional con floor por línea (nunca pasa el total objetivo).
 //   2. El residuo (target − sumAllocated) se absorbe en las líneas con mayor
-//      headroom (línea original − monto asignado), que siempre es suficiente.
+//      headroom (línea original − monto asignado), moviendo bloques múltiplos
+//      de la cantidad en líneas con cantidad > 1.
 //   3. Si la cantidad de la línea no divide el monto a asignar, se factura la
 //      línea como 1 ítem a precio total; así no existen fracciones de 1 CLP.
+//   4. Si tras el paso 2 queda residuo (todas las líneas con headroom tienen
+//      cantidad > 1 y el residuo no es divisible), se colapsan líneas a 1 ítem
+//      y se absorbe de a 1 CLP. El headroom total siempre es >= residuo, así
+//      la suma final es exacta.
 
 function qtyOf(item) {
   return item.quantity || 1;
@@ -66,6 +71,28 @@ function distributeDiscount(items, discountAmount) {
     const newAmount = currentAmount + chunk;
     item.unit_price = newAmount / q; // divisible por construcción
     residual -= chunk;
+  }
+
+  // Paso 3: si aún queda residuo (líneas qty>1 sin bloques divisibles
+  // suficientes), colapsar líneas a 1 ítem y absorber de a 1 CLP.
+  if (residual > 0) {
+    for (const idx of order) {
+      if (residual <= 0) break;
+      const item = out[idx];
+      const q = qtyOf(item);
+      const currentAmount = item.unit_price * q;
+      const headroom = Math.max(0, originalAmount[idx] - currentAmount);
+      if (headroom <= 0) continue;
+
+      if (q > 1) {
+        // Colapsar a 1 ítem a precio total para poder mover CLP de a 1.
+        item.unit_price = currentAmount;
+        item.quantity = 1;
+      }
+      const chunk = Math.min(residual, headroom);
+      item.unit_price += chunk;
+      residual -= chunk;
+    }
   }
 
   return out;
