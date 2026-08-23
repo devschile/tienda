@@ -37,6 +37,7 @@ exports.handler = async (event) => {
         customer_name,
         shipping_city, shipping_region,
         mp_payment_id,
+        discount_code, discount_type, discount_amount,
         created_at, updated_at
       FROM orders
       WHERE id = ${orderId}
@@ -68,6 +69,13 @@ exports.handler = async (event) => {
             city: order.shipping_city,
             region: order.shipping_region,
           },
+          discount: order.discount_code
+            ? {
+                code: order.discount_code,
+                type: order.discount_type,
+                amount: order.discount_amount,
+              }
+            : null,
           items: items.map((i) => ({
             product_id: i.product_id,
             product_name: i.product_name,

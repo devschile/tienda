@@ -223,6 +223,20 @@ export function OrderConfirmation({ urlStatus }: OrderConfirmationProps) {
                     </div>
                   </div>
 
+                  {/* Descuento / envío gratis */}
+                  {order.discount && order.discount.amount > 0 && (
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-devs-muted">
+                        {order.discount.type === 'shipping'
+                          ? `Envío gratis (${order.discount.code})`
+                          : `Descuento (${order.discount.code})`}
+                      </span>
+                      <span className="font-semibold text-green-600">
+                        −{formatPrice(order.discount.amount)}
+                      </span>
+                    </div>
+                  )}
+
                   {/* Total */}
                   <div className="flex justify-between items-center pt-3 border-t border-brand-secondary/10">
                     <span className="font-medium text-devs-text">Total</span>

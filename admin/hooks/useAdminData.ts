@@ -11,6 +11,7 @@ export interface ListParams {
   on_sale?: string;
   visible?: string;
   low_stock?: string;
+  active?: string;
   archived?: string;
 }
 

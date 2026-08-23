@@ -23,6 +23,8 @@ interface Order {
   notes: string | null;
   mp_payment_id: string | null;
   channel: 'web' | 'cli';
+  discount_code: string | null;
+  discount_amount: number;
   archived: boolean;
   created_at: string;
 }
@@ -57,6 +59,8 @@ const exportToCSV = (rows: Order[], label: string) => {
     'Fecha',
     'Ciudad',
     'Región',
+    'Código descuento',
+    'Descuento CLP',
     'Notas',
     'MP Payment ID',
   ];
@@ -73,6 +77,8 @@ const exportToCSV = (rows: Order[], label: string) => {
         esc(new Date(o.created_at).toLocaleString('es-CL', { hour12: false })),
         esc(o.shipping_city),
         esc(o.shipping_region),
+        esc(o.discount_code),
+        o.discount_amount ?? 0,
         esc(o.notes),
         esc(o.mp_payment_id),
       ].join(','),

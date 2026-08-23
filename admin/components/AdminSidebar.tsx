@@ -3,6 +3,7 @@ import {
   LayoutDashboard,
   Package,
   ShoppingBag,
+  Ticket,
   Settings,
   LogOut,
   ChevronRight,
@@ -13,6 +14,7 @@ const NAV = [
   { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, exact: true },
   { to: '/admin/products', label: 'Productos', icon: Package },
   { to: '/admin/orders', label: 'Pedidos', icon: ShoppingBag },
+  { to: '/admin/promos', label: 'Códigos', icon: Ticket },
   { to: '/admin/settings', label: 'Configuración', icon: Settings },
 ];
 

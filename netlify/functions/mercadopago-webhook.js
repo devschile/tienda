@@ -138,19 +138,42 @@ exports.handler = async (event) => {
     }
 
     // ── Actualizar estado de la orden ──────────────────────────────────────
-    await sql`
+    // WHERE status <> 'approved' hace idempotente el bloque siguiente ante
+    // invocaciones concurrentes del webhook (solo una descontará stock y
+    // consumirá el código de descuento).
+    const updatedOrders = await sql`
       UPDATE orders
       SET
         status            = ${newStatus}::order_status,
         mp_payment_id     = ${String(paymentId)},
         mp_merchant_order = ${String(payment.order?.id || '')}
       WHERE id = ${orderId}
+        AND status <> 'approved'
+      RETURNING discount_code, discount_type, discount_amount
     `;
+
+    if (updatedOrders.length === 0) {
+      // Ya fue aprobada y procesada antes (webhook duplicado/concurrente).
+      console.log(`Webhook duplicado ignorado para orden ya procesada: ${orderId}`);
+      return { statusCode: 200, headers, body: JSON.stringify({ received: true, idempotent: true }) };
+    }
 
     console.log(`Orden ${orderId}: ${currentOrder.status} → ${newStatus} (pago ${paymentId})`);
 
-    // ── Si APROBADO: descontar stock atómicamente ──────────────────────────
+    // ── Si APROBADO: descontar stock y consumir el código de descuento ───────
     if (newStatus === 'approved') {
+      const [approvedOrder] = updatedOrders;
+
+      // Consumir 1 uso del código de descuento (si la orden lo aplicó).
+      // Idempotente gracias al guard `status <> 'approved'` de más arriba.
+      if (approvedOrder.discount_code) {
+        await sql`
+          UPDATE promo_codes
+          SET uses_count = uses_count + 1
+          WHERE code = ${approvedOrder.discount_code}
+        `;
+      }
+
       const items = await sql`
         SELECT product_id, quantity FROM order_items WHERE order_id = ${orderId}
       `;
@@ -195,7 +218,8 @@ exports.handler = async (event) => {
         const [orderData] = await sql`
           SELECT customer_name, customer_email,
                  shipping_address, shipping_city, shipping_region, shipping_zip,
-                 total_amount
+                 total_amount,
+                 discount_code, discount_type, discount_amount
           FROM orders WHERE id = ${orderId}
         `;
         const orderItems = await sql`
@@ -204,6 +228,14 @@ exports.handler = async (event) => {
         `;
 
         if (orderData) {
+          const promo = orderData.discount_code
+            ? {
+                code: orderData.discount_code,
+                type: orderData.discount_type,
+                amount: orderData.discount_amount,
+              }
+            : null;
+
           // Email al comprador
           await sendEmail({
             to: orderData.customer_email,
@@ -215,6 +247,7 @@ exports.handler = async (event) => {
               totalAmount: orderData.total_amount,
               orderId,
               siteUrl,
+              promo,
             }),
           });
 
@@ -240,6 +273,7 @@ exports.handler = async (event) => {
                 },
                 items: orderItems.map((i) => ({ ...i, product_name: i.product_name })),
                 totalAmount: orderData.total_amount,
+                promo,
                 siteUrl,
               }),
             });

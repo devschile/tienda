@@ -2,9 +2,16 @@ import { useState } from 'react';
 import { motion, AnimatePresence, useAnimate } from 'motion/react';
 import { Dialog, DialogContent, DialogTitle, DialogHeader } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Loader2, Check } from 'lucide-react';
+import { Loader2, Check, Tag, X } from 'lucide-react';
 import type { CustomerData } from '@/actions/createPayment';
+import applyPromoCode from '@/actions/applyPromoCode';
 import { REGIONES_COMUNAS, COMUNAS_POR_REGION } from '@/data/comunas-chile';
+
+interface PromoApplied {
+  code: string;
+  type: 'percent' | 'fixed' | 'shipping';
+  amount: number;
+}
 
 interface CheckoutModalProps {
   open: boolean;
@@ -83,16 +90,22 @@ export function CheckoutModal({
     wantsNewsletter: true,
   });
   const [errors, setErrors] = useState<Partial<Record<keyof CustomerData, string>>>({});
+  const [promoInput, setPromoInput] = useState('');
+  const [promo, setPromo] = useState<PromoApplied | null>(null);
+  const [promoError, setPromoError] = useState<string | null>(null);
+  const [promoLoading, setPromoLoading] = useState(false);
 
   // Costo de envío efectivo: 0 si supera el umbral de envío gratis
-  const effectiveShipping =
+  const rawShippingCost =
     form.wantsDelivery && showShippingSection && shippingCost > 0
       ? freeShippingThreshold > 0 && totalAmount >= freeShippingThreshold
         ? 0
         : shippingCost
       : 0;
-
-  const grandTotal = totalAmount + effectiveShipping;
+  const shippingPromoActive = promo?.type === 'shipping' && rawShippingCost > 0;
+  const effectiveShipping = shippingPromoActive ? 0 : rawShippingCost;
+  const promoAmount = promo && promo.type !== 'shipping' ? Math.min(promo.amount, totalAmount) : 0;
+  const grandTotal = totalAmount - promoAmount + effectiveShipping;
 
   const set =
     (field: keyof CustomerData) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -102,6 +115,34 @@ export function CheckoutModal({
         return next;
       });
     };
+
+  const applyPromo = async () => {
+    if (promoLoading) return;
+    setPromoError(null);
+    setPromoLoading(true);
+    try {
+      const result = await applyPromoCode(promoInput, totalAmount, rawShippingCost);
+      if (result.ok && result.code) {
+        setPromo({
+          code: result.code,
+          type: result.type ?? 'fixed',
+          amount: result.discount_amount,
+        });
+        setPromoInput('');
+      } else {
+        setPromoError(result.error ?? 'El código no es válido');
+      }
+    } catch {
+      setPromoError('No se pudo validar el código. Intenta nuevamente.');
+    } finally {
+      setPromoLoading(false);
+    }
+  };
+
+  const removePromo = () => {
+    setPromo(null);
+    setPromoError(null);
+  };
 
   const toggle = (field: 'wantsDelivery' | 'wantsNewsletter') => (value: boolean) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -143,7 +184,7 @@ export function CheckoutModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
-    await onSubmit({ ...form, shippingCost: effectiveShipping });
+    await onSubmit({ ...form, shippingCost: effectiveShipping, promoCode: promo?.code });
   };
 
   const inputBase =
@@ -163,34 +204,38 @@ export function CheckoutModal({
             Datos de compra
           </DialogTitle>
           <div className="space-y-0.5">
-            {effectiveShipping > 0 ? (
-              <>
-                <p className="text-sm text-devs-muted">
-                  Productos:{' '}
-                  <span className="font-semibold text-devs-text">{formatPrice(totalAmount)}</span>
-                </p>
-                <p className="text-sm text-devs-muted">
-                  Envío:{' '}
-                  <span className="font-semibold text-devs-text">
-                    {formatPrice(effectiveShipping)}
-                  </span>
-                </p>
-                <p className="text-sm font-bold text-brand-primary">
-                  Total: {formatPrice(grandTotal)}
-                </p>
-              </>
-            ) : (
-              <p className="text-sm text-devs-muted">
-                Total:{' '}
-                <span className="font-bold text-brand-primary">{formatPrice(grandTotal)}</span>
-                {form.wantsDelivery &&
-                  showShippingSection &&
-                  freeShippingThreshold > 0 &&
-                  totalAmount >= freeShippingThreshold && (
-                    <span className="ml-2 text-green-600 font-medium text-xs">✓ Envío gratis</span>
-                  )}
+            <p className="text-sm text-devs-muted">
+              Productos:{' '}
+              <span className="font-semibold text-devs-text">{formatPrice(totalAmount)}</span>
+            </p>
+            {promoAmount > 0 && (
+              <p className="text-sm text-green-700">
+                Descuento ({promo?.code}):{' '}
+                <span className="font-semibold">−{formatPrice(promoAmount)}</span>
               </p>
             )}
+            {shippingPromoActive && (
+              <p className="text-sm text-green-700">
+                Envío gratis ({promo?.code}):{' '}
+                <span className="font-semibold">−{formatPrice(rawShippingCost)}</span>
+              </p>
+            )}
+            {effectiveShipping > 0 && (
+              <p className="text-sm text-devs-muted">
+                Envío:{' '}
+                <span className="font-semibold text-devs-text">
+                  {formatPrice(effectiveShipping)}
+                </span>
+              </p>
+            )}
+            {effectiveShipping === 0 &&
+              form.wantsDelivery &&
+              showShippingSection &&
+              freeShippingThreshold > 0 &&
+              totalAmount >= freeShippingThreshold && (
+                <p className="text-xs text-green-600 font-medium">✓ Envío gratis por umbral</p>
+              )}
+            <p className="text-sm font-bold text-brand-primary">Total: {formatPrice(grandTotal)}</p>
           </div>
         </DialogHeader>
 
@@ -367,6 +412,75 @@ export function CheckoutModal({
                 </AnimatePresence>
               </motion.div>
             )}
+
+            {/* Código de descuento */}
+            <motion.div
+              variants={{
+                hidden: { opacity: 0, y: 14 },
+                visible: { opacity: 1, y: 0, transition: { type: 'spring', bounce: 0.25 } },
+              }}
+            >
+              {promo ? (
+                <div className="flex items-center justify-between rounded-xl border border-green-300 bg-green-50 px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <Tag className="h-4 w-4 text-green-700" />
+                    <span className="text-sm font-medium text-green-800">
+                      {promo.type === 'shipping'
+                        ? `Envío gratis con «${promo.code}»`
+                        : `Código «${promo.code}» aplicado (−${formatPrice(promo.amount)})`}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={removePromo}
+                    title="Quitar código"
+                    className="p-1 rounded-md text-green-700 hover:bg-green-100 transition-colors"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-sm font-medium text-devs-text mb-1.5">
+                    ¿Tienes un código de descuento?
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      className={inputBase}
+                      value={promoInput}
+                      onChange={(e) => {
+                        setPromoInput(e.target.value);
+                        setPromoError(null);
+                      }}
+                      placeholder="Ej. DEVSCL10"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          applyPromo();
+                        }
+                      }}
+                      disabled={promoLoading}
+                      autoCapitalize="characters"
+                    />
+                    <Button
+                      type="button"
+                      onClick={applyPromo}
+                      disabled={promoLoading || !promoInput.trim()}
+                      variant="outline"
+                      className="shrink-0 gap-1.5 border-brand-secondary/30 text-brand-primary hover:bg-brand-secondary/5"
+                    >
+                      {promoLoading ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Tag className="h-4 w-4" />
+                      )}
+                      Aplicar
+                    </Button>
+                  </div>
+                  {promoError && <p className="text-xs text-red-500 mt-1.5">{promoError}</p>}
+                </div>
+              )}
+            </motion.div>
 
             {/* Checkbox: newsletter */}
             <motion.div

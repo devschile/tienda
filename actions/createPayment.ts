@@ -26,6 +26,7 @@ export interface CustomerData {
   zip?: string;
   wantsNewsletter?: boolean;
   shippingCost?: number; // CLP — 0 o undefined = sin costo de envío
+  promoCode?: string; // código de descuento aplicado (el servidor lo re-valida)
 }
 
 export interface CreatePaymentResult {
@@ -33,6 +34,7 @@ export interface CreatePaymentResult {
   order_id?: string;
   checkout_url?: string;
   preference_id?: string;
+  discount?: { code: string; amount: number; type: string } | null;
   error?: string;
 }
 

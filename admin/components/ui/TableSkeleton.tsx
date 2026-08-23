@@ -60,6 +60,53 @@ export function ProductSkeletonRow({ index }: { index: number }) {
   );
 }
 
+// ── Fila skeleton de Códigos de descuento ───────────────────────────────────
+export function PromoSkeletonRow({ index }: { index: number }) {
+  return (
+    <motion.tr
+      className="border-b border-slate-100"
+      initial={{ opacity: 0, x: -12 }}
+      animate={{ opacity: 1 - index * 0.1, x: 0 }}
+      transition={{ type: 'spring', bounce: 0.2, duration: 0.4, delay: index * 0.055 }}
+    >
+      {/* Checkbox */}
+      <td className="px-4 py-3.5">
+        <Pulse w="w-4" h="h-4" rounded="rounded" />
+      </td>
+      {/* Código */}
+      <td className="px-4 py-3.5">
+        <Pulse w={['w-20', 'w-16', 'w-24', 'w-14', 'w-22'][index % 5]} className="mb-2" />
+        <Pulse w={['w-28', 'w-20', 'w-32', 'w-24', 'w-16'][index % 5]} h="h-2.5" />
+      </td>
+      {/* Descuento */}
+      <td className="px-4 py-3.5">
+        <Pulse w="w-24" />
+      </td>
+      {/* Mínimo */}
+      <td className="px-4 py-3.5">
+        <Pulse w="w-16" />
+      </td>
+      {/* Vigencia */}
+      <td className="px-4 py-3.5">
+        <Pulse w="w-28" className="mb-1.5" />
+        <Pulse w="w-24" h="h-2.5" />
+      </td>
+      {/* Usos */}
+      <td className="px-4 py-3.5 text-center">
+        <Pulse w="w-10" h="h-5" rounded="rounded-full" className="mx-auto" />
+      </td>
+      {/* Toggle */}
+      <td className="px-3 py-3.5 text-center">
+        <Pulse w="w-8" h="h-4" rounded="rounded-full" className="mx-auto" />
+      </td>
+      {/* Botones */}
+      <td className="pr-4 py-3.5 text-right">
+        <Pulse w="w-14" h="h-6" rounded="rounded-lg" className="ml-auto" />
+      </td>
+    </motion.tr>
+  );
+}
+
 // ── Fila skeleton de Pedidos ──────────────────────────────────────────────────
 export function OrderSkeletonRow({ index }: { index: number }) {
   return (

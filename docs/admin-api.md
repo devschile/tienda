@@ -26,6 +26,10 @@ Header `Authorization: Bearer <JWT>` en **toda** request. El JWT se obtiene en `
 | GET | `/admin-api/dashboard` | Stats (orders_count, revenue, pending, low_stock, products) |
 | GET | `/admin-api/settings` | Pares clave/valor + estado de integraciones (`?integrations=1`) |
 | PUT | `/admin-api/settings` | Guardar settings |
+| GET | `/admin-api/coupons` | Lista paginada de códigos (filtros: search, active, archived) |
+| GET | `/admin-api/coupons/:id` | Detalle de un código |
+| POST | `/admin-api/coupons` | Crear código |
+| PUT | `/admin-api/coupons/:id` | Actualizar código (incluye `active`/`archived`) |
 | GET | `/admin-api/images?productId=` | Imágenes de un producto |
 | PUT | `/admin-api/images/:id` | Cambiar portada (`{ is_cover: true }`) |
 | DELETE | `/admin-api/images/:id` | Eliminar imagen (borra también de UploadThing) |
@@ -69,6 +73,26 @@ Actualiza solo los campos presentes en el body (`COALESCE(..., columna)`). Campo
 - `bundle_sizes` se normaliza con `sanitizeSizes` a JSON `[3,4,6]`.
 - `product_type` se sanean con `sanitizeProductType` (valores desconocidos → `standard`).
 - **Exclusividad `on_sale` / `presale`:** son mutuamente excluyentes (CHECK `chk_presale_on_sale_exclusive`). **Gana `presale`**: si `presale=true`, `on_sale` queda `false`, y viceversa. El valor final se calcula **en JS** antes de armar el UPDATE (mismo criterio que el `POST`), no con expresiones `CASE` en SQL.
+
+## `coupons` — códigos de descuento
+
+Código normalizado a **mayúsculas** (`lib/promo.js normalizeCode`). El valor final de `code` se calcula en JS.
+
+- **`discount_type`** validado por `sanitizeDiscountType` (`percent` | `fixed` | `shipping`). Desconocido → 400.
+- **`discount_value`** entero > 0. Para `percent` debe estar entre **1 y 100** (validado en JS).
+- **`min_subtotal`** se sanea con `sanitizeNullableInt` (default 0).
+- **`max_discount`**, **`max_uses`** opcionales (`sanitizeNullableInt`; null = sin tope/ilimitado).
+- **`starts_at`/`expires_at`** se sanean con `sanitizeOptionalDate` (`''` → null).
+- `POST` requiere `code`, `discount_type` y `discount_value`. `PUT` es parcial (`COALESCE(..., columna)`), igual que productos; los campos opcionales usan el patrón `${field === undefined ? sql\`field\` : value}` para permitir limpiarlos con `null`.
+- `uses_count` es **de solo lectura** (se acumula en el webhook al aprobar el pago).
+
+### Modelo de descuento en órdenes
+
+`order_items` guarda SIEMPRE el precio de producto **sin** descuento de promo. El descuento vive a nivel de orden:
+
+- `orders.discount_code` / `orders.discount_type` / `orders.discount_amount` (CLP ahorrados).
+- `percent`|`fixed`: `total = subtotal − discount_amount + envío` (MP prorratea el descuento sobre las líneas de producto, `lib/discount.js`).
+- `shipping`: anula el costo de envío; `total = subtotal`, `discount_amount` = envío ahorrado.
 
 ## Errores
 

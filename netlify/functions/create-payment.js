@@ -340,13 +340,64 @@ exports.handler = async (event, context) => {
       };
     }
 
+    // ── Código de descuento (promo) ──────────────────────────────────────────
+    // El servidor es autoritativo: valida el código contra la BD y recalcula el
+    // descuento desde el subtotal derivado de productos reales. Nunca confía en
+    // el monto que el cliente haya visto en el checkout.
+    const { normalizeCode, checkCode, computeDiscount, reasonMessage } = require('./lib/promo');
+    const { distributeDiscount } = require('./lib/discount');
+
+    // CLP ahorrados (reporting / emails). discount_code/discount_type se guardan
+    // solo cuando el código realmente generó un ahorro.
+    let discountAmount = 0;
+    let discountCode = null;
+    let discountType = null;
+
+    const rawPromoCode = normalizeCode(customer.promoCode);
+    if (rawPromoCode) {
+      const [promoRow] = await sql`
+        SELECT code, discount_type, discount_value, min_subtotal, max_discount,
+               starts_at, expires_at, max_uses, uses_count, active, archived
+        FROM promo_codes WHERE code = ${rawPromoCode}
+      `;
+      const base = checkCode(promoRow, { subtotal: productsSubtotal });
+      if (!base.ok) {
+        return { statusCode: 400, headers, body: JSON.stringify({ error: reasonMessage(base.reason) }) };
+      }
+      if (promoRow.discount_type === 'shipping') {
+        // Envío gratis: solo anula el costo de envío (si el pedido lo tendría);
+        // no toca el subtotal de productos.
+        const rawShipping =
+          shippingEnabled && shippingCost > 0
+            ? freeShippingThreshold > 0 && productsSubtotal >= freeShippingThreshold
+              ? 0
+              : shippingCost
+            : 0;
+        const wouldChargeShipping = shippingRequested && anyItemAllowsShipping && rawShipping > 0;
+        if (wouldChargeShipping) {
+          discountAmount = rawShipping;
+          discountCode = promoRow.code;
+          discountType = 'shipping';
+        }
+      } else {
+        const amount = computeDiscount(promoRow, productsSubtotal);
+        if (amount > 0) {
+          discountAmount = amount;
+          discountCode = promoRow.code;
+          discountType = promoRow.discount_type;
+        }
+      }
+    }
+
     if (shippingRequested && anyItemAllowsShipping) {
       const effectiveShipping =
-        shippingEnabled && shippingCost > 0
-          ? freeShippingThreshold > 0 && productsSubtotal >= freeShippingThreshold
-            ? 0
-            : shippingCost
-          : 0;
+        discountType === 'shipping'
+          ? 0 // envío gratis por código de descuento
+          : shippingEnabled && shippingCost > 0
+            ? freeShippingThreshold > 0 && productsSubtotal >= freeShippingThreshold
+              ? 0
+              : shippingCost
+            : 0;
 
       if (effectiveShipping > 0) {
         sanitizedItems.push({
@@ -360,7 +411,14 @@ exports.handler = async (event, context) => {
       }
     }
 
-    const totalAmount = sanitizedItems.reduce((sum, i) => sum + i.subtotal, 0);
+    // total = subtotal de productos − descuento (salvo 'shipping', que anula el
+    // envío sin restar del subtotal) + envío efectivo.
+    const shippingTotal = sanitizedItems.reduce(
+      (sum, i) => sum + (i.productId === 'shipping' ? i.subtotal : 0),
+      0,
+    );
+    const totalAmount =
+      productsSubtotal - (discountType === 'shipping' ? 0 : discountAmount) + shippingTotal;
     if (totalAmount <= 0 || totalAmount > 5000000) {
       return { statusCode: 400, headers, body: JSON.stringify({ error: 'Total fuera de rango' }) };
     }
@@ -371,12 +429,16 @@ exports.handler = async (event, context) => {
 
     // ── 1. Persistir la orden como PENDING en Neon ─────────────────────────
 
+    const promoApplied =
+      discountCode && discountAmount > 0 ? { code: discountCode, amount: discountAmount, type: discountType } : null;
+
     const [order] = await sql`
       INSERT INTO orders (
         status, total_amount,
         customer_name, customer_email,
         shipping_address, shipping_city, shipping_region, shipping_zip,
-        wants_newsletter, channel
+        wants_newsletter, channel,
+        discount_code, discount_type, discount_amount
       )
       VALUES (
         'pending', ${totalAmount},
@@ -387,7 +449,10 @@ exports.handler = async (event, context) => {
         ${customer.region ? String(customer.region).substring(0, 100) : null},
         ${customer.zip ? String(customer.zip).substring(0, 20) : null},
         ${customer.wantsNewsletter === true},
-        ${isCliClient ? 'cli' : 'web'}
+        ${isCliClient ? 'cli' : 'web'},
+        ${discountCode},
+        ${discountType},
+        ${discountAmount}
       )
       RETURNING id
     `;
@@ -412,15 +477,36 @@ exports.handler = async (event, context) => {
       /^https:\/\//.test(siteUrl) && !/^https:\/\/(localhost|127\.0\.0\.1|\[?::1\]?)(:|\/|$)/.test(siteUrl);
 
     const preferenceBody = {
-      items: sanitizedItems.map((item) => ({
-        id: item.productId || `prod-${Date.now()}`,
-        title: item.productName,
-        description: item.productName,
-        unit_price: item.unitPrice,
-        currency_id: 'CLP',
-        quantity: item.quantity,
-        category_id: 'handmade',
-      })),
+      // Aplicar el descuento sobre las líneas de producto (distribución exacta);
+      // el envío se mantiene íntegro. Los precios en order_items quedan sin
+      // descuento — el descuento vive en orders.discount_amount.
+      items: [
+        ...distributeDiscount(
+          sanitizedItems
+            .filter((i) => i.productId !== 'shipping')
+            .map((item) => ({
+              id: item.productId || `prod-${Date.now()}`,
+              title: item.productName,
+              description: item.productName,
+              unit_price: item.unitPrice,
+              currency_id: 'CLP',
+              quantity: item.quantity,
+              category_id: 'handmade',
+            })),
+          discountType === 'shipping' ? 0 : discountAmount,
+        ),
+        ...sanitizedItems
+          .filter((i) => i.productId === 'shipping')
+          .map((item) => ({
+            id: 'shipping',
+            title: item.productName,
+            description: item.productName,
+            unit_price: item.unitPrice,
+            currency_id: 'CLP',
+            quantity: 1,
+            category_id: 'handmade',
+          })),
+      ],
       payer: {
         name: customer.name,
         // No enviamos email del payer: si coincide con una cuenta real de MP
@@ -465,6 +551,7 @@ exports.handler = async (event, context) => {
         totalAmount,
         checkoutUrl: preference.init_point,
         orderId: order.id,
+        promo: promoApplied,
       }),
     });
 
@@ -494,6 +581,7 @@ exports.handler = async (event, context) => {
           },
           items: sanitizedItems.map((i) => ({ ...i, subtotal: i.subtotal })),
           totalAmount,
+          promo: promoApplied,
           siteUrl,
         }),
       });
@@ -507,6 +595,7 @@ exports.handler = async (event, context) => {
         order_id: order.id,
         checkout_url: preference.init_point,
         preference_id: preference.id,
+        discount: promoApplied,
       }),
     };
   } catch (error) {
