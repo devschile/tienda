@@ -119,6 +119,7 @@ Aplica en orden desde `migrations/` en el SQL Editor de Neon:
 | 16 | `add_shipping_enabled_to_products.sql` | Envío opcional por producto (default: habilitado) |
 | 17 | `add_presale_to_products.sql` | Badge de preventa (⏳) — excluyente con `on_sale` |
 | 18 | `add_promo_codes.sql` | Códigos de descuento (%, monto fijo o envío gratis) + columnas de descuento en `orders` |
+| 19 | `fix_promo_codes_id_type.sql` | `promo_codes.id` uuid → text (`prm_...`, igual que products/images) |
 
 ### Esquema resumido
 
@@ -157,7 +158,7 @@ settings
   — pares clave/valor editables desde /admin/settings
 
 promo_codes
-  id (uuid), code (PK normalizada a mayúsculas), description
+  id (text PK `prm_...`), code (normalizada a mayúsculas), description
   discount_type (percent|fixed|shipping), discount_value (%, CLP o referencia)
   min_subtotal, max_discount (tope para %)
   starts_at, expires_at, max_uses, uses_count
@@ -309,7 +310,7 @@ Las tablas incluyen skeleton animado (Motion) en la carga y stagger spring en la
 ├── hooks/
 │   ├── useCart.ts           # Estado del carrito (localStorage)
 │   └── useStoreSettings.ts  # Settings desde NeonDB con helpers parseados
-├── migrations/              # 18 archivos SQL secuenciales para NeonDB
+├── migrations/              # 19 archivos SQL secuenciales para NeonDB
 ├── netlify/
 │   └── functions/
 │       ├── admin-api.js         # Router CRUD admin (JWT) — products, orders, images,
