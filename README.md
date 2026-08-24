@@ -120,6 +120,7 @@ Aplica en orden desde `migrations/` en el SQL Editor de Neon:
 | 17 | `add_presale_to_products.sql` | Badge de preventa (⏳) — excluyente con `on_sale` |
 | 18 | `add_promo_codes.sql` | Códigos de descuento (%, monto fijo o envío gratis) + columnas de descuento en `orders` |
 | 19 | `fix_promo_codes_id_type.sql` | `promo_codes.id` uuid → text (`prm_...`, igual que products/images) |
+| 20 | `add_shipping_tier.sql` | Envío por niveles (XS/S/M/L): tier por producto + costo absoluto por tier en `settings` |
 
 ### Esquema resumido
 
@@ -132,6 +133,7 @@ products
   product_type (standard|bundle|addon)  ← packs + stickers (migración 15)
   selectable_in_bundles, bundle_unit_price
   shipping_enabled (default true)  ← envío opcional por producto (migración 16)
+  shipping_tier (xs|s|m|l, default 'xs')  ← tamaño del paquete (migración 20)
   bundle_sizes (JSON [3,4,6]), bundle_allow_surprise
   created_time
 
@@ -156,6 +158,8 @@ order_items
 settings
   key (PK), value, updated_at
   — pares clave/valor editables desde /admin/settings
+  — envío: shipping_cost (base/legacy) + shipping_cost_xs/_s/_m/_l (costo
+    absoluto por tier, migración 20) + free_shipping_threshold
 
 promo_codes
   id (text PK `prm_...`), code (normalizada a mayúsculas), description
@@ -192,7 +196,7 @@ Usuario → Catálogo → Carrito → Checkout Form
                         · Emails de confirmación
 ```
 
-**Costo de envío:** si el usuario selecciona envío a domicilio y aplica un costo (configurado en `/admin/settings`), se agrega como ítem `product_id='shipping'` al array de ítems — así MercadoPago lo cobra y los emails lo muestran con breakdown separado.
+**Costo de envío:** cada producto clasifica el paquete que le cobra el courier (`shipping_tier`: XS | S | M | L, editable en el admin por producto). El costo de un pedido = costo absoluto del tier más grande presente (cuando se mezclan niveles, el más grande manda — no se suman). Los costos se configuran en `/admin/settings → Envío` (un monto por tier). Si aplica costo, se agrega como ítem `product_id='shipping'` (con el tier en el nombre, p. ej. "Envío a domicilio (S)") al array de ítems — así MercadoPago lo cobra y los emails lo muestran con breakdown separado. El servidor recalcula el tier y el costo siempre desde la base de datos (nunca confía en lo enviado por el cliente).
 
 ---
 
@@ -310,7 +314,7 @@ Las tablas incluyen skeleton animado (Motion) en la carga y stagger spring en la
 ├── hooks/
 │   ├── useCart.ts           # Estado del carrito (localStorage)
 │   └── useStoreSettings.ts  # Settings desde NeonDB con helpers parseados
-├── migrations/              # 19 archivos SQL secuenciales para NeonDB
+├── migrations/              # 20 archivos SQL secuenciales para NeonDB
 ├── netlify/
 │   └── functions/
 │       ├── admin-api.js         # Router CRUD admin (JWT) — products, orders, images,

@@ -10,6 +10,10 @@ const DEFAULTS = {
   maintenance_message: 'Estamos preparando algo increíble. ¡Vuelve pronto!',
   shipping_enabled: 'true',
   shipping_cost: '3000',
+  shipping_cost_xs: '3000',
+  shipping_cost_s: '3000',
+  shipping_cost_m: '3000',
+  shipping_cost_l: '3000',
   free_shipping_threshold: '30000',
 };
 

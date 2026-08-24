@@ -50,6 +50,10 @@ const parsePath = (rawPath) => {
 const sanitizeProductType = (value) =>
   ['standard', 'bundle', 'addon'].includes(value) ? value : 'standard';
 
+// Valida shipping_tier — solo valores conocidos (xs|s|m|l), default 'xs'.
+const sanitizeShippingTier = (value) =>
+  ['xs', 's', 'm', 'l'].includes(value) ? value : 'xs';
+
 // Entero positivo opcional → null si vacío/inválido (usado por bundle_unit_price).
 const sanitizeNullableInt = (value) => {
   const n = parseInt(value, 10);
@@ -113,7 +117,7 @@ const handlers = {
                p.visible, p.available, p.stock, p.on_sale, p.presale, p.archived, p.created_time,
                p.product_type, p.selectable_in_bundles,
                p.bundle_unit_price, p.bundle_sizes, p.bundle_allow_surprise,
-               p.shipping_enabled,
+               p.shipping_enabled, p.shipping_tier,
                (SELECT pi.url FROM product_images pi
                 WHERE pi.product_id = p.id AND pi.is_cover = true LIMIT 1) AS cover_url
         FROM products p
@@ -156,6 +160,7 @@ const handlers = {
         bundle_sizes,
         bundle_allow_surprise,
         shipping_enabled,
+        shipping_tier,
       } = body;
       if (!name || price === undefined || price === null)
         return json(400, { error: 'Nombre y precio son requeridos' });
@@ -173,7 +178,7 @@ const handlers = {
            visible, available, stock, on_sale, presale,
            product_type, selectable_in_bundles,
            bundle_unit_price, bundle_sizes, bundle_allow_surprise,
-           shipping_enabled)
+           shipping_enabled, shipping_tier)
         VALUES (
           ${id},
           ${name},
@@ -192,7 +197,8 @@ const handlers = {
           ${sanitizeNullableInt(bundle_unit_price)},
           ${sanitizeSizes(bundle_sizes)},
           ${bundle_allow_surprise !== false},
-          ${shipping_enabled !== false}
+          ${shipping_enabled !== false},
+          ${sanitizeShippingTier(shipping_tier)}
         )
         RETURNING *
       `;
@@ -220,6 +226,7 @@ const handlers = {
         bundle_sizes,
         bundle_allow_surprise,
         shipping_enabled,
+        shipping_tier,
       } = body;
 
       // presale y on_sale son mutuamente excluyentes: gana presale.
@@ -249,7 +256,8 @@ const handlers = {
           bundle_unit_price     = COALESCE(${bundle_unit_price === undefined ? null : sanitizeNullableInt(bundle_unit_price)}, bundle_unit_price),
           bundle_sizes          = COALESCE(${bundle_sizes === undefined ? null : sanitizeSizes(bundle_sizes)}, bundle_sizes),
           bundle_allow_surprise = COALESCE(${bundle_allow_surprise !== undefined ? bundle_allow_surprise !== false : null}, bundle_allow_surprise),
-          shipping_enabled      = COALESCE(${shipping_enabled !== undefined ? shipping_enabled !== false : null}, shipping_enabled)
+          shipping_enabled      = COALESCE(${shipping_enabled !== undefined ? shipping_enabled !== false : null}, shipping_enabled),
+          shipping_tier         = COALESCE(${shipping_tier !== undefined ? sanitizeShippingTier(shipping_tier) : null}, shipping_tier)
         WHERE id = ${id}
         RETURNING *
       `;
