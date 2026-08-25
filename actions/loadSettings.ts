@@ -5,10 +5,14 @@ export interface StoreSettings {
   store_name: string;
   store_tagline: string;
   contact_email: string;
-  store_open: string;         // 'true' | 'false'
+  store_open: string; // 'true' | 'false'
   maintenance_message: string;
-  shipping_enabled: string;   // 'true' | 'false'
-  shipping_cost: string;      // CLP, ej. '3000'
+  shipping_enabled: string; // 'true' | 'false'
+  shipping_cost: string; // CLP, ej. '3000' — base/legacy (tier xs)
+  shipping_cost_xs: string; // costo absoluto por tier (claves shipping_cost_*)
+  shipping_cost_s: string;
+  shipping_cost_m: string;
+  shipping_cost_l: string;
   free_shipping_threshold: string; // CLP, ej. '30000' — 0 = siempre cobrar
 }
 
@@ -20,6 +24,10 @@ export const SETTINGS_DEFAULTS: StoreSettings = {
   maintenance_message: 'Estamos preparando algo increíble. ¡Vuelve pronto!',
   shipping_enabled: 'true',
   shipping_cost: '3000',
+  shipping_cost_xs: '3000',
+  shipping_cost_s: '3000',
+  shipping_cost_m: '3000',
+  shipping_cost_l: '3000',
   free_shipping_threshold: '30000',
 };
 

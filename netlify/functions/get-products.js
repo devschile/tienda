@@ -72,6 +72,7 @@ exports.handler = async (event, context) => {
         p.bundle_sizes,
         p.bundle_allow_surprise,
         p.shipping_enabled,
+        p.shipping_tier,
 
         -- Imagen de portada del card (is_cover = true, máximo 1 por producto)
         (

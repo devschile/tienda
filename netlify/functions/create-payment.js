@@ -19,6 +19,41 @@ function parseBundleSizes(raw) {
     .filter((n) => Number.isInteger(n) && n > 0);
 }
 
+// ── Envío por tiers (XS | S | M | L) ──────────────────────────────────────────
+// Cada producto se clasifica por el tamaño del paquete que cobra el courier.
+// El costo de envío del pedido = costo del tier más grande presente (cuando se
+// mezclan ítems, el más grande manda — no se suman costos). Esta lógica es la
+// fuente autoritativa; el frontend solo estima con la misma regla.
+const SHIPPING_TIERS = ['xs', 's', 'm', 'l'];
+const SHIPPING_TIER_RANK = { xs: 0, s: 1, m: 2, l: 3 };
+
+// Normaliza un shipping_tier de producto — solo valores conocidos, default 'xs'.
+function sanitizeShippingTier(value) {
+  return SHIPPING_TIERS.includes(value) ? value : 'xs';
+}
+
+// Tier más grande entre ítems que permiten envío. null si ninguno lo permite.
+function maxShippingTier(items) {
+  let max = null;
+  for (const item of items) {
+    if (item.shipping_enabled === false) continue;
+    const tier = sanitizeShippingTier(item.shipping_tier);
+    if (max === null || SHIPPING_TIER_RANK[tier] > SHIPPING_TIER_RANK[max]) max = tier;
+  }
+  return max;
+}
+
+// Costo absoluto de un tier. Si no está configurado (ausente o 0), cae al tier
+// inmediatamente menor y finalmente al costo base (legacy shipping_cost).
+function shippingCostForTier(tier, settings, baseCost) {
+  const rank = SHIPPING_TIER_RANK[tier];
+  for (let r = rank; r >= 0; r--) {
+    const cost = parseInt(settings[`shipping_cost_${SHIPPING_TIERS[r]}`], 10) || 0;
+    if (cost > 0) return cost;
+  }
+  return baseCost > 0 ? baseCost : 0;
+}
+
 exports.handler = async (event, context) => {
   const allowedOrigins = process.env.ALLOWED_ORIGINS
     ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
@@ -120,7 +155,8 @@ exports.handler = async (event, context) => {
     // nunca se confía en lo que manda el cliente (evita manipulación de precio) ─
     const productIds = [...requestedQuantities.keys()];
     const dbProducts = await sql`
-      SELECT id, name, price, sale_price, on_sale, available, stock, product_type, shipping_enabled
+      SELECT id, name, price, sale_price, on_sale, available, stock, product_type,
+             shipping_enabled, shipping_tier
       FROM products
       WHERE id = ANY(${productIds}) AND archived = false
     `;
@@ -159,6 +195,8 @@ exports.handler = async (event, context) => {
         unitPrice,
         originalPrice,
         subtotal: qty * unitPrice,
+        shipping_tier: product.shipping_tier,
+        shipping_enabled: product.shipping_enabled,
       });
     }
 
@@ -175,7 +213,8 @@ exports.handler = async (event, context) => {
 
       const [bundle] = await sql`
         SELECT id, name, available, on_sale, sale_price, bundle_unit_price,
-               bundle_sizes, bundle_allow_surprise, product_type, shipping_enabled
+               bundle_sizes, bundle_allow_surprise, product_type,
+               shipping_enabled, shipping_tier
         FROM products WHERE id = ${bundleId} AND archived = false
       `;
       if (!bundle || bundle.product_type !== 'bundle') {
@@ -302,6 +341,9 @@ exports.handler = async (event, context) => {
           unitPrice: bundleUnitPrice,
           originalPrice: bundleUnitPrice,
           subtotal: qty * packCount * bundleUnitPrice,
+          // El paquete físico es el pack (un sobre): su tier determina el envío.
+          shipping_tier: bundle.shipping_tier,
+          shipping_enabled: bundle.shipping_enabled,
         });
       }
       if (surpriseCount > 0) {
@@ -312,25 +354,37 @@ exports.handler = async (event, context) => {
           unitPrice: bundleUnitPrice,
           originalPrice: bundleUnitPrice,
           subtotal: surpriseCount * packCount * bundleUnitPrice,
+          shipping_tier: bundle.shipping_tier,
+          shipping_enabled: bundle.shipping_enabled,
         });
       }
     }
 
-    // ── Envío: costo siempre derivado de settings, nunca del cliente ──────────
+    // ── Envío: costo siempre derivado de settings + tier del pedido, nunca del
+    // cliente ──────────────────────────────────────────────────────────────────
     const settingsRows = await sql`
       SELECT key, value FROM settings
-      WHERE key IN ('shipping_enabled', 'shipping_cost', 'free_shipping_threshold')
+      WHERE key IN ('shipping_enabled', 'shipping_cost',
+                    'shipping_cost_xs', 'shipping_cost_s', 'shipping_cost_m', 'shipping_cost_l',
+                    'free_shipping_threshold')
     `;
     const settings = Object.fromEntries(settingsRows.map((r) => [r.key, r.value]));
     const shippingEnabled = settings.shipping_enabled === 'true';
-    const shippingCost = parseInt(settings.shipping_cost, 10) || 0;
+    const baseShippingCost = parseInt(settings.shipping_cost, 10) || 0;
     const freeShippingThreshold = parseInt(settings.free_shipping_threshold, 10) || 0;
     const productsSubtotal = sanitizedItems.reduce((sum, i) => sum + i.subtotal, 0);
 
+    // Tier más grande del pedido → costo absoluto de ese tier. Cuando se mezclan
+    // ítems, el más grande manda (no se suman costos).
+    const cartTier = maxShippingTier(sanitizedItems);
+    const resolvedBaseCost =
+      cartTier !== null ? shippingCostForTier(cartTier, settings, baseShippingCost) : 0;
+
     // ── Stickers add-on: solo en pedidos que ya cubran el envío ───────────────
     // Un sticker no debe ser el único motivo del pedido si el subtotal no cubre
-    // el costo de envío. El pack de stickers es su vía explícita de compra.
-    if (hasAddon && shippingEnabled && shippingCost > 0 && productsSubtotal < shippingCost) {
+    // el costo de envío (del tier que manda en este carrito). El pack de
+    // stickers es su vía explícita de compra.
+    if (hasAddon && shippingEnabled && resolvedBaseCost > 0 && productsSubtotal < resolvedBaseCost) {
       return {
         statusCode: 400,
         headers,
@@ -370,10 +424,10 @@ exports.handler = async (event, context) => {
         // (sin envío a domicilio, o envío ya gratis), se rechaza con el motivo
         // en vez de descartarlo en silencio.
         const rawShipping =
-          shippingEnabled && shippingCost > 0
+          shippingEnabled && resolvedBaseCost > 0
             ? freeShippingThreshold > 0 && productsSubtotal >= freeShippingThreshold
               ? 0
-              : shippingCost
+              : resolvedBaseCost
             : 0;
         const wouldChargeShipping = shippingRequested && anyItemAllowsShipping && rawShipping > 0;
         if (!wouldChargeShipping) {
@@ -394,20 +448,25 @@ exports.handler = async (event, context) => {
       }
     }
 
+    let chargedShippingTier = null;
     if (shippingRequested && anyItemAllowsShipping) {
       const effectiveShipping =
         discountType === 'shipping'
           ? 0 // envío gratis por código de descuento
-          : shippingEnabled && shippingCost > 0
+          : shippingEnabled && resolvedBaseCost > 0
             ? freeShippingThreshold > 0 && productsSubtotal >= freeShippingThreshold
               ? 0
-              : shippingCost
+              : resolvedBaseCost
             : 0;
 
       if (effectiveShipping > 0) {
+        chargedShippingTier = cartTier !== null ? cartTier.toUpperCase() : null;
         sanitizedItems.push({
           productId: 'shipping',
-          productName: 'Envío a domicilio',
+          // El tier en el nombre hace auditable en admin/emails qué nivel se cobró.
+          productName: chargedShippingTier
+            ? `Envío a domicilio (${chargedShippingTier})`
+            : 'Envío a domicilio',
           quantity: 1,
           unitPrice: effectiveShipping,
           originalPrice: effectiveShipping,

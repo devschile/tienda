@@ -28,6 +28,7 @@ const rowToFields = (row) => ({
     bundle_sizes: row.bundle_sizes ? JSON.parse(row.bundle_sizes) : null,
     bundle_allow_surprise: row.bundle_allow_surprise,
     shipping_enabled: row.shipping_enabled !== false,
+    shipping_tier: row.shipping_tier || 'xs',
   },
   createdTime: row.created_time instanceof Date ? row.created_time.toISOString() : row.created_time,
 });
@@ -61,6 +62,7 @@ async function getProductById(databaseUrl, id) {
       p.bundle_sizes,
       p.bundle_allow_surprise,
       p.shipping_enabled,
+      p.shipping_tier,
 
       (
         select jsonb_build_object(

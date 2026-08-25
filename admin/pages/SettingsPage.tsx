@@ -281,7 +281,14 @@ export function SettingsPage() {
 
   const GENERAL_KEYS = ['store_name', 'store_tagline', 'contact_email'];
   const STATUS_KEYS = ['store_open', 'maintenance_message'];
-  const SHIPPING_KEYS = ['shipping_enabled', 'shipping_cost', 'free_shipping_threshold'];
+  const SHIPPING_KEYS = [
+    'shipping_enabled',
+    'shipping_cost_xs',
+    'shipping_cost_s',
+    'shipping_cost_m',
+    'shipping_cost_l',
+    'free_shipping_threshold',
+  ];
 
   const load = useCallback(async () => {
     setLoadingInit(true);
@@ -507,19 +514,32 @@ export function SettingsPage() {
                 transition={{ type: 'spring', bounce: 0.2, duration: 0.35 }}
                 className="overflow-hidden"
               >
-                <div className="grid grid-cols-2 gap-3 pt-1">
-                  <Field label="Costo de envío (CLP)">
-                    <input
-                      type="number"
-                      min="0"
-                      className={input}
-                      value={shipping.shipping_cost ?? ''}
-                      onChange={(e) =>
-                        setShipping((p) => ({ ...p, shipping_cost: e.target.value }))
-                      }
-                      placeholder="3000"
-                    />
-                  </Field>
+                <div className="space-y-3 pt-1">
+                  <div className="grid grid-cols-2 gap-3">
+                    {(
+                      [
+                        ['shipping_cost_xs', 'XS (sobre pequeño)'],
+                        ['shipping_cost_s', 'S (mediano)'],
+                        ['shipping_cost_m', 'M (grande)'],
+                        ['shipping_cost_l', 'L (extra grande)'],
+                      ] as const
+                    ).map(([key, label]) => (
+                      <Field key={key} label={label + ' (CLP)'}>
+                        <input
+                          type="number"
+                          min="0"
+                          className={input}
+                          value={shipping[key] ?? ''}
+                          onChange={(e) => setShipping((p) => ({ ...p, [key]: e.target.value }))}
+                          placeholder="3000"
+                        />
+                      </Field>
+                    ))}
+                  </div>
+                  <p className="text-xs text-slate-400">
+                    El costo de cada pedido lo determina el Nivel de envío más grande entre sus
+                    productos (cuando se mezclan, el más grande manda).
+                  </p>
                   <Field label="Envío gratis desde (CLP)" hint="0 = siempre cobrar">
                     <input
                       type="number"
@@ -527,7 +547,10 @@ export function SettingsPage() {
                       className={input}
                       value={shipping.free_shipping_threshold ?? ''}
                       onChange={(e) =>
-                        setShipping((p) => ({ ...p, free_shipping_threshold: e.target.value }))
+                        setShipping((p) => ({
+                          ...p,
+                          free_shipping_threshold: e.target.value,
+                        }))
                       }
                       placeholder="30000"
                     />

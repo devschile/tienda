@@ -193,6 +193,7 @@ export const productsMock = [
       presale: true,
       long_description: null,
       sale_price: null,
+      shipping_tier: 's',
     },
     createdTime: '2025-01-01T00:00:00.000Z',
   },

@@ -20,6 +20,7 @@ import { CheckoutModal } from '@/components/CheckoutModal';
 import { BundleBuilder } from '@/components/BundleBuilder';
 import { DevTools } from '@/components/DevTools';
 import { useStoreSettings } from '@/hooks/useStoreSettings';
+import { maxShippingTier, shippingCostForTier } from '@/lib/shipping';
 import { version } from '../package.json';
 import posthog from '@/lib/posthog';
 
@@ -56,6 +57,7 @@ function App() {
     isOpen,
     shippingEnabled,
     shippingCost,
+    shippingCosts,
     freeShippingThreshold,
   } = useStoreSettings();
   const [selectedProduct, setSelectedProduct] = useState<ProductRecord | null>(null);
@@ -315,10 +317,23 @@ function App() {
     }
   };
 
-  const addonsUnlocked = !shippingEnabled || cart.totalAmount >= shippingCost;
+  // Tier más grande del carrito: cuando se mezclan ítems, el más grande manda y
+  // determina el costo de envío. null si ningún ítem permite envío.
+  const cartShippingTier = maxShippingTier(
+    cart.items.map((i) => ({
+      shippingEnabled: i.product.fields.shipping_enabled,
+      shippingTier: i.product.fields.shipping_tier,
+    })),
+  );
+  const cartTierCost = cartShippingTier
+    ? shippingCostForTier(cartShippingTier, shippingCosts, shippingCost)
+    : shippingCost;
   // Si ningún producto del carrito admite envío (ej. solo membresías digitales),
   // el checkout ni siquiera pregunta por envío/dirección.
   const cartAllowsShipping = cart.items.some((i) => i.product.fields.shipping_enabled !== false);
+  // Los add-ons solo se habilitan si el subtotal ya cubre el costo de envío del
+  // tier que manda en el carrito.
+  const addonsUnlocked = !shippingEnabled || cart.totalAmount >= cartTierCost;
   const allProducts = (productsData?.records || []).filter(
     (p) => p.fields.visible && (p.fields.product_type !== 'addon' || addonsUnlocked),
   );
@@ -696,6 +711,8 @@ function App() {
         loading={checkoutLoading}
         shippingEnabled={shippingEnabled}
         shippingCost={shippingCost}
+        shippingCosts={shippingCosts}
+        cartShippingTier={cartShippingTier}
         freeShippingThreshold={freeShippingThreshold}
         cartAllowsShipping={cartAllowsShipping}
       />

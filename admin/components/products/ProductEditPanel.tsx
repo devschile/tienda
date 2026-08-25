@@ -27,6 +27,7 @@ interface Product {
   bundle_sizes: string;
   bundle_allow_surprise: boolean;
   shipping_enabled: boolean;
+  shipping_tier: 'xs' | 's' | 'm' | 'l';
 }
 
 const DEFAULTS: Partial<Product> = {
@@ -47,6 +48,7 @@ const DEFAULTS: Partial<Product> = {
   bundle_sizes: '',
   bundle_allow_surprise: true,
   shipping_enabled: true,
+  shipping_tier: 'xs',
 };
 
 interface Props {
@@ -395,6 +397,29 @@ export function ProductEditPanel({ productId, creating = false, onClose, onSaved
                       <Toggle checked={!!form[field]} onChange={(v) => set(field, v)} />
                     </div>
                   ))}
+
+                  {/* Nivel de envío — tamaño del paquete que cobra el courier */}
+                  {form.shipping_enabled && (
+                    <div className="border-t border-slate-200 pt-3">
+                      <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-1.5">
+                        Nivel de envío
+                      </label>
+                      <select
+                        className={input}
+                        value={form.shipping_tier ?? 'xs'}
+                        onChange={(e) => set('shipping_tier', e.target.value)}
+                      >
+                        <option value="xs">XS — sobre pequeño</option>
+                        <option value="s">S — mediano</option>
+                        <option value="m">M — grande</option>
+                        <option value="l">L — extra grande</option>
+                      </select>
+                      <p className="text-xs text-slate-400 mt-1">
+                        Determina el costo de envío cuando este producto es el más grande del
+                        carrito. Los costos por nivel se configuran en Ajustes → Envío.
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Tipo de producto */}

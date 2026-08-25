@@ -7,6 +7,7 @@ import type { CustomerData } from '@/actions/createPayment';
 import applyPromoCode from '@/actions/applyPromoCode';
 import { useToast } from '@/hooks/use-toast';
 import posthog from '@/lib/posthog';
+import { shippingCostForTier, type ShippingTier, type ShippingTierCosts } from '@/lib/shipping';
 import { REGIONES_COMUNAS, COMUNAS_POR_REGION } from '@/data/comunas-chile';
 
 interface PromoApplied {
@@ -22,7 +23,12 @@ interface CheckoutModalProps {
   onSubmit: (customer: CustomerData) => Promise<void>;
   loading?: boolean;
   shippingEnabled?: boolean;
+  /** Costo base/legacy (clave shipping_cost) — fallback para el tier xs. */
   shippingCost?: number;
+  /** Costos absolutos por tier (claves shipping_cost_*) desde settings. */
+  shippingCosts?: Partial<ShippingTierCosts>;
+  /** Tier más grande del carrito (null = ningún ítem permite envío). */
+  cartShippingTier?: ShippingTier | null;
   freeShippingThreshold?: number;
   /** false = ningún producto del carrito admite envío (ej. solo membresías digitales) —
    * oculta la sección de envío aunque shippingEnabled sea true. Default true. */
@@ -76,6 +82,8 @@ export function CheckoutModal({
   loading,
   shippingEnabled = true,
   shippingCost = 0,
+  shippingCosts = {},
+  cartShippingTier = null,
   freeShippingThreshold = 0,
   cartAllowsShipping = true,
 }: CheckoutModalProps) {
@@ -101,13 +109,19 @@ export function CheckoutModal({
   const promoValidatedKeyRef = useRef<string>('');
   const { toast } = useToast();
 
+  // Costo del tier que manda en el carrito (el más grande). Este es un
+  // estimado para la UI; create-payment.js lo recalcula desde la BD.
+  const cartTierCost = cartShippingTier
+    ? shippingCostForTier(cartShippingTier, shippingCosts, shippingCost)
+    : 0;
+
   // Costo de envío efectivo: 0 si supera el umbral de envío gratis
   const deliverySelected = form.wantsDelivery && showShippingSection;
   const rawShippingCost =
-    form.wantsDelivery && showShippingSection && shippingCost > 0
+    form.wantsDelivery && showShippingSection && cartTierCost > 0
       ? freeShippingThreshold > 0 && totalAmount >= freeShippingThreshold
         ? 0
-        : shippingCost
+        : cartTierCost
       : 0;
   const shippingPromoActive = promo?.type === 'shipping' && rawShippingCost > 0;
   const effectiveShipping = shippingPromoActive ? 0 : rawShippingCost;
@@ -369,10 +383,14 @@ export function CheckoutModal({
                   onChange={toggle('wantsDelivery')}
                   label="¿Envío a domicilio?"
                   sublabel={
-                    shippingCost > 0
+                    cartTierCost > 0
                       ? freeShippingThreshold > 0
-                        ? `Costo: ${formatPrice(shippingCost)} \u2014 gratis sobre ${formatPrice(freeShippingThreshold)}`
-                        : `Costo de envío: ${formatPrice(shippingCost)}`
+                        ? `Costo: ${formatPrice(cartTierCost)}${
+                            cartShippingTier ? ` (${cartShippingTier.toUpperCase()})` : ''
+                          } \u2014 gratis sobre ${formatPrice(freeShippingThreshold)}`
+                        : `Costo de envío: ${formatPrice(cartTierCost)}${
+                            cartShippingTier ? ` (${cartShippingTier.toUpperCase()})` : ''
+                          }`
                       : 'Agrega tu dirección para coordinar la entrega'
                   }
                 />

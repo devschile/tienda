@@ -41,6 +41,9 @@ export interface ProductFields {
   /** false = el producto nunca ofrece envío a domicilio (ej. membresías digitales).
    * Opcional — ausente/undefined se trata como true (comportamiento actual). */
   shipping_enabled?: boolean;
+  /** Tamaño del paquete que cobra el courier — determina el costo de envío
+   * cuando este ítem es el más grande del carrito. Opcional, default 'xs'. */
+  shipping_tier?: 'xs' | 's' | 'm' | 'l';
 }
 
 export interface ProductRecord {
