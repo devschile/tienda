@@ -20,6 +20,7 @@ import { CheckoutModal } from '@/components/CheckoutModal';
 import { BundleBuilder } from '@/components/BundleBuilder';
 import { DevTools } from '@/components/DevTools';
 import { useStoreSettings } from '@/hooks/useStoreSettings';
+import { checkoutDraftKey } from '@/lib/checkout-draft';
 import { maxShippingTier, shippingCostForTier } from '@/lib/shipping';
 import { version } from '../package.json';
 import posthog from '@/lib/posthog';
@@ -303,6 +304,8 @@ function App() {
         shipping_cost: customer.shippingCost ?? 0,
         newsletter_opt_in: Boolean(customer.wantsNewsletter),
       });
+      // La llave se deriva de las lineIds: limpiarla antes de clearCart.
+      sessionStorage.removeItem(checkoutDraftKey(cartKey));
       cart.clearCart();
       window.location.href = data.checkout_url;
     } catch (error) {
@@ -331,6 +334,10 @@ function App() {
   // Si ningún producto del carrito admite envío (ej. solo membresías digitales),
   // el checkout ni siquiera pregunta por envío/dirección.
   const cartAllowsShipping = cart.items.some((i) => i.product.fields.shipping_enabled !== false);
+  const cartKey = cart.items
+    .map((i) => i.lineId)
+    .sort()
+    .join('|');
   // Los add-ons solo se habilitan si el subtotal ya cubre el costo de envío del
   // tier que manda en el carrito.
   const addonsUnlocked = !shippingEnabled || cart.totalAmount >= cartTierCost;
@@ -704,6 +711,7 @@ function App() {
       />
 
       <CheckoutModal
+        key={cartKey}
         open={checkoutOpen}
         onOpenChange={setCheckoutOpen}
         totalAmount={cart.totalAmount}
@@ -715,6 +723,7 @@ function App() {
         cartShippingTier={cartShippingTier}
         freeShippingThreshold={freeShippingThreshold}
         cartAllowsShipping={cartAllowsShipping}
+        cartKey={cartKey}
       />
 
       <Toaster />

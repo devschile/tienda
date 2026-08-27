@@ -6,6 +6,7 @@ import { Loader2, Check, Tag, X } from 'lucide-react';
 import type { CustomerData } from '@/actions/createPayment';
 import applyPromoCode from '@/actions/applyPromoCode';
 import { useToast } from '@/hooks/use-toast';
+import { CHECKOUT_DRAFT_KEY, checkoutDraftKey } from '@/lib/checkout-draft';
 import posthog from '@/lib/posthog';
 import { shippingCostForTier, type ShippingTier, type ShippingTierCosts } from '@/lib/shipping';
 import { REGIONES_COMUNAS, COMUNAS_POR_REGION } from '@/data/comunas-chile';
@@ -33,6 +34,7 @@ interface CheckoutModalProps {
   /** false = ningún producto del carrito admite envío (ej. solo membresías digitales) —
    * oculta la sección de envío aunque shippingEnabled sea true. Default true. */
   cartAllowsShipping?: boolean;
+  cartKey?: string;
 }
 
 const formatPrice = (n: number) =>
@@ -41,6 +43,35 @@ const formatPrice = (n: number) =>
     currency: 'CLP',
     minimumFractionDigits: 0,
   }).format(n);
+
+const EMPTY_FORM = {
+  name: '',
+  email: '',
+  wantsDelivery: false,
+  address: '',
+  city: '',
+  region: '',
+  zip: '',
+  wantsNewsletter: true,
+} satisfies CustomerData;
+
+function loadFormDraft(draftKey: string): CustomerData {
+  try {
+    const raw = sessionStorage.getItem(draftKey);
+    if (!raw) return EMPTY_FORM;
+    const draft = JSON.parse(raw) as Record<string, unknown>;
+    if (!draft || typeof draft !== 'object') return EMPTY_FORM;
+    const restored: CustomerData = { ...EMPTY_FORM };
+    for (const [key, fallback] of Object.entries(EMPTY_FORM)) {
+      if (typeof draft[key] === typeof fallback) {
+        Object.assign(restored, { [key]: draft[key] });
+      }
+    }
+    return restored;
+  } catch {
+    return EMPTY_FORM;
+  }
+}
 
 // ── Checkbox con estilo de marca ────────────────────────────────────────────
 function BrandCheckbox({
@@ -86,19 +117,12 @@ export function CheckoutModal({
   cartShippingTier = null,
   freeShippingThreshold = 0,
   cartAllowsShipping = true,
+  cartKey = '',
 }: CheckoutModalProps) {
   const showShippingSection = shippingEnabled && cartAllowsShipping;
+  const draftKey = cartKey ? checkoutDraftKey(cartKey) : CHECKOUT_DRAFT_KEY;
   const [formScope, animateForm] = useAnimate();
-  const [form, setForm] = useState<CustomerData>({
-    name: '',
-    email: '',
-    wantsDelivery: false,
-    address: '',
-    city: '',
-    region: '',
-    zip: '',
-    wantsNewsletter: true,
-  });
+  const [form, setForm] = useState<CustomerData>(() => loadFormDraft(draftKey));
   const [errors, setErrors] = useState<Partial<Record<keyof CustomerData, string>>>({});
   const [promoInput, setPromoInput] = useState('');
   const [promo, setPromo] = useState<PromoApplied | null>(null);
@@ -108,6 +132,13 @@ export function CheckoutModal({
   // de re-validación se re-dispare por el propio setPromo (mismo code → mismo key).
   const promoValidatedKeyRef = useRef<string>('');
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (!open) return;
+    sessionStorage.setItem(draftKey, JSON.stringify(form));
+    // Llave legacy sin scope: ya no se lee, solo se limpia.
+    if (cartKey) sessionStorage.removeItem(CHECKOUT_DRAFT_KEY);
+  }, [open, form, draftKey, cartKey]);
 
   // Costo del tier que manda en el carrito (el más grande). Este es un
   // estimado para la UI; create-payment.js lo recalcula desde la BD.
@@ -244,7 +275,8 @@ export function CheckoutModal({
     if (!form.name.trim()) errs.name = 'Nombre requerido';
     if (!form.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
       errs.email = 'Email inválido';
-    if (form.wantsDelivery) {
+    // Un carrito digital (sección oculta) no puede exigir campos que no muestra.
+    if (form.wantsDelivery && showShippingSection) {
       if (!form.address?.trim()) errs.address = 'Dirección requerida';
       if (!form.region?.trim()) errs.region = 'Región requerida';
       if (!form.city?.trim()) errs.city = 'Comuna requerida';
@@ -263,7 +295,11 @@ export function CheckoutModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
-    await onSubmit({ ...form, shippingCost: effectiveShipping, promoCode: promo?.code });
+    const normalized: CustomerData = showShippingSection
+      ? form
+      : { ...form, wantsDelivery: false, address: '', city: '', region: '', zip: '' };
+
+    await onSubmit({ ...normalized, shippingCost: effectiveShipping, promoCode: promo?.code });
   };
 
   const inputBase =
