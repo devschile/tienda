@@ -1,6 +1,8 @@
 // Netlify Function — Crea preferencia de MercadoPago y persiste la orden en NeonDB
 const { MercadoPagoConfig, Preference } = require('mercadopago');
 const { neon } = require('@neondatabase/serverless');
+const { normalizeCode, checkCode, computeDiscount, reasonMessage } = require('./lib/promo');
+const { distributeDiscount } = require('./lib/discount');
 
 // Parsea bundle_sizes (JSON '[3,4,6]') → array de enteros positivos. [] si inválido.
 function parseBundleSizes(raw) {
@@ -52,6 +54,34 @@ function shippingCostForTier(tier, settings, baseCost) {
     if (cost > 0) return cost;
   }
   return baseCost > 0 ? baseCost : 0;
+}
+
+const GOLD_PERK_TIMEOUT_MS = 4000;
+
+async function fetchSoy(urlSuffix, headers) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), GOLD_PERK_TIMEOUT_MS);
+  try {
+    const url = `${(process.env.SOY_MEMBERS_API_URL || 'https://soy.devschile.cl').replace(/\/+$/, '')}${urlSuffix}`;
+    const res = await fetch(url, { headers, signal: controller.signal });
+    if (!res.ok) {
+      console.error(`create-payment [gold-perk]: soy respondió HTTP ${res.status} en ${urlSuffix}`);
+      try { await res.arrayBuffer(); } catch {}
+      return null;
+    }
+    return await res.json();
+  } catch (err) {
+    console.error(`create-payment [gold-perk]: consulta falló (${err.message})`);
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function fetchSoyGoldStatus(accessToken) {
+  if (typeof accessToken !== 'string' || !accessToken) return null;
+  const res = await fetchSoy('/api/members/me', { Authorization: `Bearer ${accessToken}` });
+  return res && typeof res === 'object' ? res : null;
 }
 
 exports.handler = async (event, context) => {
@@ -151,6 +181,12 @@ exports.handler = async (event, context) => {
       return { statusCode: 400, headers, body: JSON.stringify({ error: 'items requeridos' }) };
     }
 
+    const rawPromoCode = normalizeCode(customer.promoCode);
+    const parsedPercent = parseInt(process.env.MEMBER_DISCOUNT_PERCENT, 10);
+    const goldPercent = Math.min(
+      Math.max(Number.isNaN(parsedPercent) ? 10 : parsedPercent, 0),
+      100,
+    );
     // ── Precio, nombre, disponibilidad y stock SIEMPRE desde la base de datos —
     // nunca se confía en lo que manda el cliente (evita manipulación de precio) ─
     const productIds = [...requestedQuantities.keys()];
@@ -398,16 +434,28 @@ exports.handler = async (event, context) => {
     // El servidor es autoritativo: valida el código contra la BD y recalcula el
     // descuento desde el subtotal derivado de productos reales. Nunca confía en
     // el monto que el cliente haya visto en el checkout.
-    const { normalizeCode, checkCode, computeDiscount, reasonMessage } = require('./lib/promo');
-    const { distributeDiscount } = require('./lib/discount');
-
     // CLP ahorrados (reporting / emails). discount_code/discount_type se guardan
     // solo cuando el código realmente generó un ahorro.
     let discountAmount = 0;
     let discountCode = null;
     let discountType = null;
 
-    const rawPromoCode = normalizeCode(customer.promoCode);
+    if (!rawPromoCode) {
+      const memberStatus =
+        goldPercent > 0 ? await fetchSoyGoldStatus(customer.soyAccessToken) : null;
+      if (memberStatus?.isGold === true && productsSubtotal > 0) {
+        const amount = Math.min(
+          Math.round((productsSubtotal * goldPercent) / 100),
+          productsSubtotal - 1,
+        );
+        if (amount > 0) {
+          discountAmount = amount;
+          discountCode = 'GOLD';
+          discountType = 'percent';
+        }
+      }
+    }
+
     if (rawPromoCode) {
       const [promoRow] = await sql`
         SELECT code, discount_type, discount_value, min_subtotal, max_discount,
@@ -659,7 +707,7 @@ exports.handler = async (event, context) => {
         order_id: order.id,
         checkout_url: preference.init_point,
         preference_id: preference.id,
-        discount: promoApplied,
+        discount: discountCode === 'GOLD' ? null : promoApplied,
       }),
     };
   } catch (error) {

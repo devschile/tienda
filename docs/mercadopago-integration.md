@@ -46,7 +46,7 @@ sequenceDiagram
     MercadoPago->>Frontend: Redirect a /success?order_id= o /failure?order_id= o /pending?order_id=
     Frontend->>get-order: GET /.netlify/functions/get-order?order_id=
     get-order->>NeonDB: Consulta estado real de la orden
-    NeonDB-->>get-order: { status, items, total }
+    NeonDB-->>get-order: { status, items, total } — pendientes: solo el estado
     get-order-->>Frontend: Muestra estado actualizado al usuario
 ```
 

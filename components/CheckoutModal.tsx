@@ -4,8 +4,10 @@ import { Dialog, DialogContent, DialogTitle, DialogHeader } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Loader2, Check, Tag, X } from 'lucide-react';
 import type { CustomerData } from '@/actions/createPayment';
+import type { SoySession } from '@/actions/soyAuth';
 import applyPromoCode from '@/actions/applyPromoCode';
 import { useToast } from '@/hooks/use-toast';
+import { CHECKOUT_DRAFT_KEY, checkoutDraftKey } from '@/lib/checkout-draft';
 import posthog from '@/lib/posthog';
 import { shippingCostForTier, type ShippingTier, type ShippingTierCosts } from '@/lib/shipping';
 import { REGIONES_COMUNAS, COMUNAS_POR_REGION } from '@/data/comunas-chile';
@@ -33,6 +35,12 @@ interface CheckoutModalProps {
   /** false = ningún producto del carrito admite envío (ej. solo membresías digitales) —
    * oculta la sección de envío aunque shippingEnabled sea true. Default true. */
   cartAllowsShipping?: boolean;
+  cartKey?: string;
+  soy?: SoySession | null;
+  soyVerifying?: boolean;
+  soyStale?: boolean;
+  onRefreshSoy?: () => void;
+  onVerifySoy?: () => void;
 }
 
 const formatPrice = (n: number) =>
@@ -41,6 +49,35 @@ const formatPrice = (n: number) =>
     currency: 'CLP',
     minimumFractionDigits: 0,
   }).format(n);
+
+const EMPTY_FORM = {
+  name: '',
+  email: '',
+  wantsDelivery: false,
+  address: '',
+  city: '',
+  region: '',
+  zip: '',
+  wantsNewsletter: true,
+} satisfies CustomerData;
+
+function loadFormDraft(draftKey: string): CustomerData {
+  try {
+    const raw = sessionStorage.getItem(draftKey);
+    if (!raw) return EMPTY_FORM;
+    const draft = JSON.parse(raw) as Record<string, unknown>;
+    if (!draft || typeof draft !== 'object') return EMPTY_FORM;
+    const restored: CustomerData = { ...EMPTY_FORM };
+    for (const [key, fallback] of Object.entries(EMPTY_FORM)) {
+      if (typeof draft[key] === typeof fallback) {
+        Object.assign(restored, { [key]: draft[key] });
+      }
+    }
+    return restored;
+  } catch {
+    return EMPTY_FORM;
+  }
+}
 
 // ── Checkbox con estilo de marca ────────────────────────────────────────────
 function BrandCheckbox({
@@ -86,19 +123,17 @@ export function CheckoutModal({
   cartShippingTier = null,
   freeShippingThreshold = 0,
   cartAllowsShipping = true,
+  cartKey = '',
+  soy = null,
+  soyVerifying = false,
+  soyStale = false,
+  onRefreshSoy,
+  onVerifySoy,
 }: CheckoutModalProps) {
   const showShippingSection = shippingEnabled && cartAllowsShipping;
+  const draftKey = cartKey ? checkoutDraftKey(cartKey) : CHECKOUT_DRAFT_KEY;
   const [formScope, animateForm] = useAnimate();
-  const [form, setForm] = useState<CustomerData>({
-    name: '',
-    email: '',
-    wantsDelivery: false,
-    address: '',
-    city: '',
-    region: '',
-    zip: '',
-    wantsNewsletter: true,
-  });
+  const [form, setForm] = useState<CustomerData>(() => loadFormDraft(draftKey));
   const [errors, setErrors] = useState<Partial<Record<keyof CustomerData, string>>>({});
   const [promoInput, setPromoInput] = useState('');
   const [promo, setPromo] = useState<PromoApplied | null>(null);
@@ -109,6 +144,18 @@ export function CheckoutModal({
   const promoValidatedKeyRef = useRef<string>('');
   const { toast } = useToast();
 
+  useEffect(() => {
+    if (!open) return;
+    sessionStorage.setItem(draftKey, JSON.stringify(form));
+    if (cartKey) sessionStorage.removeItem(CHECKOUT_DRAFT_KEY);
+  }, [open, form, draftKey, cartKey]);
+
+  useEffect(() => {
+    if (!open || !soy || soyVerifying) return;
+    onRefreshSoy?.();
+    // Refresh once per access token each time the modal opens.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, soy?.accessToken]);
   // Costo del tier que manda en el carrito (el más grande). Este es un
   // estimado para la UI; create-payment.js lo recalcula desde la BD.
   const cartTierCost = cartShippingTier
@@ -244,7 +291,8 @@ export function CheckoutModal({
     if (!form.name.trim()) errs.name = 'Nombre requerido';
     if (!form.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
       errs.email = 'Email inválido';
-    if (form.wantsDelivery) {
+    // Un carrito digital (sección oculta) no puede exigir campos que no muestra.
+    if (form.wantsDelivery && showShippingSection) {
       if (!form.address?.trim()) errs.address = 'Dirección requerida';
       if (!form.region?.trim()) errs.region = 'Región requerida';
       if (!form.city?.trim()) errs.city = 'Comuna requerida';
@@ -263,7 +311,17 @@ export function CheckoutModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
-    await onSubmit({ ...form, shippingCost: effectiveShipping, promoCode: promo?.code });
+
+    const normalized: CustomerData = showShippingSection
+      ? form
+      : { ...form, wantsDelivery: false, address: '', city: '', region: '', zip: '' };
+
+    await onSubmit({
+      ...normalized,
+      shippingCost: effectiveShipping,
+      promoCode: promo?.code,
+      soyAccessToken: soy?.accessToken,
+    });
   };
 
   const inputBase =
@@ -580,6 +638,20 @@ export function CheckoutModal({
               />
             </motion.div>
 
+            <motion.div
+              variants={{
+                hidden: { opacity: 0, y: 14 },
+                visible: { opacity: 1, y: 0, transition: { type: 'spring', bounce: 0.25 } },
+              }}
+            >
+              <SoyMembershipPanel
+                soy={soy}
+                verifying={soyVerifying}
+                stale={soyStale}
+                onVerify={onVerifySoy}
+              />
+            </motion.div>
+
             {/* Botón submit */}
             <motion.div
               variants={{
@@ -619,5 +691,93 @@ export function CheckoutModal({
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function soyBadgeText(soy: SoySession, stale: boolean): { title: string; message: string } {
+  if (stale)
+    return {
+      title: 'Miembro devsChile verificado',
+      message: 'No pudimos confirmar tu estado gold ahora mismo; el descuento se valida al pagar.',
+    };
+  if (soy.isGold)
+    return {
+      title: 'Miembro gold devsChile',
+      message: 'Tu pedido llevará descuento miembro.',
+    };
+  return {
+    title: 'Miembro devsChile verificado',
+    message: 'Sin descuento por ahora: el descuento es para membresía gold.',
+  };
+}
+
+function SoyMembershipPanel({
+  soy,
+  verifying,
+  stale,
+  onVerify,
+}: {
+  soy: SoySession | null;
+  verifying: boolean;
+  stale: boolean;
+  onVerify?: () => void;
+}) {
+  if (soy && verifying) {
+    return (
+      <div className="flex items-start gap-3 rounded-xl border border-brand-secondary/10 bg-brand-surface/50 p-4">
+        <Loader2 className="mt-0.5 h-5 w-5 shrink-0 animate-spin text-brand-secondary" />
+        <div>
+          <p className="text-sm font-semibold text-devs-text">Verificando membresía…</p>
+          <p className="mt-0.5 text-xs text-devs-muted leading-relaxed">
+            Consultando tu estado gold en devsChile.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (soy) {
+    const goldConfirmed = soy.isGold && !stale;
+    const { title, message } = soyBadgeText(soy, stale);
+    return (
+      <div
+        className={`flex items-start gap-3 rounded-xl border p-4 ${
+          goldConfirmed
+            ? 'border-green-300 bg-green-50'
+            : 'border-brand-secondary/10 bg-brand-surface/50'
+        }`}
+      >
+        <span
+          className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-white ${
+            goldConfirmed ? 'bg-green-600' : 'bg-brand-secondary/40'
+          }`}
+        >
+          <Check className="h-3 w-3" />
+        </span>
+        <div>
+          <p className="text-sm font-semibold text-devs-text">{title}</p>
+          <p className="mt-0.5 text-xs text-devs-muted leading-relaxed">
+            {soy.member.handle
+              ? `Conectado como @${soy.member.handle}.`
+              : 'Tu cuenta devsChile está conectada.'}{' '}
+            {message}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      disabled={verifying}
+      onClick={() => {
+        posthog.capture('checkout_soy_verify_clicked');
+        onVerify?.();
+      }}
+      className="w-full rounded-xl border border-dashed border-brand-secondary/30 px-4 py-3 text-sm text-devs-muted transition-colors hover:border-brand-primary hover:text-brand-primary disabled:opacity-60"
+    >
+      {verifying ? 'Conectando con devsChile…' : '¿Eres parte de devsChile? Verifica tu membresía'}
+    </button>
   );
 }

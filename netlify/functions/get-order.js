@@ -47,6 +47,21 @@ exports.handler = async (event) => {
       return { statusCode: 404, headers, body: JSON.stringify({ error: 'Orden no encontrada' }) };
     }
 
+    if (order.status === 'pending') {
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+          order: {
+            id: order.id,
+            status: order.status,
+            created_at: order.created_at,
+            updated_at: order.updated_at,
+          },
+        }),
+      };
+    }
+
     const items = await sql`
       SELECT product_id, product_name, quantity, unit_price, subtotal, original_unit_price
       FROM order_items
@@ -69,7 +84,7 @@ exports.handler = async (event) => {
             city: order.shipping_city,
             region: order.shipping_region,
           },
-          discount: order.discount_code
+          discount: order.discount_code && order.discount_code !== 'GOLD'
             ? {
                 code: order.discount_code,
                 type: order.discount_type,

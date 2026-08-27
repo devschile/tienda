@@ -17,9 +17,12 @@ import { useCart } from '@/hooks/useCart';
 import type { BundleSelection } from '@/hooks/useCart';
 import { CartDrawer } from '@/components/CartDrawer';
 import { CheckoutModal } from '@/components/CheckoutModal';
+import { checkoutDraftKey } from '@/lib/checkout-draft';
+import { GoldMembershipCard } from '@/components/GoldMembershipCard';
 import { BundleBuilder } from '@/components/BundleBuilder';
 import { DevTools } from '@/components/DevTools';
 import { useStoreSettings } from '@/hooks/useStoreSettings';
+import { useSoyAuth, SOY_RETURN_TO_KEY } from '@/hooks/useSoyAuth';
 import { maxShippingTier, shippingCostForTier } from '@/lib/shipping';
 import { version } from '../package.json';
 import posthog from '@/lib/posthog';
@@ -74,6 +77,15 @@ function App() {
   const [cartOpen, setCartOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const soyAuth = useSoyAuth();
+
+  useEffect(() => {
+    if (!soyAuth.session) return;
+    if (sessionStorage.getItem(SOY_RETURN_TO_KEY) !== 'checkout') return;
+    sessionStorage.removeItem(SOY_RETURN_TO_KEY);
+    setCartOpen(false);
+    setCheckoutOpen(true);
+  }, [soyAuth.session]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(() => {
     return new URLSearchParams(window.location.search).get('category');
   });
@@ -303,6 +315,8 @@ function App() {
         shipping_cost: customer.shippingCost ?? 0,
         newsletter_opt_in: Boolean(customer.wantsNewsletter),
       });
+      // La llave se deriva de las lineIds: limpiarla antes de clearCart.
+      sessionStorage.removeItem(checkoutDraftKey(cartKey));
       cart.clearCart();
       window.location.href = data.checkout_url;
     } catch (error) {
@@ -331,6 +345,10 @@ function App() {
   // Si ningún producto del carrito admite envío (ej. solo membresías digitales),
   // el checkout ni siquiera pregunta por envío/dirección.
   const cartAllowsShipping = cart.items.some((i) => i.product.fields.shipping_enabled !== false);
+  const cartKey = cart.items
+    .map((i) => i.lineId)
+    .sort()
+    .join('|');
   // Los add-ons solo se habilitan si el subtotal ya cubre el costo de envío del
   // tier que manda en el carrito.
   const addonsUnlocked = !shippingEnabled || cart.totalAmount >= cartTierCost;
@@ -445,6 +463,8 @@ function App() {
 
       {/* Main Content */}
       <main className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-16">
+        <GoldMembershipCard />
+
         {loadingProducts && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
             {Array.from({ length: 6 }).map((_, i) => (
@@ -704,6 +724,7 @@ function App() {
       />
 
       <CheckoutModal
+        key={cartKey}
         open={checkoutOpen}
         onOpenChange={setCheckoutOpen}
         totalAmount={cart.totalAmount}
@@ -715,6 +736,12 @@ function App() {
         cartShippingTier={cartShippingTier}
         freeShippingThreshold={freeShippingThreshold}
         cartAllowsShipping={cartAllowsShipping}
+        cartKey={cartKey}
+        soy={soyAuth.session}
+        soyVerifying={soyAuth.busy || soyAuth.refreshing}
+        soyStale={soyAuth.refreshOutcome === 'unavailable'}
+        onRefreshSoy={soyAuth.refresh}
+        onVerifySoy={soyAuth.verify}
       />
 
       <Toaster />
