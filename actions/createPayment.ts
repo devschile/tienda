@@ -27,6 +27,7 @@ export interface CustomerData {
   wantsNewsletter?: boolean;
   shippingCost?: number; // CLP — 0 o undefined = sin costo de envío
   promoCode?: string; // código de descuento aplicado (el servidor lo re-valida)
+  soyAccessToken?: string;
 }
 
 export interface CreatePaymentResult {
@@ -43,7 +44,9 @@ export const createPayment = async (
   customer: CustomerData,
 ): Promise<CreatePaymentResult> => {
   if (import.meta.env.DEV) {
-    console.log('Mock de pago para desarrollo', { items, customer });
+    const customerForLog = { ...customer };
+    delete customerForLog.soyAccessToken;
+    console.log('Mock de pago para desarrollo', { items, customer: customerForLog });
     await new Promise((resolve) => setTimeout(resolve, 800));
     return {
       success: true,

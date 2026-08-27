@@ -17,11 +17,12 @@ import { useCart } from '@/hooks/useCart';
 import type { BundleSelection } from '@/hooks/useCart';
 import { CartDrawer } from '@/components/CartDrawer';
 import { CheckoutModal } from '@/components/CheckoutModal';
+import { checkoutDraftKey } from '@/lib/checkout-draft';
 import { GoldMembershipCard } from '@/components/GoldMembershipCard';
 import { BundleBuilder } from '@/components/BundleBuilder';
 import { DevTools } from '@/components/DevTools';
 import { useStoreSettings } from '@/hooks/useStoreSettings';
-import { checkoutDraftKey } from '@/lib/checkout-draft';
+import { useSoyAuth, SOY_RETURN_TO_KEY } from '@/hooks/useSoyAuth';
 import { maxShippingTier, shippingCostForTier } from '@/lib/shipping';
 import { version } from '../package.json';
 import posthog from '@/lib/posthog';
@@ -76,6 +77,15 @@ function App() {
   const [cartOpen, setCartOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const soyAuth = useSoyAuth();
+
+  useEffect(() => {
+    if (!soyAuth.session) return;
+    if (sessionStorage.getItem(SOY_RETURN_TO_KEY) !== 'checkout') return;
+    sessionStorage.removeItem(SOY_RETURN_TO_KEY);
+    setCartOpen(false);
+    setCheckoutOpen(true);
+  }, [soyAuth.session]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(() => {
     return new URLSearchParams(window.location.search).get('category');
   });
@@ -727,6 +737,11 @@ function App() {
         freeShippingThreshold={freeShippingThreshold}
         cartAllowsShipping={cartAllowsShipping}
         cartKey={cartKey}
+        soy={soyAuth.session}
+        soyVerifying={soyAuth.busy || soyAuth.refreshing}
+        soyStale={soyAuth.refreshOutcome === 'unavailable'}
+        onRefreshSoy={soyAuth.refresh}
+        onVerifySoy={soyAuth.verify}
       />
 
       <Toaster />
