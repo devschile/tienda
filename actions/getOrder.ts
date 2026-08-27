@@ -26,14 +26,14 @@ export interface OrderDiscount {
 export interface Order {
   id: string;
   status: OrderStatus;
-  total_amount: number;
-  customer: { name: string };
-  shipping: { city: string | null; region: string | null };
-  discount: OrderDiscount | null;
-  items: OrderItem[];
-  mp_payment_id: string | null;
+  total_amount?: number;
+  customer?: { name: string };
+  shipping?: { city: string | null; region: string | null };
+  discount?: OrderDiscount | null;
+  items?: OrderItem[];
+  mp_payment_id?: string | null;
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
 }
 
 export const getOrder = async (orderId: string): Promise<Order> => {

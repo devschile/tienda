@@ -198,7 +198,7 @@ export function OrderConfirmation({ urlStatus }: OrderConfirmationProps) {
                     <p className="font-mono text-xs text-devs-text break-all">{order.id}</p>
                   </div>
 
-                  {order.customer.name && (
+                  {order.customer?.name && (
                     <div>
                       <p className="text-xs text-devs-muted mb-1">Comprador</p>
                       <p className="font-medium text-devs-text">{order.customer.name}</p>
@@ -206,22 +206,24 @@ export function OrderConfirmation({ urlStatus }: OrderConfirmationProps) {
                   )}
 
                   {/* Items */}
-                  <div>
-                    <p className="text-xs text-devs-muted mb-2">Productos</p>
-                    <div className="space-y-2">
-                      {order.items.map((item, i) => (
-                        <div key={i} className="flex justify-between text-sm">
-                          <span className="text-devs-text">
-                            {item.product_name}{' '}
-                            <span className="text-devs-muted">×{item.quantity}</span>
-                          </span>
-                          <span className="font-medium text-devs-text">
-                            {formatPrice(item.subtotal)}
-                          </span>
-                        </div>
-                      ))}
+                  {order.items && order.items.length > 0 && (
+                    <div>
+                      <p className="text-xs text-devs-muted mb-2">Productos</p>
+                      <div className="space-y-2">
+                        {order.items.map((item, i) => (
+                          <div key={i} className="flex justify-between text-sm">
+                            <span className="text-devs-text">
+                              {item.product_name}{' '}
+                              <span className="text-devs-muted">×{item.quantity}</span>
+                            </span>
+                            <span className="font-medium text-devs-text">
+                              {formatPrice(item.subtotal)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   {/* Descuento / envío gratis */}
                   {order.discount && order.discount.amount > 0 && (
@@ -238,12 +240,14 @@ export function OrderConfirmation({ urlStatus }: OrderConfirmationProps) {
                   )}
 
                   {/* Total */}
-                  <div className="flex justify-between items-center pt-3 border-t border-brand-secondary/10">
-                    <span className="font-medium text-devs-text">Total</span>
-                    <span className="font-mono text-xl font-bold text-brand-primary">
-                      {formatPrice(order.total_amount)}
-                    </span>
-                  </div>
+                  {typeof order.total_amount === 'number' && (
+                    <div className="flex justify-between items-center pt-3 border-t border-brand-secondary/10">
+                      <span className="font-medium text-devs-text">Total</span>
+                      <span className="font-mono text-xl font-bold text-brand-primary">
+                        {formatPrice(order.total_amount)}
+                      </span>
+                    </div>
+                  )}
                 </div>
               )}
 
