@@ -45,6 +45,16 @@ VITE_MERCADOPAGO_PUBLIC_KEY=APP_USR-...    # frontend (seguro exponerse)
 MERCADOPAGO_ACCESS_TOKEN=APP_USR-...       # backend solo
 MERCADOPAGO_WEBHOOK_SECRET=whsec_...       # Panel MP → Tu app → Webhooks
 
+# Identidad devsChile (soy) — descuento miembro por OAuth, no por email:
+# el checkout pide autorización authorize → code → soy-exchange (secreto solo server-side).
+# VITE_SOY_URL: origen de soy que ve el browser (default https://soy.devschile.cl);
+# cámbialo si el checkout debe autorizar contra un soy de staging.
+VITE_SOY_URL=https://soy.devschile.cl
+# SOY_CLIENT_SECRET debe ser el MISMO que NUXT_OAUTH_CLIENTS_TIENDA_CLIENT_SECRET en soy.
+SOY_MEMBERS_API_URL=https://soy.devschile.cl
+SOY_CLIENT_SECRET=
+MEMBER_DISCOUNT_PERCENT=10
+
 # Email (cambiar solo EMAIL_PROVIDER para alternar)
 EMAIL_PROVIDER=resend                      # resend | mailgun
 RESEND_API_KEY=re_...
