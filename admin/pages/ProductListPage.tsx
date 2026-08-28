@@ -385,7 +385,7 @@ export function ProductListPage() {
                         )}
                         {p.product_type === 'addon' && (
                           <span className="px-1.5 py-0.5 rounded-full bg-sky-100 text-sky-700 text-[10px] font-semibold">
-                            STICKER
+                            ADDON
                           </span>
                         )}
                         {p.selectable_in_bundles && (

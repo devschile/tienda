@@ -21,6 +21,21 @@ function parseBundleSizes(raw) {
     .filter((n) => Number.isInteger(n) && n > 0);
 }
 
+// Parsea bundle_item_ids (JSON '["prod_...","..."]') → array de ids string. [] si inválido.
+function parseBundleItemIds(raw) {
+  if (!raw) return [];
+  let arr = raw;
+  if (typeof raw === 'string') {
+    try {
+      arr = JSON.parse(raw);
+    } catch {
+      return [];
+    }
+  }
+  if (!Array.isArray(arr)) return [];
+  return arr.map((v) => String(v)).filter(Boolean);
+}
+
 // ── Envío por tiers (XS | S | M | L) ──────────────────────────────────────────
 // Cada producto se clasifica por el tamaño del paquete que cobra el courier.
 // El costo de envío del pedido = costo del tier más grande presente (cuando se
@@ -156,7 +171,7 @@ exports.handler = async (event, context) => {
     // (u omita) un ítem 'shipping' en el array — si no, alcanzaría con no mandar
     // ese ítem para pedir despacho gratis.
     const shippingRequested = customer.wantsDelivery === true;
-    // Los ítems con `bundle` son packs de stickers (product_type='bundle') y se
+    // Los ítems con `bundle` son packs (product_type='bundle') y se
     // procesan aparte como un solo ítem que el servidor descompone en líneas.
     const productItemsRequested = items.filter(
       (item) => item.productId !== 'shipping' && !item.bundle,
@@ -236,9 +251,10 @@ exports.handler = async (event, context) => {
       });
     }
 
-    // ── Packs de stickers (product_type='bundle') ─────────────────────────────
+    // ── Packs (product_type='bundle') ─────────────────────────────────────────
     // El cliente manda un solo ítem por pack con su selección; aquí se valida
-    // contra la BD y se descompone en líneas por sticker (incluida la sorpresa).
+    // contra la BD (incluido el roster curado del pack) y se descompone en líneas
+    // por ítem elegido (incluida la sorpresa).
     for (const item of bundleItemsRequested) {
       const bundleId = String(item.productId || '')
         .substring(0, 50)
@@ -249,7 +265,7 @@ exports.handler = async (event, context) => {
 
       const [bundle] = await sql`
         SELECT id, name, available, on_sale, sale_price, bundle_unit_price,
-               bundle_sizes, bundle_allow_surprise, product_type,
+               bundle_sizes, bundle_allow_surprise, bundle_item_ids, product_type,
                shipping_enabled, shipping_tier
         FROM products WHERE id = ${bundleId} AND archived = false
       `;
@@ -281,6 +297,15 @@ exports.handler = async (event, context) => {
       }
 
       const sizes = parseBundleSizes(bundle.bundle_sizes);
+      // Roster curado por el admin: solo estos ítems pueden elegirse en el pack.
+      const memberIds = parseBundleItemIds(bundle.bundle_item_ids);
+      if (memberIds.length === 0) {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ error: 'Este pack no tiene ítems configurados' }),
+        };
+      }
       const size = item.bundle?.size;
       if (typeof size !== 'number' || !Number.isInteger(size) || size <= 0 || !sizes.includes(size)) {
         return { statusCode: 400, headers, body: JSON.stringify({ error: 'Tamaño de pack inválido' }) };
@@ -326,7 +351,7 @@ exports.handler = async (event, context) => {
         };
       }
 
-      // Validar stickers elegidos: elegibles, disponibles y con stock.
+      // Validar ítems elegidos: dentro del roster del pack, elegibles, disponibles y con stock.
       const stickerIds = [...selectionQuantities.keys()];
       const stickerRows =
         stickerIds.length > 0
@@ -338,8 +363,8 @@ exports.handler = async (event, context) => {
       const stickersById = new Map(stickerRows.map((s) => [s.id, s]));
       for (const [sid, qty] of selectionQuantities) {
         const sticker = stickersById.get(sid);
-        if (!sticker || sticker.selectable_in_bundles !== true) {
-          return { statusCode: 400, headers, body: JSON.stringify({ error: `Sticker no elegible: ${sid}` }) };
+        if (!sticker || !memberIds.includes(sid) || sticker.selectable_in_bundles !== true) {
+          return { statusCode: 400, headers, body: JSON.stringify({ error: `Ítem no elegible en este pack: ${sid}` }) };
         }
         if (!sticker.available || sticker.stock < qty) {
           return {
@@ -351,18 +376,19 @@ exports.handler = async (event, context) => {
         if (sticker.product_type === 'addon') hasAddon = true;
       }
 
-      // La sorpresa se completa con stickers que existan en stock al despachar.
+      // La sorpresa se completa con ítems del roster del pack que existan en stock al despachar.
       if (surpriseCount > 0) {
-        const [anySticker] = await sql`
+        const [anyItem] = await sql`
           SELECT 1 FROM products
-          WHERE selectable_in_bundles = true AND available = true AND stock > 0 AND archived = false
+          WHERE id = ANY(${memberIds})
+            AND selectable_in_bundles = true AND available = true AND stock > 0 AND archived = false
           LIMIT 1
         `;
-        if (!anySticker) {
+        if (!anyItem) {
           return {
             statusCode: 400,
             headers,
-            body: JSON.stringify({ error: 'No hay stickers en stock para completar el pack' }),
+            body: JSON.stringify({ error: 'No hay ítems en stock para completar el pack' }),
           };
         }
       }
@@ -385,7 +411,7 @@ exports.handler = async (event, context) => {
       if (surpriseCount > 0) {
         sanitizedItems.push({
           productId: `${bundleId}@surpresa`,
-          productName: `${packName} · Sticker sorpresa`,
+          productName: `${packName} · Ítem sorpresa`,
           quantity: surpriseCount * packCount,
           unitPrice: bundleUnitPrice,
           originalPrice: bundleUnitPrice,

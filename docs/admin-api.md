@@ -16,7 +16,7 @@ Header `Authorization: Bearer <JWT>` en **toda** request. El JWT se obtiene en `
 
 | Método | Ruta | Descripción |
 |---|---|---|
-| GET | `/admin-api/products` | Lista paginada (filtros: search, on_sale, presale, visible, low_stock, archived) |
+| GET | `/admin-api/products` | Lista paginada (filtros: search, on_sale, presale, visible, selectable_in_bundles, low_stock, archived) |
 | GET | `/admin-api/products/:id` | Detalle de un producto |
 | POST | `/admin-api/products` | Crear producto |
 | PUT | `/admin-api/products/:id` | Actualizar producto |
@@ -54,6 +54,7 @@ El producto que devuelve el GET incluye **campos calculados** derivados de la ta
 | `selectable_in_bundles` | bool | Sí | Sí |
 | `bundle_unit_price` | int | Sí | Sí |
 | `bundle_sizes` | text (JSON `[3,4,6]`) | Sí | Sí (como texto) |
+| `bundle_item_ids` | text (JSON de ids `prod_...`) | Sí | Sí (array o texto) |
 | `bundle_allow_surprise` | bool | Sí | Sí |
 | `shipping_enabled` | bool | Sí | Sí |
 | `created_time` | timestamptz | Sí | No — read-only |
@@ -71,6 +72,7 @@ Actualiza solo los campos presentes en el body (`COALESCE(..., columna)`). Campo
 - `name` y `price` son requeridos; el resto opcional.
 - `bundle_unit_price` se sanean con `sanitizeNullableInt` (> 0, si no → null).
 - `bundle_sizes` se normaliza con `sanitizeSizes` a JSON `[3,4,6]`.
+- `bundle_item_ids` se normaliza con `sanitizeItemIds` a JSON de ids únicos (lista curada de ítems incluidos en el pack).
 - `product_type` se sanean con `sanitizeProductType` (valores desconocidos → `standard`).
 - **Exclusividad `on_sale` / `presale`:** son mutuamente excluyentes (CHECK `chk_presale_on_sale_exclusive`). **Gana `presale`**: si `presale=true`, `on_sale` queda `false`, y viceversa. El valor final se calcula **en JS** antes de armar el UPDATE (mismo criterio que el `POST`), no con expresiones `CASE` en SQL.
 

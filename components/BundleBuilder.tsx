@@ -1,5 +1,5 @@
-// Constructor de packs de stickers (producto tipo 'bundle').
-// 1) Elige tamaño → 2) selecciona stickers → validación (sorpresa o bloqueo).
+// Constructor de packs (producto tipo 'bundle').
+// 1) Elige tamaño → 2) selecciona ítems → validación (sorpresa o bloqueo).
 import { useState, useEffect } from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { motion, AnimatePresence } from 'motion/react';
@@ -14,8 +14,9 @@ interface BundleBuilderProps {
   product: ProductRecord;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** Stickers elegibles (selectable_in_bundles + available + stock > 0). */
-  stickers: ProductRecord[];
+  /** Ítems elegibles de ESTE pack (roster curado por el admin: bundle_item_ids,
+   * filtrado por available + stock > 0). */
+  items: ProductRecord[];
   onAddToCart: (product: ProductRecord, bundle: BundleSelection) => void;
 }
 
@@ -30,7 +31,7 @@ export function BundleBuilder({
   product,
   open,
   onOpenChange,
-  stickers,
+  items,
   onAddToCart,
 }: BundleBuilderProps) {
   const sizes = product.fields.bundle_sizes?.length ? product.fields.bundle_sizes : null;
@@ -58,10 +59,10 @@ export function BundleBuilder({
   const canAdd =
     size !== null && (deficit === 0 || (allowSurprise && deficit > 0 && surpriseConfirmed));
 
-  const inc = (sticker: ProductRecord) => {
+  const inc = (item: ProductRecord) => {
     if (size === null || selectedCount >= size) return;
-    if (counts[sticker.id] >= sticker.fields.stock) return;
-    setCounts((prev) => ({ ...prev, [sticker.id]: (prev[sticker.id] ?? 0) + 1 }));
+    if (counts[item.id] >= item.fields.stock) return;
+    setCounts((prev) => ({ ...prev, [item.id]: (prev[item.id] ?? 0) + 1 }));
   };
   const dec = (id: string) => {
     setCounts((prev) => {
@@ -77,22 +78,22 @@ export function BundleBuilder({
 
   const handleAdd = () => {
     if (!canAdd || added) return;
-    const items = Object.entries(counts)
+    const selectedItems = Object.entries(counts)
       .filter(([, qty]) => qty > 0)
       .map(([productId, quantity]) => ({
         productId,
-        name: stickers.find((s) => s.id === productId)?.fields.name ?? 'Sticker',
+        name: items.find((s) => s.id === productId)?.fields.name ?? 'Ítem',
         quantity,
       }));
     const bundle: BundleSelection = {
       size: size as number,
-      items,
+      items: selectedItems,
       surpriseCount: Math.max(0, deficit),
     };
     posthog.capture('bundle_added_to_cart', {
       bundle_id: product.id,
       size: bundle.size,
-      explicit_count: items.reduce((s, i) => s + i.quantity, 0),
+      explicit_count: selectedItems.reduce((s, i) => s + i.quantity, 0),
       surprise_count: bundle.surpriseCount,
     });
     onAddToCart(product, bundle);
@@ -125,9 +126,9 @@ export function BundleBuilder({
                   transition={{ type: 'spring', bounce: 0.18, duration: 0.4 }}
                 >
                   <div className="sr-only">
-                    <DialogPrimitive.Title>Arma tu pack de stickers</DialogPrimitive.Title>
+                    <DialogPrimitive.Title>Arma tu pack</DialogPrimitive.Title>
                     <DialogPrimitive.Description>
-                      Elige el tamaño y combina los stickers disponibles.
+                      Elige el tamaño y combina los ítems disponibles.
                     </DialogPrimitive.Description>
                   </div>
 
@@ -138,8 +139,8 @@ export function BundleBuilder({
                         <EmojiText text={product.fields.name} />
                       </h2>
                       <p className="text-sm text-devs-muted mt-0.5">
-                        {unitPrice ? `${formatPrice(unitPrice)} por sticker` : ''} · Elige de los
-                        stickers disponibles
+                        {unitPrice ? `${formatPrice(unitPrice)} por ítem` : ''} · Elige de los ítems
+                        disponibles
                       </p>
                     </div>
                   </div>
@@ -161,7 +162,7 @@ export function BundleBuilder({
                                 : 'bg-brand-surface border border-brand-secondary/20 text-devs-text hover:bg-brand-accent/20'
                             }`}
                           >
-                            {s} stickers · {formatPrice(s * unitPrice)}
+                            {s} ítems · {formatPrice(s * unitPrice)}
                           </button>
                         ))}
                       </div>
@@ -201,9 +202,9 @@ export function BundleBuilder({
                           {allowSurprise ? (
                             <>
                               <p className="text-sm text-amber-700 bg-amber-100 border border-amber-200 rounded-lg px-3 py-2">
-                                ⚠️ Faltan {deficit} {deficit === 1 ? 'sticker' : 'stickers'} —{' '}
+                                ⚠️ Faltan {deficit} {deficit === 1 ? 'ítem' : 'ítems'} —{' '}
                                 {deficit === 1 ? 'se completará' : 'se completarán'} con{' '}
-                                {deficit === 1 ? 'un sticker sorpresa' : 'stickers sorpresa'} (los
+                                {deficit === 1 ? 'un ítem sorpresa' : 'ítems sorpresa'} (los
                                 elegiremos según stock disponible).
                               </p>
                               <label className="mt-2 flex items-start gap-2.5 cursor-pointer select-none">
@@ -214,14 +215,14 @@ export function BundleBuilder({
                                   className="mt-0.5 w-4 h-4 accent-brand-primary"
                                 />
                                 <span className="text-sm text-devs-text">
-                                  Acepto que los {deficit} stickers faltantes sean{' '}
+                                  Acepto que los {deficit} ítems faltantes sean{' '}
                                   <strong>sorpresa</strong>.
                                 </span>
                               </label>
                             </>
                           ) : (
                             <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-                              Debes elegir exactamente {size} stickers para armar el pack.
+                              Debes elegir exactamente {size} ítems para armar el pack.
                             </p>
                           )}
                         </motion.div>
@@ -229,23 +230,23 @@ export function BundleBuilder({
                     </AnimatePresence>
                   </div>
 
-                  {/* Paso 2 — Stickers */}
+                  {/* Paso 2 — Ítems */}
                   <p className="mt-5 text-xs font-medium text-brand-secondary uppercase tracking-wide">
-                    Elige tus stickers
+                    Elige tus ítems
                   </p>
-                  {stickers.length === 0 ? (
+                  {items.length === 0 ? (
                     <div className="mt-3 bg-brand-surface rounded-xl p-6 text-center text-sm text-devs-muted">
-                      No hay stickers disponibles en stock ahora mismo.
+                      No hay ítems disponibles en stock ahora mismo.
                     </div>
                   ) : (
                     <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-3">
-                      {stickers.map((sticker) => {
-                        const qty = counts[sticker.id] ?? 0;
+                      {items.map((item) => {
+                        const qty = counts[item.id] ?? 0;
                         const exhausted = size !== null && selectedCount >= size && qty === 0;
-                        const soldOut = sticker.fields.stock === 0;
+                        const soldOut = item.fields.stock === 0;
                         return (
                           <div
-                            key={sticker.id}
+                            key={item.id}
                             className={`rounded-xl border bg-white p-3 transition-colors ${
                               qty > 0
                                 ? 'border-brand-primary/60 shadow-md'
@@ -253,22 +254,22 @@ export function BundleBuilder({
                             }`}
                           >
                             <img
-                              src={sticker.fields.coverImage?.url ?? '/assets/images/default.svg'}
-                              alt={sticker.fields.name}
+                              src={item.fields.coverImage?.url ?? '/assets/images/default.svg'}
+                              alt={item.fields.name}
                               className={`w-full aspect-square object-cover rounded-lg bg-brand-surface ${soldOut || (exhausted && qty === 0) ? 'opacity-40 grayscale' : ''}`}
                             />
                             <p className="mt-2 text-sm font-semibold text-devs-text line-clamp-1 leading-tight">
-                              <EmojiText text={sticker.fields.name} />
+                              <EmojiText text={item.fields.name} />
                             </p>
                             <p className="text-xs text-devs-muted mb-2">
-                              {formatPrice(unitPrice)} · stock {sticker.fields.stock}
+                              {formatPrice(unitPrice)} · stock {item.fields.stock}
                             </p>
                             <div className="flex items-center justify-between gap-2">
                               <button
-                                onClick={() => dec(sticker.id)}
+                                onClick={() => dec(item.id)}
                                 disabled={qty === 0}
                                 className="w-7 h-7 rounded-full border border-brand-secondary/20 flex items-center justify-center text-brand-secondary hover:bg-brand-secondary hover:text-white transition-colors disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-brand-secondary"
-                                aria-label={`Quitar ${sticker.fields.name}`}
+                                aria-label={`Quitar ${item.fields.name}`}
                               >
                                 <Minus className="h-3 w-3" />
                               </button>
@@ -276,10 +277,10 @@ export function BundleBuilder({
                                 {qty}
                               </span>
                               <button
-                                onClick={() => inc(sticker)}
-                                disabled={soldOut || exhausted || qty >= sticker.fields.stock}
+                                onClick={() => inc(item)}
+                                disabled={soldOut || exhausted || qty >= item.fields.stock}
                                 className="w-7 h-7 rounded-full border border-brand-secondary/20 flex items-center justify-center text-brand-secondary hover:bg-brand-secondary hover:text-white transition-colors disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-brand-secondary"
-                                aria-label={`Agregar ${sticker.fields.name}`}
+                                aria-label={`Agregar ${item.fields.name}`}
                               >
                                 <Plus className="h-3 w-3" />
                               </button>
@@ -300,7 +301,7 @@ export function BundleBuilder({
                     </div>
                     <Button
                       onClick={handleAdd}
-                      disabled={!canAdd || stickers.length === 0}
+                      disabled={!canAdd || items.length === 0}
                       className={`h-12 px-6 text-sm font-bold tracking-wide rounded-xl transition-all active:scale-[0.98] ${
                         added ? 'bg-emerald-500 text-white' : 'btn-buy btn-glow'
                       }`}

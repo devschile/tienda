@@ -10,7 +10,7 @@ export function Pagination({ page, pageSize, total, onChange }: PaginationProps)
   if (totalPages <= 1) return null;
 
   const from = (page - 1) * pageSize + 1;
-  const to   = Math.min(page * pageSize, total);
+  const to = Math.min(page * pageSize, total);
 
   return (
     <div className="flex items-center justify-between pt-4 border-t border-slate-200">

@@ -152,7 +152,7 @@ export function CartDrawer({
                                     )}
                                     {bundle.size > 0 && (
                                       <li className="text-xs text-devs-muted/60 italic leading-tight">
-                                        Pack de {bundle.size} stickers
+                                        Pack de {bundle.size} ítems
                                       </li>
                                     )}
                                   </ul>

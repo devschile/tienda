@@ -355,8 +355,9 @@ function App() {
   const allProducts = (productsData?.records || []).filter(
     (p) => p.fields.visible && (p.fields.product_type !== 'addon' || addonsUnlocked),
   );
-  // Stickers elegibles dentro de un pack (independiente de la gating de add-ons)
-  const selectableStickers = (productsData?.records || []).filter(
+  // Ítems elegibles dentro de un pack (independiente de la gating de add-ons).
+  // Cada pack filtra este pool por su propia lista curada (bundle_item_ids).
+  const selectablePool = (productsData?.records || []).filter(
     (p) =>
       p.fields.selectable_in_bundles &&
       p.fields.available &&
@@ -705,7 +706,9 @@ function App() {
               }
             }
           }}
-          stickers={selectableStickers}
+          items={selectablePool.filter(
+            (p) => bundleProduct.fields.bundle_item_ids?.includes(p.id) ?? false,
+          )}
           onAddToCart={handleAddBundle}
         />
       )}

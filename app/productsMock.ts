@@ -394,6 +394,13 @@ export const productsMock = [
       bundle_unit_price: 1000,
       bundle_sizes: [3, 4, 6],
       bundle_allow_surprise: true,
+      bundle_item_ids: [
+        'sticker-huemul-001',
+        'sticker-typescript-001',
+        'sticker-llanto-001',
+        'sticker-huemulfest-001',
+        'sticker-18sept-001',
+      ],
     },
     createdTime: '2026-08-01T00:00:00.000Z',
   },
