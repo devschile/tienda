@@ -206,7 +206,19 @@ Usuario → Catálogo → Carrito → Checkout Form
                         · Descuenta stock si approved
                              (salta product_id='shipping')
                         · Emails de confirmación
+                                ↓ (respaldo)
+                     reconcile-payments (cada 5 min)
+                        · Órdenes pending/pending_transfer
+                          se contrastan con la API de MP
+                        · Auto-aprueba + descuenta stock
+                          si el webhook se perdió/rechazó
 ```
+
+**Auto-aprobación:** el estado de la orden y el descuento de stock se resuelven en una
+única función de fulfillment (`netlify/functions/lib/fulfill.js`) usada por el webhook,
+por `get-order` (cuando el comprador vuelve a `/success`) y por la reconcilier programada
+`reconcile-payments` — así una orden aprobada pasa sola a `approved` y baja stock aunque
+la notificación del webhook se pierda.
 
 **Costo de envío:** cada producto clasifica el paquete que le cobra el courier (`shipping_tier`: XS | S | M | L, editable en el admin por producto). El costo de un pedido = costo absoluto del tier más grande presente (cuando se mezclan niveles, el más grande manda — no se suman). Los costos se configuran en `/admin/settings → Envío` (un monto por tier). Si aplica costo, se agrega como ítem `product_id='shipping'` (con el tier en el nombre, p. ej. "Envío a domicilio (S)") al array de ítems — así MercadoPago lo cobra y los emails lo muestran con breakdown separado. El servidor recalcula el tier y el costo siempre desde la base de datos (nunca confía en lo enviado por el cliente).
 

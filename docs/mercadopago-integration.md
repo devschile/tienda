@@ -73,6 +73,23 @@ sequenceDiagram
 > pero el webhook puede llegar unos segundos después. Por eso `get-order` consulta la
 > base de datos en tiempo real en lugar de confiar solo en el parámetro de la URL.
 
+### Respaldo automático: reconciliación (si el webhook falla)
+
+El webhook es la vía principal para aprobar una orden, pero si la notificación se pierde
+o es rechazada por firma, la orden **no queda atascada** — hay dos capas de respaldo:
+
+1. **`reconcile-payments`** (function programada en `netlify.toml`, cada 5 min): escanea
+   órdenes en `pending`/`pending_transfer`, consulta el estado real del pago en la API de
+   MP y, si fue aprobado, transiciona la orden a `approved` y descuenta stock. Idempotente:
+   no duplica descuentos aunque el webhook y la reconciliación corran en paralelo.
+2. **`get-order`**: cuando el comprador vuelve a `/success?order_id=...`, antes de mostrar
+   la página hace la misma reconciliación para esa orden (aprobación inmediata, sin esperar
+   los 5 minutos).
+
+Todo esto comparte una única función de fulfillment (`netlify/functions/lib/fulfill.js`)
+que actualiza estado + stock + consumo de código de descuento en **una sola sentencia SQL**
+(atómico): no puede quedar una orden `approved` sin stock descontado.
+
 ---
 
 ## 2. Crear la aplicación en MercadoPago
@@ -226,8 +243,10 @@ fue aprobado incluso si el usuario cierra el navegador antes de volver al sitio.
 
 La function `mercadopago-webhook` recibe el header `x-signature` de MP y lo compara
 con un HMAC-SHA256 calculado con el `MERCADOPAGO_WEBHOOK_SECRET`. Si la firma no
-coincide, retorna `401` y descarta la notificación. Esto protege el endpoint de
-llamadas fraudulentas externas.
+coincide, **descarta** la notificación (retorna HTTP 200 con `error: "invalid_signature"`
+para que MP no reintente). Si todas las notificaciones se descartan así, las órdenes
+quedan en `pending` — el log del webhook muestra el motivo, y la reconciliación programada
+cubre el hueco igualmente.
 
 ---
 
@@ -487,13 +506,18 @@ incorrecto en el entorno actual.
 - La URL del webhook no está registrada en el panel de MP
 - La URL está registrada pero con un error tipográfico
 - MP no puede alcanzar la URL (entorno local sin tunnel)
-- La firma HMAC no coincide y el endpoint retorna 401
+- La firma HMAC no coincide (secret incorrecto o de otra URL) y el endpoint descarta la notificación
 
 **Solución:**
 1. Ir al panel de MP → Webhooks → verificar que la URL está registrada y activa
-2. En Netlify, ir a **Functions → mercadopago-webhook → Logs** y buscar errores
+2. En Netlify, ir a **Functions → mercadopago-webhook → Logs** y buscar errores (el log
+   distingue `firma inválida` vs `payment_not_found` vs pago sin `external_reference`)
 3. Para local, usar `ngrok http 8888` y registrar la URL de ngrok en MP
 4. Verificar que `MERCADOPAGO_WEBHOOK_SECRET` corresponde al secret de esa URL específica
+
+> **Nota:** aunque el webhook esté caído, la reconciliación programada (`reconcile-payments`,
+> cada 5 min) aprueba la orden sola si el pago fue aprobado en MP. Revisar también
+> **Functions → reconcile-payments → Logs** si una orden lleva más de ~5 min en `pending`.
 
 ---
 
@@ -520,7 +544,11 @@ incorrecto en el entorno actual.
 2. Buscar el log del evento correspondiente al `payment_id`
 3. Verificar que no hay errores de SQL o de conexión a NeonDB
 4. Verificar que la orden existe en la base de datos con el `order_id` correcto
-5. Si el log muestra que el pago fue procesado pero el stock no bajó, revisar que el trigger `trg_sync_available` esté activo en la base de datos
+
+> Desde la nueva implementación, el descuento de stock es **atómico** con el cambio de
+> estado de la orden (misma sentencia SQL en `lib/fulfill.js`) y se repite tanto en el
+> webhook como en la reconciliación programada. Si el pago fue aprobado, el stock baja
+> solo; ya no hace falta corregirlo a mano.
 
 ---
 
@@ -534,8 +562,10 @@ que actualiza el status de la orden puede llegar algunos segundos después.
 2. Hacer polling o retry si el status sigue en `pending` por algunos segundos
 3. Mostrar el estado final una vez que el webhook actualizó la orden
 
-Si la orden permanece en `pending` por más de 2 minutos, entonces revisar los logs
-del webhook para detectar un problema real.
+> `get-order` ahora **reconcilia con MP en cada visita**: si el pago ya está aprobado
+> aunque el webhook aún no llegó, la orden se aprueba en el momento y la página muestra
+> el estado real. Si una orden sigue en `pending` después de eso, revisar los logs del
+> webhook y de `reconcile-payments`.
 
 ---
 
