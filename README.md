@@ -131,6 +131,7 @@ Aplica en orden desde `migrations/` en el SQL Editor de Neon:
 | 18 | `add_promo_codes.sql` | Códigos de descuento (%, monto fijo o envío gratis) + columnas de descuento en `orders` |
 | 19 | `fix_promo_codes_id_type.sql` | `promo_codes.id` uuid → text (`prm_...`, igual que products/images) |
 | 20 | `add_shipping_tier.sql` | Envío por niveles (XS/S/M/L): tier por producto + costo absoluto por tier en `settings` |
+| 21 | `add_bundle_item_ids.sql` | Packs curados: `bundle_item_ids` (JSON de ids) — cada pack declara qué ítems incluye |
 
 ### Esquema resumido
 
@@ -145,6 +146,7 @@ products
   shipping_enabled (default true)  ← envío opcional por producto (migración 16)
   shipping_tier (xs|s|m|l, default 'xs')  ← tamaño del paquete (migración 20)
   bundle_sizes (JSON [3,4,6]), bundle_allow_surprise
+  bundle_item_ids (JSON de ids)  ← ítems incluidos en cada pack (migración 21)
   created_time
 
 product_images
@@ -210,13 +212,14 @@ Usuario → Catálogo → Carrito → Checkout Form
 
 ---
 
-## 🎟️ Packs de stickers y add-ons
+## 🎟️ Packs y add-ons
 
-Los stickers tienen un valor bajo que no justifica un envío propio, así que no se venden sueltos:
+Los ítems de bajo valor (stickers, button pins, etc.) no justifican un envío propio, así que se venden dentro de packs o como agregados:
 
-- **Pack (bundle):** producto `product_type='bundle'` con `bundle_unit_price` (precio por sticker), `bundle_sizes` (p. ej. `[3,4,6]`) y `bundle_allow_surprise`. Su botón en el catálogo abre el **constructor de packs** (`BundleBuilder`): se elige tamaño y se combinan stickers seleccionables (`selectable_in_bundles=true`, con stock). Si faltan stickers para completar el tamaño se muestra un aviso: con sorpresas, el usuario debe confirmar "acepto stickers sorpresa"; sin sorpresas, se bloquea hasta completar la selección.
-- **Add-on (sticker):** producto `product_type='addon'`. No aparece en el catálogo salvo que el carrito ya acumule subtotal ≥ costo de envío (entonces se puede añadir al mismo pedido sin envío extra).
-- El backend valida todo de nuevo en `create-payment.js`: tamaño ∈ `bundle_sizes`, selección = tamaño (explícitos + sorpresas), stickers elegibles/con stock, precio recalculado desde la BD, y rechaza stickers add-on en pedidos cuyo subtotal no cubra el envío. Al aprobarse el pago, el webhook descuenta el stock de cada sticker elegido; los slots sorpresa se resuelven con stock disponible al despachar.
+- **Pack (bundle):** producto `product_type='bundle'` con `bundle_unit_price` (precio por ítem), `bundle_sizes` (p. ej. `[3,4,6]`), `bundle_allow_surprise` y `bundle_item_ids` (ids curados: la lista exacta de ítems que ese pack permite elegir). Su botón en el catálogo abre el **constructor de packs** (`BundleBuilder`): se elige tamaño y se combinan ítems del roster del pack (con stock). Cada pack tiene su propio roster — ya no se mezclan stickers con pins si el admin no los incluye. Si faltan ítems para completar el tamaño se muestra un aviso: con sorpresas, el usuario debe confirmar "acepto ítems sorpresa"; sin sorpresas, se bloquea hasta completar la selección.
+- **Add-on (ítem de bajo valor):** producto `product_type='addon'`. No aparece en el catálogo salvo que el carrito ya acumule subtotal ≥ costo de envío (entonces se puede añadir al mismo pedido sin envío extra).
+- El flag `selectable_in_bundles` es el "pool opt-in": solo los ítems marcados aparecen en la lista "Ítems incluidos" de cada pack en el admin.
+- El backend valida todo de nuevo en `create-payment.js`: tamaño ∈ `bundle_sizes`, selección = tamaño (explícitos + sorpresas), ítems dentro del roster del pack (`bundle_item_ids`) y con stock, precio recalculado desde la BD, y rechaza ítems add-on en pedidos cuyo subtotal no cubra el envío. Al aprobarse el pago, el webhook descuenta el stock de cada ítem elegido; los slots sorpresa se resuelven con stock disponible al despachar.
 
 ---
 

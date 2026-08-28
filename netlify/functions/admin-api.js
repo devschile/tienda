@@ -74,6 +74,21 @@ const sanitizeSizes = (value) => {
   return nums.length > 0 ? JSON.stringify([...new Set(nums)].sort((a, b) => a - b)) : null;
 };
 
+// bundle_item_ids llega como array de ids (o string). Normaliza a JSON de ids
+// únicos (null si vacío). Cada id es texto (prod_..., sticker-..., etc.).
+const sanitizeItemIds = (value) => {
+  if (Array.isArray(value)) {
+    const ids = value.map((v) => String(v).trim()).filter(Boolean);
+    return ids.length > 0 ? JSON.stringify([...new Set(ids)].sort()) : null;
+  }
+  const raw = String(value || '');
+  const ids = raw
+    .split(/[,\s]+/)
+    .map((v) => v.trim())
+    .filter(Boolean);
+  return ids.length > 0 ? JSON.stringify([...new Set(ids)].sort()) : null;
+};
+
 // Valida discount_type de un código de descuento — solo valores conocidos.
 const sanitizeDiscountType = (value) =>
   ['percent', 'fixed', 'shipping'].includes(value) ? value : null;
@@ -111,12 +126,14 @@ const handlers = {
       const visibleF = qs.visible === 'true' ? true : qs.visible === 'false' ? false : null;
       const lowStock = qs.low_stock === 'true';
       const archived = qs.archived === 'true';
+      const selectableInBundles =
+        qs.selectable_in_bundles === 'true' ? true : qs.selectable_in_bundles === 'false' ? false : null;
 
       const rows = await sql`
         SELECT p.id, p.name, p.category, p.price, p.sale_price,
                p.visible, p.available, p.stock, p.on_sale, p.presale, p.archived, p.created_time,
                p.product_type, p.selectable_in_bundles,
-               p.bundle_unit_price, p.bundle_sizes, p.bundle_allow_surprise,
+               p.bundle_unit_price, p.bundle_sizes, p.bundle_allow_surprise, p.bundle_item_ids,
                p.shipping_enabled, p.shipping_tier,
                (SELECT pi.url FROM product_images pi
                 WHERE pi.product_id = p.id AND pi.is_cover = true LIMIT 1) AS cover_url
@@ -126,6 +143,7 @@ const handlers = {
           ${onSale !== null ? sql`AND p.on_sale = ${onSale}` : sql``}
           ${presaleF !== null ? sql`AND p.presale = ${presaleF}` : sql``}
           ${visibleF !== null ? sql`AND p.visible = ${visibleF}` : sql``}
+          ${selectableInBundles !== null ? sql`AND p.selectable_in_bundles = ${selectableInBundles}` : sql``}
           ${lowStock ? sql`AND p.stock < 5` : sql``}
         ORDER BY p.created_time DESC
         LIMIT ${pageSize} OFFSET ${offset}
@@ -137,6 +155,7 @@ const handlers = {
           ${onSale !== null ? sql`AND p.on_sale = ${onSale}` : sql``}
           ${presaleF !== null ? sql`AND p.presale = ${presaleF}` : sql``}
           ${visibleF !== null ? sql`AND p.visible = ${visibleF}` : sql``}
+          ${selectableInBundles !== null ? sql`AND p.selectable_in_bundles = ${selectableInBundles}` : sql``}
           ${lowStock ? sql`AND p.stock < 5` : sql``}
       `;
       return json(200, { data: rows, total, page, pageSize });
@@ -159,6 +178,7 @@ const handlers = {
         bundle_unit_price,
         bundle_sizes,
         bundle_allow_surprise,
+        bundle_item_ids,
         shipping_enabled,
         shipping_tier,
       } = body;
@@ -177,7 +197,7 @@ const handlers = {
           (id, name, description, long_description, category, price, sale_price,
            visible, available, stock, on_sale, presale,
            product_type, selectable_in_bundles,
-           bundle_unit_price, bundle_sizes, bundle_allow_surprise,
+           bundle_unit_price, bundle_sizes, bundle_allow_surprise, bundle_item_ids,
            shipping_enabled, shipping_tier)
         VALUES (
           ${id},
@@ -197,6 +217,7 @@ const handlers = {
           ${sanitizeNullableInt(bundle_unit_price)},
           ${sanitizeSizes(bundle_sizes)},
           ${bundle_allow_surprise !== false},
+          ${sanitizeItemIds(bundle_item_ids)},
           ${shipping_enabled !== false},
           ${sanitizeShippingTier(shipping_tier)}
         )
@@ -225,6 +246,7 @@ const handlers = {
         bundle_unit_price,
         bundle_sizes,
         bundle_allow_surprise,
+        bundle_item_ids,
         shipping_enabled,
         shipping_tier,
       } = body;
@@ -256,6 +278,7 @@ const handlers = {
           bundle_unit_price     = COALESCE(${bundle_unit_price === undefined ? null : sanitizeNullableInt(bundle_unit_price)}, bundle_unit_price),
           bundle_sizes          = COALESCE(${bundle_sizes === undefined ? null : sanitizeSizes(bundle_sizes)}, bundle_sizes),
           bundle_allow_surprise = COALESCE(${bundle_allow_surprise !== undefined ? bundle_allow_surprise !== false : null}, bundle_allow_surprise),
+          bundle_item_ids       = COALESCE(${bundle_item_ids === undefined ? null : sanitizeItemIds(bundle_item_ids)}, bundle_item_ids),
           shipping_enabled      = COALESCE(${shipping_enabled !== undefined ? shipping_enabled !== false : null}, shipping_enabled),
           shipping_tier         = COALESCE(${shipping_tier !== undefined ? sanitizeShippingTier(shipping_tier) : null}, shipping_tier)
         WHERE id = ${id}

@@ -26,8 +26,21 @@ interface Product {
   bundle_unit_price: number | null;
   bundle_sizes: string;
   bundle_allow_surprise: boolean;
+  bundle_item_ids: string[];
   shipping_enabled: boolean;
   shipping_tier: 'xs' | 's' | 'm' | 'l';
+}
+
+/** Shape mínimo de un producto del pool (candidatos a incluir en un pack). */
+interface PoolProduct {
+  id: string;
+  name: string;
+  category: string;
+  product_type: 'standard' | 'bundle' | 'addon';
+  selectable_in_bundles: boolean;
+  price: number;
+  stock: number;
+  available: boolean;
 }
 
 const DEFAULTS: Partial<Product> = {
@@ -47,6 +60,7 @@ const DEFAULTS: Partial<Product> = {
   bundle_unit_price: null,
   bundle_sizes: '',
   bundle_allow_surprise: true,
+  bundle_item_ids: [],
   shipping_enabled: true,
   shipping_tier: 'xs',
 };
@@ -75,6 +89,7 @@ export function ProductEditPanel({ productId, creating = false, onClose, onSaved
   const [validationError, setValidationError] = useState<string | null>(null);
   const [categories, setCategories] = useState<string[]>([]);
   const [addingCategory, setAddingCategory] = useState(false);
+  const [pool, setPool] = useState<PoolProduct[]>([]);
 
   // Categorías existentes para el select — se cargan una vez al abrir el panel
   useEffect(() => {
@@ -95,6 +110,14 @@ export function ProductEditPanel({ productId, creating = false, onClose, onSaved
     }
   }, [creating]);
 
+  // Pool de ítems seleccionables (selectable_in_bundles=true) para la picker de packs.
+  useEffect(() => {
+    if (!isOpen) return;
+    adminFetch<{ data: PoolProduct[] }>('products?selectable_in_bundles=true&pageSize=50')
+      .then((res) => setPool(res.data ?? []))
+      .catch(() => setPool([]));
+  }, [isOpen]);
+
   // Populate form when editing an existing product
   useEffect(() => {
     if (!creating && data) {
@@ -111,7 +134,20 @@ export function ProductEditPanel({ productId, creating = false, onClose, onSaved
       } else if (Array.isArray(rawSizes)) {
         sizesStr = rawSizes.join(', ');
       }
-      setForm({ ...data, bundle_sizes: sizesStr });
+      // bundle_item_ids llega como JSON string ('["prod_...","..."]') o array
+      const rawItemIds = data.bundle_item_ids as unknown;
+      let itemIds: string[] = [];
+      if (typeof rawItemIds === 'string') {
+        try {
+          const parsed = JSON.parse(rawItemIds);
+          if (Array.isArray(parsed)) itemIds = parsed.map((v) => String(v));
+        } catch {
+          itemIds = [];
+        }
+      } else if (Array.isArray(rawItemIds)) {
+        itemIds = rawItemIds.map((v) => String(v));
+      }
+      setForm({ ...data, bundle_sizes: sizesStr, bundle_item_ids: itemIds });
       setPreview(false);
       setSaved(false);
       setValidationError(null);
@@ -139,7 +175,7 @@ export function ProductEditPanel({ productId, creating = false, onClose, onSaved
     }
     if (form.product_type === 'bundle') {
       if (!form.bundle_unit_price || form.bundle_unit_price <= 0) {
-        setValidationError('Los packs requieren un precio por sticker');
+        setValidationError('Los packs requieren un precio por ítem');
         return;
       }
       const sizes = (form.bundle_sizes ?? '')
@@ -148,6 +184,10 @@ export function ProductEditPanel({ productId, creating = false, onClose, onSaved
         .filter((n) => Number.isInteger(n) && n > 0);
       if (sizes.length === 0) {
         setValidationError('Los packs requieren al menos un tamaño (ej. 3, 4, 6)');
+        return;
+      }
+      if ((form.bundle_item_ids ?? []).length === 0) {
+        setValidationError('Los packs requieren al menos un ítem incluido');
         return;
       }
     }
@@ -431,7 +471,7 @@ export function ProductEditPanel({ productId, creating = false, onClose, onSaved
                     {(
                       [
                         ['standard', 'Standard', 'Compra directa como siempre'],
-                        ['bundle', 'Pack', 'Constructor de stickers'],
+                        ['bundle', 'Pack', 'Constructor de packs'],
                         ['addon', 'Sticker', 'Solo como agregado o en pack'],
                       ] as const
                     ).map(([value, label, hint]) => (
@@ -463,7 +503,7 @@ export function ProductEditPanel({ productId, creating = false, onClose, onSaved
                   <div className="bg-slate-50 rounded-xl p-4 space-y-4 border border-slate-200">
                     <div>
                       <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-1.5">
-                        Precio por sticker (CLP) <span className="text-red-400">*</span>
+                        Precio por ítem (CLP) <span className="text-red-400">*</span>
                       </label>
                       <input
                         type="number"
@@ -476,7 +516,7 @@ export function ProductEditPanel({ productId, creating = false, onClose, onSaved
                         placeholder="1000"
                       />
                       <p className="text-xs text-slate-400 mt-1">
-                        El precio del pack es tamaño × precio por sticker.
+                        El precio del pack es tamaño × precio por ítem.
                       </p>
                     </div>
                     <div>
@@ -490,21 +530,73 @@ export function ProductEditPanel({ productId, creating = false, onClose, onSaved
                         placeholder="3, 4, 6"
                       />
                       <p className="text-xs text-slate-400 mt-1">
-                        Tamaños separados por coma. Ej. 3, 4, 6 = packs de 3, 4 y 6 stickers.
+                        Tamaños separados por coma. Ej. 3, 4, 6 = packs de 3, 4 y 6 ítems.
                       </p>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-slate-700">
-                        Permitir stickers sorpresa
+                        Permitir ítems sorpresa
                         <span className="block text-xs text-slate-400">
-                          Si el usuario elige menos stickers que el tamaño, se completan con
-                          sorpresa (tras confirmación).
+                          Si el usuario elige menos ítems que el tamaño, se completan con sorpresa
+                          (tras confirmación).
                         </span>
                       </span>
                       <Toggle
                         checked={form.bundle_allow_surprise ?? true}
                         onChange={(v) => set('bundle_allow_surprise', v)}
                       />
+                    </div>
+
+                    {/* Ítems incluidos en el pack */}
+                    <div>
+                      <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-1.5">
+                        Ítems incluidos en el pack <span className="text-red-400">*</span>
+                      </label>
+                      {pool.length === 0 ? (
+                        <p className="text-xs text-slate-400 bg-white rounded-lg border border-slate-200 px-3 py-2">
+                          No hay ítems seleccionables. Marca &quot;Seleccionable en packs&quot; en
+                          los productos que quieras ofrecer dentro de packs.
+                        </p>
+                      ) : (
+                        <div className="bg-white rounded-lg border border-slate-200 max-h-56 overflow-y-auto divide-y divide-slate-100">
+                          {pool.map((p) => {
+                            const checked = (form.bundle_item_ids ?? []).includes(p.id);
+                            return (
+                              <label
+                                key={p.id}
+                                className="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-slate-50 transition-colors"
+                              >
+                                <input
+                                  type="checkbox"
+                                  className="w-4 h-4 accent-slate-800"
+                                  checked={checked}
+                                  onChange={() => {
+                                    const current = form.bundle_item_ids ?? [];
+                                    set(
+                                      'bundle_item_ids',
+                                      checked
+                                        ? current.filter((id) => id !== p.id)
+                                        : [...current, p.id],
+                                    );
+                                  }}
+                                />
+                                <span className="flex-1 min-w-0">
+                                  <span className="block text-sm text-slate-800 truncate">
+                                    {p.name}
+                                  </span>
+                                  <span className="block text-[10px] text-slate-400">
+                                    {`${p.category || 'Sin categoría'} · ${p.price.toLocaleString('es-CL')}`}
+                                  </span>
+                                </span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      )}
+                      <p className="text-xs text-slate-400 mt-1">
+                        Solo aparecen ítems con &quot;Seleccionable en packs&quot;. El usuario solo
+                        podrá elegir dentro de esta lista.
+                      </p>
                     </div>
                   </div>
                 )}
@@ -516,7 +608,8 @@ export function ProductEditPanel({ productId, creating = false, onClose, onSaved
                       <span className="text-sm text-slate-700">
                         Seleccionable en packs
                         <span className="block text-xs text-slate-400">
-                          Este sticker puede elegirse dentro de un pack de stickers.
+                          Este ítem puede elegirse dentro de un pack (aparece en la lista de
+                          &quot;Ítems incluidos&quot; de cada pack).
                         </span>
                       </span>
                       <Toggle

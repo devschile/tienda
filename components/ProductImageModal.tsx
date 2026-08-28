@@ -180,9 +180,7 @@ export function ProductImageModal({
             <span
               className={`font-bold bg-gradient-to-r from-brand-primary to-brand-secondary bg-clip-text text-transparent ${size === 'sm' ? 'text-2xl' : 'text-3xl'}`}
             >
-              {isBundle
-                ? `desde ${formatPrice(displayPrice)} · sticker`
-                : formatPrice(displayPrice)}
+              {isBundle ? `desde ${formatPrice(displayPrice)} · ítem` : formatPrice(displayPrice)}
             </span>
           )}
         </div>

@@ -221,7 +221,7 @@ export function ProductCard({
             <div className="w-full flex items-center gap-2 bg-brand-surface p-2 rounded-lg border border-brand-secondary/10">
               <Layers className="h-4 w-4 text-brand-primary" />
               <p className="text-sm text-devs-text/70">
-                Elige el tamaño y combina los stickers que quieras.
+                Elige el tamaño y combina los ítems que quieras.
               </p>
             </div>
           )}
@@ -231,7 +231,7 @@ export function ProductCard({
               animate={{ opacity: 1, x: 0 }}
               className="text-xs text-amber-600 font-medium text-center w-full"
             >
-              Añade antes un producto que cubra el costo de envío para agregar stickers sin envío
+              Añade antes un producto que cubra el costo de envío para agregar ítems sin envío
               extra.
             </motion.p>
           )}

@@ -71,6 +71,7 @@ exports.handler = async (event, context) => {
         p.bundle_unit_price,
         p.bundle_sizes,
         p.bundle_allow_surprise,
+        p.bundle_item_ids,
         p.shipping_enabled,
         p.shipping_tier,
 

@@ -38,6 +38,9 @@ export interface ProductFields {
   bundle_unit_price?: number | null;
   bundle_sizes?: number[] | null;
   bundle_allow_surprise?: boolean;
+  /** Ítems que este pack permite incluir (ids `prod_...` curados por el admin).
+   * Solo aplica a product_type='bundle'. Ausente/null = roster vacío. */
+  bundle_item_ids?: string[] | null;
   /** false = el producto nunca ofrece envío a domicilio (ej. membresías digitales).
    * Opcional — ausente/undefined se trata como true (comportamiento actual). */
   shipping_enabled?: boolean;

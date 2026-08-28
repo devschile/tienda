@@ -26,6 +26,7 @@ const rowToFields = (row) => ({
     selectable_in_bundles: !!row.selectable_in_bundles,
     bundle_unit_price: row.bundle_unit_price != null ? Number(row.bundle_unit_price) : null,
     bundle_sizes: row.bundle_sizes ? JSON.parse(row.bundle_sizes) : null,
+    bundle_item_ids: row.bundle_item_ids ? JSON.parse(row.bundle_item_ids) : null,
     bundle_allow_surprise: row.bundle_allow_surprise,
     shipping_enabled: row.shipping_enabled !== false,
     shipping_tier: row.shipping_tier || 'xs',
@@ -61,6 +62,7 @@ async function getProductById(databaseUrl, id) {
       p.bundle_unit_price,
       p.bundle_sizes,
       p.bundle_allow_surprise,
+      p.bundle_item_ids,
       p.shipping_enabled,
       p.shipping_tier,
 
