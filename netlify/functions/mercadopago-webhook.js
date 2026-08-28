@@ -1,6 +1,8 @@
 // Netlify Function — Webhook de MercadoPago
-// Recibe notificaciones de pago servidor-a-servidor, valida la firma,
-// actualiza el estado de la orden en NeonDB y descuenta stock si fue aprobado.
+// Recibe notificaciones de pago servidor-a-servidor, valida la firma y delega
+// la transición de estado + descuento de stock en lib/fulfill (única fuente de
+// verdad). Si el webhook se pierde o falla, reconcile-payments.js y la
+// reconciliación en get-order.js recuperan la orden automáticamente.
 //
 // CONFIGURAR en Netlify Dashboard y .env:
 //   MERCADOPAGO_WEBHOOK_SECRET → secret del webhook en el panel de MP
@@ -11,19 +13,9 @@
 //   URL: https://tienda.devschile.cl/.netlify/functions/mercadopago-webhook
 //   Eventos: payment (payment.created, payment.updated)
 
-const { MercadoPagoConfig, Payment } = require('mercadopago');
 const { neon } = require('@neondatabase/serverless');
 const crypto = require('crypto');
-
-// Mapeo de estados de MercadoPago a nuestro enum order_status
-const MP_STATUS_MAP = {
-  approved: 'approved',
-  rejected: 'rejected',
-  cancelled: 'cancelled',
-  refunded: 'refunded',
-  in_process: 'pending_transfer',
-  pending: 'pending',
-};
+const { createMpPayment, mapMpStatus, fulfillOrder } = require('./lib/fulfill');
 
 exports.handler = async (event) => {
   // El webhook no necesita CORS — es server-to-server
@@ -39,7 +31,7 @@ exports.handler = async (event) => {
     const databaseUrl = process.env.NEON_DATABASE_URL;
 
     if (!accessToken || !databaseUrl) {
-      console.error('Configuración incompleta');
+      console.error('mercadopago-webhook: configuración incompleta (accessToken/databaseUrl)');
       // Devolver 200 para que MP no reintente indefinidamente
       return { statusCode: 200, headers, body: JSON.stringify({ received: true }) };
     }
@@ -64,7 +56,14 @@ exports.handler = async (event) => {
       const expected = crypto.createHmac('sha256', webhookSecret).update(toSign).digest('hex');
 
       if (expected !== v1) {
-        console.warn('Firma del webhook inválida — posible petición no autorizada');
+        // ⚠️ Señal principal para diagnosticar "nunca se aprueba una orden":
+        // si el MERCADOPAGO_WEBHOOK_SECRET del entorno no coincide con el secret
+        // de la URL registrada en el panel de MP, TODAS las notificaciones se
+        // descartan aquí y las órdenes quedan pending para siempre.
+        console.error(
+          `mercadopago-webhook: firma inválida (payment ${dataId || '?'}) — ` +
+            'revisar MERCADOPAGO_WEBHOOK_SECRET (es único por URL en el panel de MP)',
+        );
         // Retornar 200 para que MP no reintente indefinidamente
         return {
           statusCode: 200,
@@ -72,6 +71,10 @@ exports.handler = async (event) => {
           body: JSON.stringify({ received: true, error: 'invalid_signature' }),
         };
       }
+    } else {
+      // Sin secret configurado se acepta cualquier notificación (entorno de
+      // desarrollo). Dejar constancia para que no pase desapercibido en prod.
+      console.warn('mercadopago-webhook: MERCADOPAGO_WEBHOOK_SECRET no está configurado');
     }
 
     // ── Parsear el body ────────────────────────────────────────────────────
@@ -94,11 +97,12 @@ exports.handler = async (event) => {
     // ── Consultar el pago real a la API de MercadoPago ─────────────────────
     let payment;
     try {
-      const client = new MercadoPagoConfig({ accessToken });
-      payment = await new Payment(client).get({ id: paymentId });
+      payment = await createMpPayment(accessToken).get({ id: paymentId });
     } catch (mpError) {
-      // El pago no existe (ej. ID de prueba 123456) o error de red
-      console.warn('No se pudo obtener el pago de MP:', mpError.message);
+      // El pago no existe (ej. ID de prueba 123456) o error de red. Si el token
+      // del entorno es de TEST y el pago es de producción (o viceversa) falla
+      // siempre aquí — revisar MERCADOPAGO_ACCESS_TOKEN.
+      console.error(`mercadopago-webhook: no se pudo obtener el pago ${paymentId}:`, mpError.message);
       return {
         statusCode: 200,
         headers,
@@ -110,26 +114,27 @@ exports.handler = async (event) => {
     const mpStatus = payment.status;
 
     if (!orderId) {
-      console.warn('Pago sin external_reference:', paymentId);
+      console.warn(`mercadopago-webhook: pago ${paymentId} sin external_reference`);
       return { statusCode: 200, headers, body: JSON.stringify({ received: true }) };
     }
 
-    const newStatus = MP_STATUS_MAP[mpStatus] || 'pending';
+    const newStatus = mapMpStatus(mpStatus);
     const sql = neon(databaseUrl);
 
-    // ── Leer orden actual (idempotencia) ───────────────────────────────────
+    // ── Leer orden actual (idempotencia + log) ─────────────────────────────
     const [currentOrder] = await sql`
       SELECT id, status FROM orders WHERE id = ${orderId}
     `;
 
     if (!currentOrder) {
-      console.error('Orden no encontrada en BD:', orderId);
+      console.error('mercadopago-webhook: orden no encontrada en BD:', orderId);
       return { statusCode: 200, headers, body: JSON.stringify({ received: true }) };
     }
 
-    // Si ya estaba aprobada y vuelve 'approved', no reprocessar (idempotencia)
+    // Ya aprobada y vuelve 'approved' → no reprocesar (idempotencia rápida;
+    // fulfillOrder es el guard definitivo de todos modos).
     if (currentOrder.status === 'approved' && newStatus === 'approved') {
-      console.log('Webhook duplicado ignorado para orden ya aprobada:', orderId);
+      console.log(`mercadopago-webhook: webhook duplicado ignorado para orden ya aprobada: ${orderId}`);
       return {
         statusCode: 200,
         headers,
@@ -137,64 +142,30 @@ exports.handler = async (event) => {
       };
     }
 
-    // ── Actualizar estado de la orden ──────────────────────────────────────
-    // WHERE status <> 'approved' hace idempotente el bloque siguiente ante
-    // invocaciones concurrentes del webhook (solo una descontará stock y
-    // consumirá el código de descuento).
-    const updatedOrders = await sql`
-      UPDATE orders
-      SET
-        status            = ${newStatus}::order_status,
-        mp_payment_id     = ${String(paymentId)},
-        mp_merchant_order = ${String(payment.order?.id || '')}
-      WHERE id = ${orderId}
-        AND status <> 'approved'
-      RETURNING discount_code, discount_type, discount_amount
-    `;
+    // ── Transicionar la orden (y descontar stock si aprobado) ──────────────
+    const { processed, items } = await fulfillOrder({
+      sql,
+      orderId,
+      mpPaymentId: String(paymentId),
+      mpMerchantOrder: String(payment.order?.id || ''),
+      mpStatus,
+    });
 
-    if (updatedOrders.length === 0) {
-      // Ya fue aprobada y procesada antes (webhook duplicado/concurrente).
-      console.log(`Webhook duplicado ignorado para orden ya procesada: ${orderId}`);
+    if (!processed) {
+      console.log(
+        `mercadopago-webhook: orden ${orderId} sin cambios (${currentOrder.status} → ${newStatus})`,
+      );
       return { statusCode: 200, headers, body: JSON.stringify({ received: true, idempotent: true }) };
     }
 
-    console.log(`Orden ${orderId}: ${currentOrder.status} → ${newStatus} (pago ${paymentId})`);
-
-    // ── Si APROBADO: descontar stock y consumir el código de descuento ───────
+    console.log(
+      `mercadopago-webhook: orden ${orderId} ${currentOrder.status} → ${newStatus} (pago ${paymentId})`,
+    );
     if (newStatus === 'approved') {
-      const [approvedOrder] = updatedOrders;
-
-      // Consumir 1 uso del código de descuento (si la orden lo aplicó).
-      // Idempotente gracias al guard `status <> 'approved'` de más arriba.
-      if (approvedOrder.discount_code) {
-        await sql`
-          UPDATE promo_codes
-          SET uses_count = uses_count + 1
-          WHERE code = ${approvedOrder.discount_code}
-        `;
-      }
-
-      const items = await sql`
-        SELECT product_id, quantity FROM order_items WHERE order_id = ${orderId}
-      `;
-
       for (const item of items) {
-        if (item.product_id === 'shipping') continue; // ítem de envío, no es un producto
-        // Slots de "sticker sorpresa" de un pack: no hay un producto concreto que
-        // descontar — se resuelven desde stock disponible al momento de despachar.
-        if (item.product_id.endsWith('@surpresa')) continue;
-        const [updated] = await sql`
-          UPDATE products
-          SET stock = GREATEST(0, stock - ${item.quantity})
-          WHERE id = ${item.product_id}
-          RETURNING id, stock, available
-        `;
-        // El trigger fn_sync_available_on_stock pone available=false si stock=0
-        if (updated) {
-          console.log(
-            `  Producto ${updated.id}: stock=${updated.stock}, available=${updated.available}`,
-          );
-        }
+        console.log(
+          `mercadopago-webhook:   producto ${item.id}: stock=${item.stock}, available=${item.available}`,
+        );
       }
     }
 
@@ -282,7 +253,7 @@ exports.handler = async (event) => {
       }
     } catch (emailError) {
       // Los emails son best-effort — no deben bloquear el webhook
-      console.error('Error enviando emails:', emailError.message);
+      console.error('mercadopago-webhook: error enviando emails:', emailError.message);
     }
 
     return {
@@ -291,7 +262,7 @@ exports.handler = async (event) => {
       body: JSON.stringify({ received: true, order_id: orderId, status: newStatus }),
     };
   } catch (error) {
-    console.error('Error en webhook:', error.message);
+    console.error('mercadopago-webhook: error en webhook:', error.message);
     // 200 para evitar reintentos indefinidos de MP ante errores internos
     return { statusCode: 200, headers, body: JSON.stringify({ received: true }) };
   }

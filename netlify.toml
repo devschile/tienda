@@ -11,6 +11,14 @@
 [functions]
   directory = "netlify/functions"
 
+# Reconciliación de pagos: cada 5 min revisa órdenes pending/pending_transfer
+# contra la API de MP y auto-aprueba + descuenta stock si el pago fue aprobado.
+# Es el respaldo del webhook en tiempo real (si se pierde/rechaza una
+# notificación, la orden igual pasa a approved sola).
+[[scheduled.functions]]
+  functions = ["reconcile-payments"]
+  schedule = "*/5 * * * *"
+
 # og-image usa @napi-rs/canvas (binario nativo .node) que el bundler no puede
 # inline. Se excluye externo solo para esta función: se copia tal cual, junto
 # con las fuentes de la tarjeta OG. El resto de funciones usan el bundler

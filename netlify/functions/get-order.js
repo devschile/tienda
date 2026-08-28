@@ -47,14 +47,49 @@ exports.handler = async (event) => {
       return { statusCode: 404, headers, body: JSON.stringify({ error: 'Orden no encontrada' }) };
     }
 
-    if (order.status === 'pending') {
+    // ── Reconciliación al volver el comprador ──────────────────────────────
+    // Si la orden sigue pendiente, consulta a MP el estado real del pago antes
+    // de mostrar la página de confirmación. Cubre el caso de webhook perdido o
+    // rechazado por firma: la orden se aprueba sola apenas el comprador vuelve.
+    // Best-effort: cualquier error acá no debe romper la página.
+    let status = order.status;
+    if (
+      (status === 'pending' || status === 'pending_transfer') &&
+      process.env.MERCADOPAGO_ACCESS_TOKEN
+    ) {
+      try {
+        const { createMpPayment, findPaymentForOrder, fulfillOrder } = require('./lib/fulfill');
+        const mpPayment = await findPaymentForOrder({
+          payment: createMpPayment(process.env.MERCADOPAGO_ACCESS_TOKEN),
+          orderId: order.id,
+          mpPaymentId: order.mp_payment_id,
+        });
+        if (mpPayment) {
+          const result = await fulfillOrder({
+            sql,
+            orderId: order.id,
+            mpPaymentId: String(mpPayment.id),
+            mpMerchantOrder: String(mpPayment.order?.id || ''),
+            mpStatus: mpPayment.status,
+          });
+          if (result.processed) {
+            console.log(`get-order: orden ${order.id} reconciliada ${status} → ${result.newStatus}`);
+          }
+          if (result.newStatus) status = result.newStatus;
+        }
+      } catch (err) {
+        console.error(`get-order [reconcile] error (orden ${order.id}):`, err.message);
+      }
+    }
+
+    if (status === 'pending') {
       return {
         statusCode: 200,
         headers,
         body: JSON.stringify({
           order: {
             id: order.id,
-            status: order.status,
+            status,
             created_at: order.created_at,
             updated_at: order.updated_at,
           },
@@ -75,7 +110,7 @@ exports.handler = async (event) => {
       body: JSON.stringify({
         order: {
           id: order.id,
-          status: order.status,
+          status,
           total_amount: order.total_amount,
           customer: {
             name: order.customer_name,
