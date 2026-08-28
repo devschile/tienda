@@ -8,9 +8,10 @@ interface ToggleProps {
 
 export function Toggle({ checked, onChange, disabled, size = 'md' }: ToggleProps) {
   const track = size === 'sm' ? 'w-8 h-4' : 'w-10 h-5';
-  const thumb = size === 'sm'
-    ? `w-3 h-3 ${checked ? 'translate-x-4' : 'translate-x-0.5'}`
-    : `w-3.5 h-3.5 ${checked ? 'translate-x-5' : 'translate-x-0.5'}`;
+  const thumb =
+    size === 'sm'
+      ? `w-3 h-3 ${checked ? 'translate-x-4' : 'translate-x-0.5'}`
+      : `w-3.5 h-3.5 ${checked ? 'translate-x-5' : 'translate-x-0.5'}`;
 
   return (
     <button
@@ -23,7 +24,9 @@ export function Toggle({ checked, onChange, disabled, size = 'md' }: ToggleProps
         checked ? 'bg-slate-700' : 'bg-slate-300'
       } ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
     >
-      <span className={`inline-block bg-white rounded-full shadow transition-transform duration-150 ${thumb}`} />
+      <span
+        className={`inline-block bg-white rounded-full shadow transition-transform duration-150 ${thumb}`}
+      />
     </button>
   );
 }
