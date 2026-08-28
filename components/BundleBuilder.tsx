@@ -119,7 +119,7 @@ export function BundleBuilder({
 
               <DialogPrimitive.Content asChild forceMount>
                 <motion.div
-                  className="fixed left-1/2 top-1/2 z-50 w-full max-w-2xl max-h-[88vh] overflow-y-auto rounded-2xl bg-brand-background border border-brand-secondary/10 shadow-2xl p-6"
+                  className="fixed left-1/2 top-1/2 z-50 w-full max-w-2xl max-h-[88vh] flex flex-col rounded-2xl bg-brand-background border border-brand-secondary/10 shadow-2xl p-6"
                   initial={{ opacity: 0, x: '-50%', y: 'calc(-50% + 12px)', scale: 0.96 }}
                   animate={{ opacity: 1, x: '-50%', y: '-50%', scale: 1 }}
                   exit={{ opacity: 0, x: '-50%', y: 'calc(-50% + 12px)', scale: 0.96 }}
@@ -132,167 +132,170 @@ export function BundleBuilder({
                     </DialogPrimitive.Description>
                   </div>
 
-                  {/* Header */}
-                  <div className="flex items-start justify-between pr-8">
-                    <div>
-                      <h2 className="font-mono text-xl font-bold text-brand-secondary">
-                        <EmojiText text={product.fields.name} />
-                      </h2>
-                      <p className="text-sm text-devs-muted mt-0.5">
-                        {unitPrice ? `${formatPrice(unitPrice)} por ítem` : ''} · Elige de los ítems
-                        disponibles
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Paso 1 — Tamaño */}
-                  {sizes && sizes.length > 1 && (
-                    <div className="mt-5">
-                      <p className="text-xs font-medium text-brand-secondary uppercase tracking-wide mb-2">
-                        Tamaño del pack
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {sizes.map((s) => (
-                          <button
-                            key={s}
-                            onClick={() => setSize(s)}
-                            className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors ${
-                              size === s
-                                ? 'bg-gradient-to-r from-brand-primary to-brand-secondary text-white'
-                                : 'bg-brand-surface border border-brand-secondary/20 text-devs-text hover:bg-brand-accent/20'
-                            }`}
-                          >
-                            {s} ítems · {formatPrice(s * unitPrice)}
-                          </button>
-                        ))}
+                  {/* Contenido desplazable */}
+                  <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+                    {/* Header */}
+                    <div className="flex items-start justify-between pr-8">
+                      <div>
+                        <h2 className="font-mono text-xl font-bold text-brand-secondary">
+                          <EmojiText text={product.fields.name} />
+                        </h2>
+                        <p className="text-sm text-devs-muted mt-0.5">
+                          {unitPrice ? `${formatPrice(unitPrice)} por ítem` : ''} · Elige de los
+                          ítems disponibles
+                        </p>
                       </div>
                     </div>
-                  )}
 
-                  {/* Progreso */}
-                  <div className="mt-5 bg-brand-surface rounded-xl p-4 border border-brand-secondary/10">
-                    <div className="flex items-center justify-between text-sm font-semibold text-devs-text">
-                      <span>
-                        Seleccionados: {selectedCount} / {size ?? '—'}
-                      </span>
-                      <span className="font-mono font-bold text-brand-primary">
-                        {formatPrice((size ?? 0) * unitPrice)}
-                      </span>
-                    </div>
-                    <div className="mt-2 h-2 rounded-full bg-brand-secondary/10 overflow-hidden">
-                      <motion.div
-                        className="h-full bg-gradient-to-r from-brand-primary to-brand-secondary"
-                        animate={{
-                          width: `${size ? Math.min(100, (selectedCount / size) * 100) : 0}%`,
-                        }}
-                        transition={{ type: 'spring', bounce: 0.1 }}
-                      />
-                    </div>
+                    {/* Paso 1 — Tamaño */}
+                    {sizes && sizes.length > 1 && (
+                      <div className="mt-5">
+                        <p className="text-xs font-medium text-brand-secondary uppercase tracking-wide mb-2">
+                          Tamaño del pack
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {sizes.map((s) => (
+                            <button
+                              key={s}
+                              onClick={() => setSize(s)}
+                              className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors ${
+                                size === s
+                                  ? 'bg-gradient-to-r from-brand-primary to-brand-secondary text-white'
+                                  : 'bg-brand-surface border border-brand-secondary/20 text-devs-text hover:bg-brand-accent/20'
+                              }`}
+                            >
+                              {s} ítems · {formatPrice(s * unitPrice)}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
-                    {/* Validación incompleta */}
-                    <AnimatePresence initial={false}>
-                      {deficit > 0 && size !== null && (
+                    {/* Progreso */}
+                    <div className="mt-5 bg-brand-surface rounded-xl p-4 border border-brand-secondary/10">
+                      <div className="flex items-center justify-between text-sm font-semibold text-devs-text">
+                        <span>
+                          Seleccionados: {selectedCount} / {size ?? '—'}
+                        </span>
+                        <span className="font-mono font-bold text-brand-primary">
+                          {formatPrice((size ?? 0) * unitPrice)}
+                        </span>
+                      </div>
+                      <div className="mt-2 h-2 rounded-full bg-brand-secondary/10 overflow-hidden">
                         <motion.div
-                          key="deficit"
-                          initial={{ opacity: 0, y: -6 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -6 }}
-                          className="mt-3"
-                        >
-                          {allowSurprise ? (
-                            <>
-                              <p className="text-sm text-amber-700 bg-amber-100 border border-amber-200 rounded-lg px-3 py-2">
-                                ⚠️ Faltan {deficit} {deficit === 1 ? 'ítem' : 'ítems'} —{' '}
-                                {deficit === 1 ? 'se completará' : 'se completarán'} con{' '}
-                                {deficit === 1 ? 'un ítem sorpresa' : 'ítems sorpresa'} (los
-                                elegiremos según stock disponible).
+                          className="h-full bg-gradient-to-r from-brand-primary to-brand-secondary"
+                          animate={{
+                            width: `${size ? Math.min(100, (selectedCount / size) * 100) : 0}%`,
+                          }}
+                          transition={{ type: 'spring', bounce: 0.1 }}
+                        />
+                      </div>
+
+                      {/* Validación incompleta */}
+                      <AnimatePresence initial={false}>
+                        {deficit > 0 && size !== null && (
+                          <motion.div
+                            key="deficit"
+                            initial={{ opacity: 0, y: -6 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -6 }}
+                            className="mt-3"
+                          >
+                            {allowSurprise ? (
+                              <>
+                                <p className="text-sm text-amber-700 bg-amber-100 border border-amber-200 rounded-lg px-3 py-2">
+                                  ⚠️ Faltan {deficit} {deficit === 1 ? 'ítem' : 'ítems'} —{' '}
+                                  {deficit === 1 ? 'se completará' : 'se completarán'} con{' '}
+                                  {deficit === 1 ? 'un ítem sorpresa' : 'ítems sorpresa'} (los
+                                  elegiremos según stock disponible).
+                                </p>
+                                <label className="mt-2 flex items-start gap-2.5 cursor-pointer select-none">
+                                  <input
+                                    type="checkbox"
+                                    checked={surpriseConfirmed}
+                                    onChange={(e) => setSurpriseConfirmed(e.target.checked)}
+                                    className="mt-0.5 w-4 h-4 accent-brand-primary"
+                                  />
+                                  <span className="text-sm text-devs-text">
+                                    Acepto que los {deficit} ítems faltantes sean{' '}
+                                    <strong>sorpresa</strong>.
+                                  </span>
+                                </label>
+                              </>
+                            ) : (
+                              <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                                Debes elegir exactamente {size} ítems para armar el pack.
                               </p>
-                              <label className="mt-2 flex items-start gap-2.5 cursor-pointer select-none">
-                                <input
-                                  type="checkbox"
-                                  checked={surpriseConfirmed}
-                                  onChange={(e) => setSurpriseConfirmed(e.target.checked)}
-                                  className="mt-0.5 w-4 h-4 accent-brand-primary"
-                                />
-                                <span className="text-sm text-devs-text">
-                                  Acepto que los {deficit} ítems faltantes sean{' '}
-                                  <strong>sorpresa</strong>.
+                            )}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+
+                    {/* Paso 2 — Ítems */}
+                    <p className="mt-5 text-xs font-medium text-brand-secondary uppercase tracking-wide">
+                      Elige tus ítems
+                    </p>
+                    {items.length === 0 ? (
+                      <div className="mt-3 bg-brand-surface rounded-xl p-6 text-center text-sm text-devs-muted">
+                        No hay ítems disponibles en stock ahora mismo.
+                      </div>
+                    ) : (
+                      <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        {items.map((item) => {
+                          const qty = counts[item.id] ?? 0;
+                          const exhausted = size !== null && selectedCount >= size && qty === 0;
+                          const soldOut = item.fields.stock === 0;
+                          return (
+                            <div
+                              key={item.id}
+                              className={`rounded-xl border bg-white p-3 transition-colors ${
+                                qty > 0
+                                  ? 'border-brand-primary/60 shadow-md'
+                                  : 'border-brand-secondary/15'
+                              }`}
+                            >
+                              <img
+                                src={item.fields.coverImage?.url ?? '/assets/images/default.svg'}
+                                alt={item.fields.name}
+                                className={`w-full aspect-square object-cover rounded-lg bg-brand-surface ${soldOut || (exhausted && qty === 0) ? 'opacity-40 grayscale' : ''}`}
+                              />
+                              <p className="mt-2 text-sm font-semibold text-devs-text line-clamp-1 leading-tight">
+                                <EmojiText text={item.fields.name} />
+                              </p>
+                              <p className="text-xs text-devs-muted mb-2">
+                                {formatPrice(unitPrice)} · stock {item.fields.stock}
+                              </p>
+                              <div className="flex items-center justify-between gap-2">
+                                <button
+                                  onClick={() => dec(item.id)}
+                                  disabled={qty === 0}
+                                  className="w-7 h-7 rounded-full border border-brand-secondary/20 flex items-center justify-center text-brand-secondary hover:bg-brand-secondary hover:text-white transition-colors disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-brand-secondary"
+                                  aria-label={`Quitar ${item.fields.name}`}
+                                >
+                                  <Minus className="h-3 w-3" />
+                                </button>
+                                <span className="text-sm font-bold text-devs-text min-w-[1.25rem] text-center">
+                                  {qty}
                                 </span>
-                              </label>
-                            </>
-                          ) : (
-                            <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-                              Debes elegir exactamente {size} ítems para armar el pack.
-                            </p>
-                          )}
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+                                <button
+                                  onClick={() => inc(item)}
+                                  disabled={soldOut || exhausted || qty >= item.fields.stock}
+                                  className="w-7 h-7 rounded-full border border-brand-secondary/20 flex items-center justify-center text-brand-secondary hover:bg-brand-secondary hover:text-white transition-colors disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-brand-secondary"
+                                  aria-label={`Agregar ${item.fields.name}`}
+                                >
+                                  <Plus className="h-3 w-3" />
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
 
-                  {/* Paso 2 — Ítems */}
-                  <p className="mt-5 text-xs font-medium text-brand-secondary uppercase tracking-wide">
-                    Elige tus ítems
-                  </p>
-                  {items.length === 0 ? (
-                    <div className="mt-3 bg-brand-surface rounded-xl p-6 text-center text-sm text-devs-muted">
-                      No hay ítems disponibles en stock ahora mismo.
-                    </div>
-                  ) : (
-                    <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-3">
-                      {items.map((item) => {
-                        const qty = counts[item.id] ?? 0;
-                        const exhausted = size !== null && selectedCount >= size && qty === 0;
-                        const soldOut = item.fields.stock === 0;
-                        return (
-                          <div
-                            key={item.id}
-                            className={`rounded-xl border bg-white p-3 transition-colors ${
-                              qty > 0
-                                ? 'border-brand-primary/60 shadow-md'
-                                : 'border-brand-secondary/15'
-                            }`}
-                          >
-                            <img
-                              src={item.fields.coverImage?.url ?? '/assets/images/default.svg'}
-                              alt={item.fields.name}
-                              className={`w-full aspect-square object-cover rounded-lg bg-brand-surface ${soldOut || (exhausted && qty === 0) ? 'opacity-40 grayscale' : ''}`}
-                            />
-                            <p className="mt-2 text-sm font-semibold text-devs-text line-clamp-1 leading-tight">
-                              <EmojiText text={item.fields.name} />
-                            </p>
-                            <p className="text-xs text-devs-muted mb-2">
-                              {formatPrice(unitPrice)} · stock {item.fields.stock}
-                            </p>
-                            <div className="flex items-center justify-between gap-2">
-                              <button
-                                onClick={() => dec(item.id)}
-                                disabled={qty === 0}
-                                className="w-7 h-7 rounded-full border border-brand-secondary/20 flex items-center justify-center text-brand-secondary hover:bg-brand-secondary hover:text-white transition-colors disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-brand-secondary"
-                                aria-label={`Quitar ${item.fields.name}`}
-                              >
-                                <Minus className="h-3 w-3" />
-                              </button>
-                              <span className="text-sm font-bold text-devs-text min-w-[1.25rem] text-center">
-                                {qty}
-                              </span>
-                              <button
-                                onClick={() => inc(item)}
-                                disabled={soldOut || exhausted || qty >= item.fields.stock}
-                                className="w-7 h-7 rounded-full border border-brand-secondary/20 flex items-center justify-center text-brand-secondary hover:bg-brand-secondary hover:text-white transition-colors disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-brand-secondary"
-                                aria-label={`Agregar ${item.fields.name}`}
-                              >
-                                <Plus className="h-3 w-3" />
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-
                   {/* Footer */}
-                  <div className="mt-6 flex items-center justify-between gap-4">
+                  <div className="shrink-0 mt-6 pt-4 border-t border-brand-secondary/10 flex items-center justify-between gap-4">
                     <div>
                       <p className="text-xs text-devs-muted">Total del pack</p>
                       <p className="font-mono text-2xl font-bold text-brand-primary">
