@@ -415,6 +415,8 @@ Las tablas incluyen skeleton animado (Motion) en la carga y stagger spring en la
 
 - CORS whitelist en todas las Netlify Functions
 - Validación y sanitización de inputs en el backend
+- Precio, stock, envío y descuento SIEMPRE recalculados en el servidor desde la BD — nunca se confía en lo que manda el cliente
+- Los packs solo se compran por su flujo (ítem con `bundle`, validado contra el roster): enviados como ítem plano se rechazan, para que no se cobren al `price` placeholder
 - Headers de seguridad en `netlify.toml` — `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Permissions-Policy`
 - `X-Robots-Tag: noindex, nofollow` en todas las rutas `/admin*`
 - Caché inmutable para assets hasheados de Vite (`/assets/*`)
