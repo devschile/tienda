@@ -293,11 +293,15 @@ Acceso mediante JWT con credenciales de las variables de entorno (`ADMIN_EMAIL`,
 |---|---|---|
 | **Dashboard** | `/admin` | Stats por periodo (hoy/7d/30d/6m/todo), últimas órdenes, stock bajo |
 | **Productos** | `/admin/products` | Tabla con skeleton, toggles inline (visible/disponible/oferta/preventa), filtros, crear, editar, gestión de imágenes, exportar CSV |
-| **Pedidos** | `/admin/orders` | Tabs por estado, cambio de estado con confirmación, notas internas, detalle con breakdown de envío, exportar CSV |
+| **Pedidos** | `/admin/orders` | Tabs por estado, cambio de estado con confirmación, notas internas, detalle con dirección de envío copiable y breakdown de totales, exportar CSV |
 | **Códigos** | `/admin/promos` | Códigos de descuento (% / monto fijo / envío gratis), vigencia, límites de uso, toggle activo, exportar CSV |
 | **Configuración** | `/admin/settings` | store_name, tagline, email contacto, modo mantenimiento, envío (habilitado/costo/umbral gratis), status integraciones |
 
 Las tablas incluyen skeleton animado (Motion) en la carga y stagger spring en la entrada de filas.
+
+### Detalle de orden
+
+El panel lateral de `/admin/orders` separa **Cliente** de **Envío**. El bloque de envío muestra la dirección en líneas (calle / comuna–región / código postal) con un botón **Copiar** que deja en el portapapeles el formato de etiqueta de courier (nombre + dirección, una línea por campo). El tier cobrado —que en la base viaja dentro del nombre del ítem, p. ej. `Envío a domicilio (M)`— se extrae y se muestra como badge. Cuando el pedido no lleva despacho, el bloque lo dice explícitamente ("Retiro — sin envío a domicilio") en vez de omitirse, y si el envío salió gratis por umbral (no hay ítem `shipping`) se marca con el chip "sin costo".
 
 ---
 
