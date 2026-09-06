@@ -228,6 +228,20 @@ exports.handler = async (event, context) => {
           body: JSON.stringify({ error: `Producto no encontrado: ${productId}` }),
         };
       }
+      // Un pack solo puede comprarse por su flujo (ítem con `bundle`), que valida
+      // tamaño y roster y arma las líneas por ítem elegido. Recibido como ítem
+      // plano se cobraría `products.price` — un placeholder que no refleja el
+      // precio real del pack (bundle_unit_price × tamaño) y deja la orden sin
+      // saber qué ítems eligió el comprador.
+      if (product.product_type === 'bundle') {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({
+            error: `Los packs deben comprarse con su selección de ítems: ${product.name}`,
+          }),
+        };
+      }
       if (!product.available || product.stock < qty) {
         return {
           statusCode: 400,
