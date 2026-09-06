@@ -1,4 +1,16 @@
-import { X, Loader2, MapPin, Mail, Package, Save, Truck, Terminal } from 'lucide-react';
+import {
+  X,
+  Loader2,
+  MapPin,
+  Mail,
+  Package,
+  Save,
+  Truck,
+  Terminal,
+  Copy,
+  Check,
+  Store,
+} from 'lucide-react';
 import { useAdminOne, useAdminMutation } from '../../hooks/useAdminData';
 import { useState, useEffect } from 'react';
 import posthog from '../../../lib/posthog';
@@ -107,6 +119,7 @@ export function OrderDetailPanel({ orderId, onClose, onSaved }: Props) {
   const [confirm, setConfirm] = useState<string | null>(null);
   const [notes, setNotes] = useState('');
   const [notesSaved, setNotesSaved] = useState(false);
+  const [addressCopied, setAddressCopied] = useState(false);
 
   // Sincronizar textarea cuando carga la orden
   useEffect(() => {
@@ -125,6 +138,27 @@ export function OrderDetailPanel({ orderId, onClose, onSaved }: Props) {
     setTimeout(() => setNotesSaved(false), 2000);
   };
 
+  // Copia la dirección en el formato de una etiqueta de envío (una línea por
+  // campo), para pegarla directo en el courier sin transcribirla a mano.
+  const copyAddress = async () => {
+    if (!order) return;
+    const text = [
+      order.customer_name,
+      order.shipping_address,
+      [order.shipping_city, order.shipping_region].filter(Boolean).join(', '),
+      order.shipping_zip ? `CP ${order.shipping_zip}` : null,
+    ]
+      .filter(Boolean)
+      .join('\n');
+    try {
+      await navigator.clipboard.writeText(text);
+      setAddressCopied(true);
+      setTimeout(() => setAddressCopied(false), 2000);
+    } catch {
+      // Clipboard bloqueado (contexto no seguro o permisos): no rompemos el panel.
+    }
+  };
+
   const handleStatusChange = async (newStatus: string) => {
     if (!orderId || !order) return;
     setConfirm(null);
@@ -140,12 +174,20 @@ export function OrderDetailPanel({ orderId, onClose, onSaved }: Props) {
 
   const nextStatuses = order ? (NEXT_STATUSES[order.status] ?? []) : [];
 
+  // El tier cobrado viaja dentro del nombre del item ("Envío a domicilio (M)");
+  // lo extraemos para mostrarlo como badge propio y dejar la fila con el nombre
+  // limpio. Si el envío salió gratis no hay item — y por lo tanto no hay tier.
+  const shippingItem = (order?.items ?? []).find((i) => i.product_id === 'shipping') ?? null;
+  const shippingTier =
+    shippingItem?.product_name.match(/\(([^)]+)\)\s*$/)?.[1]?.toUpperCase() ?? null;
+  const hasShippingAddress = Boolean(order?.shipping_address);
+
   if (!orderId) return null;
 
   return (
     <>
       <div className="fixed inset-0 z-40 bg-black/30 backdrop-blur-[2px]" onClick={onClose} />
-      <div className="fixed right-0 top-0 h-full w-full max-w-lg z-50 bg-white shadow-2xl flex flex-col">
+      <div className="fixed right-0 top-0 h-full w-full max-w-2xl z-50 bg-white shadow-2xl flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 shrink-0">
           <div>
@@ -240,22 +282,78 @@ export function OrderDetailPanel({ orderId, onClose, onSaved }: Props) {
                     <Mail className="h-3.5 w-3.5 shrink-0" />
                     {order.customer_email}
                   </div>
-                  {order.shipping_address && (
-                    <div className="flex items-start gap-1.5 text-sm text-slate-500">
-                      <MapPin className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                      <span>
-                        {[
-                          order.shipping_address,
-                          order.shipping_city,
-                          order.shipping_region,
-                          order.shipping_zip,
-                        ]
-                          .filter(Boolean)
-                          .join(', ')}
-                      </span>
-                    </div>
-                  )}
                 </div>
+              </section>
+
+              {/* Envío */}
+              <section>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
+                    Envío
+                  </h3>
+                  <div className="flex items-center gap-1.5">
+                    {shippingTier && (
+                      <span
+                        title={`Tier de envío cobrado: ${shippingTier}`}
+                        className="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide bg-blue-50 text-blue-600"
+                      >
+                        {shippingTier}
+                      </span>
+                    )}
+                    {hasShippingAddress && !shippingItem && (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-green-50 text-green-600">
+                        sin costo
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {hasShippingAddress ? (
+                  <div className="rounded-xl border border-slate-100 bg-slate-50/60 px-4 py-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start gap-2 min-w-0">
+                        <MapPin className="h-3.5 w-3.5 shrink-0 mt-1 text-slate-400" />
+                        <address className="not-italic text-sm min-w-0">
+                          <p className="font-medium text-slate-700 break-words">
+                            {order.shipping_address}
+                          </p>
+                          {(order.shipping_city || order.shipping_region) && (
+                            <p className="text-slate-500 mt-0.5 break-words">
+                              {[order.shipping_city, order.shipping_region]
+                                .filter(Boolean)
+                                .join(', ')}
+                            </p>
+                          )}
+                          <p className="text-xs text-slate-400 mt-0.5">
+                            {order.shipping_zip ? `CP ${order.shipping_zip}` : 'Sin código postal'}
+                          </p>
+                        </address>
+                      </div>
+                      <button
+                        onClick={copyAddress}
+                        title="Copiar dirección para la etiqueta de envío"
+                        className="flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-lg border border-slate-200 bg-white hover:bg-slate-50 transition-colors shrink-0"
+                      >
+                        {addressCopied ? (
+                          <>
+                            <Check className="h-3 w-3 text-green-600" />
+                            <span className="text-green-600 font-semibold">Copiada</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="h-3 w-3 text-slate-400" />
+                            <span className="text-slate-500">Copiar</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 rounded-xl border border-dashed border-slate-200 px-4 py-3 text-sm text-slate-500">
+                    <Store className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                    Retiro — sin envío a domicilio
+                  </div>
+                )}
               </section>
 
               {/* Productos + Envío */}
@@ -263,9 +361,7 @@ export function OrderDetailPanel({ orderId, onClose, onSaved }: Props) {
                 {(() => {
                   // ── Breakdown total (subtotal, envío, descuento, total) ───────────────
                   const all = order.items ?? [];
-                  const isShipping = (i: OrderItem) => i.product_id === 'shipping';
-                  const productItems = all.filter((i) => !isShipping(i));
-                  const shippingItem = all.find(isShipping);
+                  const productItems = all.filter((i) => i.product_id !== 'shipping');
                   const shippingCost = shippingItem?.subtotal ?? 0;
                   const discount =
                     order.discount_code && order.discount_amount > 0
@@ -327,8 +423,13 @@ export function OrderDetailPanel({ orderId, onClose, onSaved }: Props) {
                           <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
                             <Truck className="h-3.5 w-3.5 text-blue-500" />
                           </div>
-                          <div className="flex-1 min-w-0">
+                          <div className="flex-1 min-w-0 flex items-center gap-1.5">
                             <p className="text-sm font-medium text-slate-700">Envío a domicilio</p>
+                            {shippingTier && (
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wide bg-blue-50 text-blue-600">
+                                {shippingTier}
+                              </span>
+                            )}
                           </div>
                           <p className="text-sm font-semibold text-slate-700">
                             {formatCLP(shippingCost)}
