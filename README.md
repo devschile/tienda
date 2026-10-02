@@ -70,6 +70,9 @@ ADMIN_EMAIL=
 ADMIN_PASSWORD=contraseña-segura
 ADMIN_JWT_SECRET=string-aleatorio-64-chars  # openssl rand -base64 48
 
+# culpeo (CRM) — API de solo lectura /culpeo-api/* (sin ella responde 401)
+CULPEO_API_TOKEN=                           # openssl rand -hex 32
+
 # CORS y entorno
 ALLOWED_ORIGINS=https://tienda.devschile.cl,https://devschile-tienda.netlify.app
 SITE_URL=http://localhost:3000
@@ -339,6 +342,8 @@ El panel lateral de `/admin/orders` separa **Cliente** de **Envío**. El bloque 
 ├── data/
 │   └── comunas-chile.ts     # 346 comunas / 16 regiones de Chile
 ├── docs/
+│   ├── admin-api.md
+│   ├── culpeo-api.md
 │   └── mercadopago-integration.md
 ├── hooks/
 │   ├── useCart.ts           # Estado del carrito (localStorage)
@@ -349,6 +354,7 @@ El panel lateral de `/admin/orders` separa **Cliente** de **Envío**. El bloque 
 │       ├── admin-api.js         # Router CRUD admin (JWT) — products, orders, images,
 │       │                        # upload, settings, dashboard
 │       ├── admin-auth.js        # POST login → JWT (timingSafeEqual, delay en fallo)
+│       ├── culpeo-api.js        # Lectura para culpeo (Bearer) — orders con ítems, products
 │       ├── create-payment.js    # Crea orden + preferencia MP + emails intención
 │       ├── get-order.js         # Consulta orden por ID
 │       ├── get-products.js      # Catálogo público desde NeonDB
@@ -429,6 +435,7 @@ El panel lateral de `/admin/orders` separa **Cliente** de **Envío**. El bloque 
 - Firma HMAC-SHA256 para validar webhooks de MercadoPago
 - Webhook idempotente — órdenes ya aprobadas no se reprocesam
 - Admin JWT: `crypto.timingSafeEqual()` en comparación de credenciales + delay de 500ms en fallos
+- culpeo API (`/culpeo-api/*`): función aparte de `admin-api`, solo `GET`, Bearer `CULPEO_API_TOKEN` comparado por digest SHA-256 con `timingSafeEqual`; falla cerrado (401) si la variable no está configurada, y `Cache-Control: no-store`
 
 ---
 

@@ -74,6 +74,13 @@
   to   = "/.netlify/functions/admin-api/:splat"
   status = 200
 
+# culpeo API — lectura de órdenes/productos para el CRM (Bearer CULPEO_API_TOKEN)
+# DEBE ir antes del catch-all /* para que Netlify no sirva index.html
+[[redirects]]
+  from = "/culpeo-api/*"
+  to   = "/.netlify/functions/culpeo-api/:splat"
+  status = 200
+
 # Imagen OG de producto — enruta /og-image/<id>.png a la función generadora
 # DEBE ir antes del catch-all /* (la URL es determinística y se cachea en el CDN)
 [[redirects]]
